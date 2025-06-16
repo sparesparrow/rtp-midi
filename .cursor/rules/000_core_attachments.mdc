@@ -1,0 +1,9 @@
+---
+description: Aggregates all core and integration rules for project-wide context
+globs: src/**/*
+alwaysApply: false
+---
+@001_workspace.mdc
+@002_cursor_rules.mdc
+@100_ddp_audio_led_sync.mdc
+@101_midi_esp32_android.mdc

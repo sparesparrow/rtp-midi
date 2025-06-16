@@ -1,0 +1,22 @@
+---
+description: MIDI over RTP/USB, WLED control, Android integration, Rust/AIDL, Tasker, logging
+globs: src/android/aidl_service.rs, src/midi/rtp/packet.rs, src/wled_control.rs
+alwaysApply: false
+---
+- Offer both Tasker (automation) and Rust/AIDL (service) paths; clarify if ambiguous
+- Default to Rust/AIDL for production, Tasker for rapid prototyping
+- Prefer RTP-MIDI (rtpmidi crate) for MIDI; use direct USB (rusb/libusb) only if required
+- Use network bridge app (e.g., MIDI Hub) for Android MIDI input unless direct USB is needed
+- Control WLED via JSON API; prefer wled-json-api-library, else reqwest/serde_json
+- POST all WLED commands to /json/state; validate payloads
+- Use UniFFI or AIDL for Rust/Android FFI/IPC; avoid manual JNI
+- Define AIDL in .aidl files, correct directory structure
+- Register Rust services with Android Service Manager
+- Provide simple Kotlin/Java UI client if needed
+- For voice: recommend cloud-bridged (Voice Monkey + IFTTT + webhook) for complex, FauxmoESP for simple
+- Keep MIDI, WLED, IPC modules separate and documented
+- Log all MIDI/WLED events; provide troubleshooting steps
+- If user query is ambiguous, offer alternatives
+- Follow official docs for all crates/APIs
+- Use idiomatic Rust, clear error handling
+- Never assume direct hardware access; clarify controller role

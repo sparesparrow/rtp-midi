@@ -1,0 +1,8 @@
+# Sample configuration for Rust MIDI/Audio to WLED/LED service
+wled_ip = "192.168.1.100"
+ddp_port = 4048
+led_count = 60
+color_format = "RGB" # or "RGBW"
+audio_device = "" # leave empty for default
+test_midi_port = 5004
+log_level = "info" 

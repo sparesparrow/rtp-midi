@@ -1,0 +1,24 @@
+[package]
+name = "rtp-midi"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4.0", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = { version = "0.23", features = ["connect"] }
+futures-util = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.0", features = ["v4"] }
+log = "0.4"
+env_logger = "0.11"
+crossbeam-channel = "0.5"
+cpal = "0.15"
+rustfft = "6.1"
+anyhow = "1.0"
+ddp-rs = "0.3"
+toml = "0.8"
+tempfile = "3.10"
+reqwest = { version = "0.11", features = ["json", "blocking", "rustls-tls"] }
+num-traits = "0.2"

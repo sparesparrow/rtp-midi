@@ -1,0 +1,20 @@
+---
+description: Project overview and workspace structure for real-time audio/LED sync
+globs: src/**/*, .cursor/rules/**/*, config/**/*, tests/**/*
+alwaysApply: false
+---
+# Project Overview
+- Real-time audio analysis and LED synchronization using Rust
+- Uses DDP protocol to control LED strips via WLED/ESP32
+- Core directories: src/ (Rust code), .cursor/rules/ (rules), config/ (optional), tests/
+- Main constraints: Low-latency, modular, testable, cross-platform
+- Audio input via cpal, FFT via rustfft, DDP via ddp-rs
+- LED payloads must match WLED config (RGB/RGBW, count)
+- All configuration should be externalized (TOML/JSON)
+- Logging and error handling required throughout
+- Testing: unit, integration, and hardware-in-the-loop
+- Never send DDP directly to analog strips; always via controller
+- Document all mappings and configuration options
+- Use idiomatic Rust and follow best practices
+- Modularize: audio_input, audio_analysis, light_mapper, ddp_output, config
+- All code and rules are version-controlled

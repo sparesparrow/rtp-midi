@@ -1,0 +1,19 @@
+---
+description: DDP audio-to-LED sync: modular, testable, config-driven, WLED/ESP32, error-logged
+globs: src/audio_input.rs, src/audio_analysis.rs, src/light_mapper.rs, src/ddp_output.rs, src/config.rs
+alwaysApply: false
+---
+- Use cpal for audio input, rustfft for FFT, ddp-rs for DDP
+- Modularize: audio_input, audio_analysis, light_mapper, ddp_output, config
+- DDP packets: 10-byte header, UDP port 4048, match WLED config (RGB/RGBW, count)
+- Normalize/smooth audio features before mapping to LEDs
+- Separate threads/tasks for audio, analysis, DDP output; use channels for comms
+- Regulate DDP frame rate (30–60 FPS)
+- All config externalized (TOML/JSON via serde)
+- Log errors/events with log + env_logger/fern
+- Unit/integration tests for FFT, mapping, DDP
+- Document analog vs digital LED distinction; always use controller
+- If user query is ambiguous, offer alternatives
+- Follow official docs for all crates/APIs
+- Use idiomatic Rust, clear error handling
+- Never assume direct hardware access; clarify controller role

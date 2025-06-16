@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RTP-MIDI Signaling Client</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+        }
+        #messages {
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 300px;
+            overflow-y: scroll;
+            margin-bottom: 10px;
+        }
+        .message {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        .controls label,
+        .controls input[type="text"],
+        .controls button {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>RTP-MIDI Signaling Client</h1>
+    <p>Connection Status: <span id="status">Connecting...</span></p>
+    
+    <div class="controls">
+        <label for="peerIdInput">Target Peer ID:</label>
+        <input type="text" id="peerIdInput" placeholder="Enter peer ID">
+        <button id="connectButton">Connect to Peer</button>
+    </div>
+
+    <h2>Messages</h2>
+    <div id="messages"></div>
+
+    <script src="script.js"></script>
+</body>
+</html> 
