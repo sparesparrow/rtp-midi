@@ -208,17 +208,10 @@ impl RtpMidiPacket {
             
             let status_byte = *command_reader.chunk().first().ok_or_else(|| anyhow!("Missing status byte"))?;
             
-            // --- FIX STARTS HERE ---
-            let cmd_len_res = midi_command_length(status_byte);
-            if cmd_len_res.is_err() {
-                // Handle error case if midi_command_length can fail
-                return Err(anyhow!("Failed to determine command length"));
-            }
-            let cmd_len = cmd_len_res.unwrap(); // Unwrap the result
-            // --- FIX ENDS HERE ---
-
+            let cmd_len = midi_command_length(status_byte)?;
+            
             if command_reader.remaining() < cmd_len {
-                return Err(anyhow!("Incomplete MIDI command data"));
+                 return Err(anyhow!("Incomplete MIDI command data"));
             }
             let command_data = command_reader.copy_to_bytes(cmd_len);
             commands.push(MidiMessage::new(delta_time, command_data.to_vec()));

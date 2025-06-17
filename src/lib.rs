@@ -1,3 +1,4 @@
+use std::fs;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -6,7 +7,8 @@ use log::{error, info};
 
 // --- Core Modules & Imports ---
 use crate::audio_analysis::compute_fft_magnitudes;
-use crate::mapping::{InputEvent, Mapping, Config};
+// `audio_input` is brought in by `pub mod` below, so this `use` is not needed.
+use crate::mapping::{InputEvent, Mapping}; // Corrected: `Config` is defined in this file.
 use crate::midi::parser::{self, MidiCommand};
 use crate::midi::rtp::message::MidiMessage;
 use crate::midi::rtp::session::RtpMidiSession;
@@ -24,6 +26,29 @@ pub mod mapping;
 pub mod midi;
 pub mod wled_control;
 
+// --- Structs defined at the library root ---
+#[derive(Debug, serde::Deserialize, Clone, PartialEq)]
+pub struct Config {
+    pub wled_ip: String,
+    pub ddp_port: Option<u16>,
+    pub led_count: usize,
+    pub color_format: Option<String>,
+    pub audio_device: Option<String>,
+    pub midi_port: Option<u16>,
+    pub log_level: Option<String>,
+    pub mappings: Option<Vec<Mapping>>,
+}
+
+// --- Implementation for Config ---
+// This block adds the missing `load_from_file` function.
+impl Config {
+    pub fn load_from_file(path: &str) -> anyhow::Result<Self> {
+        let content = fs::read_to_string(path)?;
+        let config: Config = toml::from_str(&content)?;
+        Ok(config)
+    }
+}
+
 
 // --- Main Service Loop ---
 pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
@@ -40,7 +65,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
     // --- Start Audio Input Thread ---
     let audio_input_config = config.clone();
     let _audio_input_handle = std::thread::spawn(move || {
-        audio_input::start_audio_input(audio_input_config.audio_device.as_deref(), audio_tx)
+        crate::audio_input::start_audio_input(audio_input_config.audio_device.as_deref(), audio_tx)
             .expect("Failed to start audio input stream");
     });
 
