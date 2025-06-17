@@ -1567,6 +1567,7 @@ name = "rtp-midi"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bytes",
  "clap",
  "cpal",
  "crossbeam-channel",
@@ -1576,6 +1577,7 @@ dependencies = [
  "log",
  "num-traits",
  "reqwest",
+ "rtp-midi",
  "rustfft",
  "serde",
  "serde_json",
@@ -1583,6 +1585,7 @@ dependencies = [
  "tokio",
  "tokio-tungstenite",
  "toml",
+ "url",
  "uuid",
 ]
 

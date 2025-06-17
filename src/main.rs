@@ -1,20 +1,15 @@
-mod config;
-mod audio_input;
-mod audio_analysis;
-mod light_mapper;
-mod ddp_output;
-
 use crossbeam_channel::{bounded, Sender, Receiver};
 use std::thread;
 use std::time::Duration;
 use log::{info, error};
 use cpal::traits::StreamTrait;
+use rtp_midi::{Config, start_audio_input, compute_fft_magnitudes, map_audio_to_leds, create_ddp_sender, send_ddp_frame};
 
 fn main() {
     // Initialize logging
     env_logger::init();
     // Load config
-    let config = match config::Config::load_from_file("config.toml") {
+    let config = match Config::load_from_file("config.toml") {
         Ok(cfg) => cfg,
         Err(e) => {
             eprintln!("Failed to load config: {}", e);
@@ -33,7 +28,7 @@ fn main() {
     // Audio input thread
     let audio_device = config.audio_device.clone();
     let audio_input_handle = thread::spawn(move || {
-        match audio_input::start_audio_input(audio_device.as_deref(), audio_tx) {
+        match start_audio_input(audio_device.as_deref(), audio_tx) {
             Ok(stream) => {
                 info!("Audio input started");
                 stream.play().expect("Failed to start audio stream");
@@ -52,7 +47,7 @@ fn main() {
         let smoothing = 0.7;
         for _ in 0..5 { // Test: process 5 frames
             if let Ok(buffer) = audio_rx.recv_timeout(Duration::from_secs(1)) {
-                let mags = audio_analysis::compute_fft_magnitudes(&buffer, &mut prev, smoothing);
+                let mags = compute_fft_magnitudes(&buffer, &mut prev, smoothing);
                 fft_tx2.send(mags).expect("Failed to send FFT mags");
             } else {
                 error!("Timeout waiting for audio buffer");
@@ -67,7 +62,7 @@ fn main() {
     let mapping_handle = thread::spawn(move || {
         for _ in 0..5 {
             if let Ok(mags) = fft_rx.recv_timeout(Duration::from_secs(1)) {
-                let leds = light_mapper::map_audio_to_leds(&mags, led_count);
+                let leds = map_audio_to_leds(&mags, led_count);
                 led_tx2.send(leds).expect("Failed to send LED data");
             } else {
                 error!("Timeout waiting for FFT mags");
@@ -84,7 +79,7 @@ fn main() {
     let ddp_handle = thread::spawn(move || {
         // Only RGB is supported by ddp-rs 0.3
         let rgbw = color_format.eq_ignore_ascii_case("RGBW");
-        let mut sender = match ddp_output::create_ddp_sender(&wled_ip, ddp_port, led_count, rgbw) {
+        let mut sender = match create_ddp_sender(&wled_ip, ddp_port, led_count, rgbw) {
             Ok(s) => s,
             Err(e) => {
                 error!("Failed to create DDP sender: {}", e);
@@ -93,7 +88,7 @@ fn main() {
         };
         for _ in 0..5 {
             if let Ok(leds) = led_rx.recv_timeout(Duration::from_secs(1)) {
-                match ddp_output::send_ddp_frame(&mut sender, &leds) {
+                match send_ddp_frame(&mut sender, &leds) {
                     Ok(_) => info!("Sent {} bytes to DDP", leds.len()),
                     Err(e) => error!("Failed to send DDP frame: {}", e),
                 }
