@@ -2,7 +2,14 @@ use anyhow::Result;
 use ddp_rs::connection::DDPConnection;
 use core::{DataStreamNetSender, StreamError, DataStreamNetReceiver};
 
-/// Wrapper pro DDP odesílač implementující sjednocené API
+/// Wrapper pro DDP odesílač implementující sjednocené API.
+/// 
+/// Umožňuje odesílat LED data přes DDP protokol jednotným způsobem (implementace DataStreamNetSender).
+/// Použijte např. v service loop nebo v enum dispatch pro embedded buildy.
+///
+/// Příklad použití:
+/// let mut sender = DdpSender::new(ddp_conn);
+/// sender.send(0, &[0,1,2,3]);
 pub struct DdpSender {
     conn: DDPConnection,
 }
@@ -37,7 +44,15 @@ pub fn create_ddp_sender(ip: &str, port: u16, _led_count: usize, _rgbw: bool) ->
     Ok(sender)
 }
 
-/// Šablona pro DDP přijímač implementující sjednocené API
+/// Šablona pro DDP přijímač implementující sjednocené API.
+/// 
+/// Připravena pro budoucí rozšíření (implementace DataStreamNetReceiver).
+///
+/// Příklad použití:
+/// let mut rx = DdpReceiver::new();
+/// rx.init()?;
+/// let mut buf = [0u8; 512];
+/// if let Some((ts, len)) = rx.poll(&mut buf)? { /* ... */ }
 pub struct DdpReceiver {
     // zde bude např. socket nebo jiný zdroj
 }

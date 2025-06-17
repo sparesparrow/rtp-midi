@@ -20,11 +20,16 @@ pub mod journal_engine;
 
 use std::fmt;
 
-/// Chyba při práci se streamem
+/// Chyba při práci se streamem.
+/// 
+/// Používá se ve všech implementacích DataStreamNetSender/Receiver pro sjednocené API napříč platformami.
 #[derive(Debug)]
 pub enum StreamError {
+    /// IO chyba (např. socket, soubor)
     Io(std::io::Error),
+    /// Síťová chyba (např. unreachable, timeout)
     Network(String),
+    /// Ostatní chyby
     Other(String),
 }
 
@@ -46,23 +51,35 @@ impl From<std::io::Error> for StreamError {
     }
 }
 
-/// Trait pro odesílače datových streamů
+/// Trait pro odesílače datových streamů (síť, HW, ...).
+/// 
+/// Implementujte pro každý typ výstupu (WLED, DDP, DMX, ...).
+/// Umožňuje jednotné API napříč platformami a buildy.
 pub trait DataStreamNetSender {
+    /// Inicializace zařízení/zdroje (volitelné, lze nechat prázdné)
     fn init(&mut self) -> Result<(), StreamError>;
+    /// Odeslání datového paketu s timestampem
     fn send(&mut self, ts: u64, payload: &[u8]) -> Result<(), StreamError>;
-    // Defaultní metoda pro sdílenou logiku (např. fragmentace)
+    /// Defaultní metoda pro sdílenou logiku (např. fragmentace, retry)
     fn send_raw(&mut self, ts: u64, payload: &[u8]) -> Result<(), StreamError> {
         self.send(ts, payload)
     }
 }
 
-/// Trait pro přijímače datových streamů
+/// Trait pro přijímače datových streamů (síť, HW, ...).
+/// 
+/// Implementujte pro každý typ vstupu (RTP-MIDI, DDP, ...).
 pub trait DataStreamNetReceiver {
+    /// Inicializace přijímače
     fn init(&mut self) -> Result<(), StreamError>;
+    /// Čtení/polling dat do bufferu, vrací timestamp a délku
     fn poll(&mut self, buf: &mut [u8]) -> Result<Option<(u64, usize)>, StreamError>;
 }
 
-/// Mock implementace DataStreamNetSender pro testování a dependency injection
+/// Mock implementace DataStreamNetSender pro testování a dependency injection.
+/// 
+/// Umožňuje testovat logiku bez skutečného síťového/hardware výstupu.
+/// Příklad použití v testu viz níže.
 pub struct MockSender {
     pub sent: Vec<(u64, Vec<u8>)>,
 }
