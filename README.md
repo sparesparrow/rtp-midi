@@ -539,4 +539,42 @@ sequenceDiagram
     WLEDDevice-->>User: LEDs update in real time
 ```
 
+## Class Diagram (Key Rust Core Types)
+
+```mermaid
+---
+title: RTP-MIDI Rust Core Class Diagram
+theme: forest
+---
+classDiagram
+    class MidiEvent {
+        +u8 channel
+        +u8 note
+        +u8 velocity
+        +EventType event_type
+    }
+    class Packet {
+        +Vec<u8> data
+        +u32 timestamp
+        +from_midi_event()
+        +to_ddp_packet()
+    }
+    class LightMapping {
+        +Vec<MappingRule> rules
+        +map_audio()
+        +map_midi()
+    }
+    class DdpPacket {
+        +u8 header[10]
+        +Vec<u8> payload
+        +from_packet()
+        +to_udp()
+    }
+    MidiEvent <.. Packet : "from_midi_event()"
+    Packet <.. DdpPacket : "to_ddp_packet()"
+    LightMapping <.. Packet : "map_midi()"
+    classDef core fill:#c6e48b,stroke:#333,stroke-width:2px;
+    class MidiEvent,Packet,LightMapping,DdpPacket core;
+```
+
 ---
