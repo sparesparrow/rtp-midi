@@ -3,7 +3,7 @@ use reqwest::Client;
 use serde_json::json;
 use log::{error, info};
 use utils::Event;
-use network::network_interface::NetworkInterface;
+// use utils::NetworkInterface; // Removed to break dependency cycle
 use utils::WledOutputAction;
 use std::sync::Arc;
 use tokio::sync::broadcast;
