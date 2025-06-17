@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use serde::{Deserialize, Serialize};
+use utils::MidiCommand;
 
 /// Represents a MIDI command.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

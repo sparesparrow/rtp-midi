@@ -12,7 +12,7 @@ pub enum Event {
     SendPacket { destination: String, port: u16, data: Vec<u8> },
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum InputEvent {
     MidiNoteOn {
         note: Option<u8>,
@@ -30,7 +30,7 @@ pub enum InputEvent {
     // Midi(MidiCommand), // This will need to be handled for cross-crate
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum WledOutputAction {
     SetPreset { id: i32 },
     SetBrightness { value: u8 },
@@ -39,26 +39,10 @@ pub enum WledOutputAction {
     SetPalette { id: i32 },
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Mapping {
     pub input: InputEvent,
     pub output: Vec<WledOutputAction>,
-}
-
-impl Mapping {
-    pub fn matches_midi_command(&self, command: &crate::MidiCommand) -> bool {
-        match (&self.input, command) {
-            (InputEvent::MidiNoteOn { note, velocity: note_vel }, crate::MidiCommand::NoteOn { channel: _, key, velocity: cmd_vel }) => {
-                (note.is_none() || *note == Some(*key))
-                    && (note_vel.is_none() || *note_vel == Some(*cmd_vel))
-            },
-            (InputEvent::MidiControlChange { controller, value }, crate::MidiCommand::ControlChange { channel: _, control, value: cc_val }) => {
-                (controller.is_none() || *controller == Some(*control))
-                    && (value.is_none() || *value == Some(*cc_val))
-            },
-            _ => false,
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -72,6 +56,25 @@ pub struct ParsedPacket {
     pub timestamp: u32,
     pub ssrc: u32,
     pub payload: Vec<u8>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum MidiCommand {
+    NoteOff { channel: u8, key: u8, velocity: u8 },
+    NoteOn { channel: u8, key: u8, velocity: u8 },
+    PolyphonicKeyPressure { channel: u8, key: u8, value: u8 },
+    ControlChange { channel: u8, control: u8, value: u8 },
+    ProgramChange { channel: u8, program: u8 },
+    ChannelPressure { channel: u8, value: u8 },
+    PitchBendChange { channel: u8, value: u16 },
+    TimingClock,
+    Start,
+    Continue,
+    Stop,
+    ActiveSensing,
+    TuneRequest,
+    SystemExclusive(Vec<u8>),
+    Unknown { status: u8, data: Vec<u8> },
 }
 
 #[cfg(test)]
