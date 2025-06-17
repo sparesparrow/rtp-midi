@@ -5,29 +5,14 @@ use std::time::Duration;
 
 use log::{error, info};
 
-// --- Core Modules & Imports ---
-use self::audio_analysis::compute_fft_magnitudes;
-// `audio_input` is brought in by `pub mod` below, so the `use` statement was removed.
-use self::mapping::{InputEvent, Mapping}; // Corrected: `Config` is defined in this file.
-use self::midi::parser::{self, MidiCommand};
-use self::midi::rtp::message::MidiMessage;
-use self::midi::rtp::session::RtpMidiSession;
-use self::wled_control as wled;
-
-
-// --- Module Declarations ---
-pub mod audio_analysis;
-pub mod audio_input;
-pub mod ddp_output;
-pub mod ffi;
-pub mod light_mapper;
-pub mod mapping;
-pub mod midi;
-pub mod wled_control;
-pub mod event_bus;
-pub mod network_interface;
-pub mod packet_processor;
-pub mod journal_engine;
+// --- Modular Crate Imports ---
+use audio::audio_analysis::compute_fft_magnitudes;
+use audio::audio_input;
+use core::{event_bus, mapping::{InputEvent, Mapping}};
+use network::midi::parser::{self, MidiCommand};
+use network::midi::rtp::message::MidiMessage;
+use network::midi::rtp::session::RtpMidiSession;
+use output as wled;
 
 // --- Structs defined at the library root ---
 #[derive(Debug, serde::Deserialize, Clone, PartialEq)]
@@ -49,7 +34,6 @@ pub struct Config {
 }
 
 // --- Implementation for Config ---
-// This block adds the missing `load_from_file` function needed by ffi.rs.
 impl Config {
     pub fn load_from_file(path: &str) -> anyhow::Result<Self> {
         let content = fs::read_to_string(path)?;
@@ -57,7 +41,6 @@ impl Config {
         Ok(config)
     }
 }
-
 
 // --- Main Service Loop ---
 pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
@@ -69,14 +52,14 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
     let ddp_port = config.ddp_port.unwrap_or(4048);
 
     // --- Event Bus Setup ---
-    let (event_tx, mut audio_event_rx) = self::event_bus::create_event_bus();
+    let (event_tx, mut audio_event_rx) = event_bus::create_event_bus();
     let mut midi_event_rx = event_tx.subscribe();
     let mut network_send_rx = event_tx.subscribe();
     let network_recv_tx = event_tx.clone();
 
     // --- Start Network Interface Task ---
     tokio::spawn(async move {
-        self::network_interface::start_network_interface(network_send_rx, network_recv_tx, midi_port)
+        network::network_interface::start_network_interface(network_send_rx, network_recv_tx, midi_port)
             .await
             .expect("Failed to start network interface");
     });
@@ -85,7 +68,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
     let audio_input_config = config.clone();
     let event_tx_clone = event_tx.clone();
     let _audio_input_handle = std::thread::spawn(move || {
-        self::audio_input::start_audio_input(audio_input_config.audio_device.as_deref(), event_tx_clone)
+        audio_input::start_audio_input(audio_input_config.audio_device.as_deref(), event_tx_clone)
             .expect("Failed to start audio input stream");
     });
 
@@ -99,7 +82,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
         let mut raw_packet_rx = event_tx_clone_midi.subscribe();
         tokio::spawn(async move {
             while let Ok(event) = raw_packet_rx.recv().await {
-                if let self::event_bus::Event::RawPacketReceived { source, data } = event {
+                if let core::event_bus::Event::RawPacketReceived { source, data } = event {
                     info!("RTP-MIDI Session received raw packet from {}: {:?}", source, data);
                     session.handle_incoming_packet(data).await;
                 }
@@ -107,7 +90,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
         });
 
         session.add_outgoing_packet_handler(move |destination, port, data| {
-            if let Err(e) = event_tx_clone_midi.send(self::event_bus::Event::SendPacket { 
+            if let Err(e) = event_tx_clone_midi.send(core::event_bus::Event::SendPacket { 
                 destination: destination.to_string(), 
                 port, 
                 data 
@@ -118,7 +101,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
 
         session.add_midi_command_handler(move |commands: Vec<MidiMessage>| {
             for command in commands {
-                if let Err(e) = event_tx_clone_midi.send(self::event_bus::Event::MidiMessageReceived(command.command)) {
+                if let Err(e) = event_tx_clone_midi.send(core::event_bus::Event::MidiMessageReceived(command.command)) {
                     error!("Failed to send MIDI command to event bus: {}", e);
                 }
             }
@@ -131,7 +114,6 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
         let _ = session.start().await;
     });
 
-
     // --- Main Processing Loop ---
     let mut prev_mags = Vec::new();
     let mut bass_preset_triggered = false;
@@ -139,7 +121,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
     while running.load(Ordering::SeqCst) {
         // --- Audio Processing ---
         if let Ok(event) = audio_event_rx.try_recv() {
-            if let self::event_bus::Event::AudioDataReady(audio_buffer) = event {
+            if let core::event_bus::Event::AudioDataReady(audio_buffer) = event {
                 let magnitudes = compute_fft_magnitudes(&audio_buffer, &mut prev_mags, 0.5);
                 let band_size = magnitudes.len() / 3;
                 let bass_level = magnitudes.iter().take(band_size).cloned().fold(0.0, f32::max);
@@ -153,7 +135,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
                                 if bass_level >= trigger_threshold && !bass_preset_triggered {
                                     info!("Bass peak detected! Level: {:.2}. Triggering actions.", bass_level);
                                     for action in &mapping.output {
-                                        wled::execute_wled_action(action, &wled_ip).await;
+                                        wled::wled_control::execute_wled_action(action, &wled_ip).await;
                                     }
                                     bass_preset_triggered = true;
                                 } else if bass_level < trigger_threshold && bass_preset_triggered {
@@ -168,7 +150,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
 
         // --- MIDI Processing ---
         if let Ok(event) = midi_event_rx.try_recv() { // event is MidiMessage
-            if let self::event_bus::Event::MidiMessageReceived(midi_command_bytes) = event {
+            if let core::event_bus::Event::MidiMessageReceived(midi_command_bytes) = event {
                 if let Ok((parsed_command, _)) = parser::parse_midi_message(&midi_command_bytes) {
                     if let Some(mappings) = &mappings {
                         for mapping in mappings {
@@ -179,7 +161,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
                                     _ => ()
                                 }
                                 for action in &mapping.output {
-                                    wled::execute_wled_action(action, &wled_ip).await;
+                                    wled::wled_control::execute_wled_action(action, &wled_ip).await;
                                 }
                             }
                         }

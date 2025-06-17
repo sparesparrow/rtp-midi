@@ -7,12 +7,18 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-anyhow = { workspace = true }
-log = { workspace = true }
+audio = { path = "../audio" }
+network = { path = "../network" }
+output = { path = "../output" }
+core = { path = "../core" }
+platform = { path = "../platform" }
+utils = { path = "../utils" }
+log = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"
+anyhow = "1.0"
+tokio = { version = "1", features = ["full"] }
 crossbeam-channel = { workspace = true }
-tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
-serde = { workspace = true, features = ["derive"] }
-toml = { workspace = true }
 ddp-rs = { workspace = true }
 cpal = { workspace = true }
 rustfft = { workspace = true }
