@@ -4,15 +4,14 @@ use anyhow::{anyhow, Result};
 use log::{info, warn};
 use std::collections::BTreeSet;
 
-use network::midi::parser::midi_command_length;
-use network::midi::rtp::message::MidiMessage;
+use utils::{midi_command_length, MidiCommand};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 /// Represents a history entry in the recovery journal.
 #[derive(Debug, Clone, PartialEq)]
 pub struct JournalEntry {
     pub sequence_nr: u16,
-    pub commands: Vec<MidiMessage>,
+    pub commands: Vec<MidiCommand>,
 }
 
 /// Represents the data contained within the RTP-MIDI Recovery Journal.
@@ -58,19 +57,14 @@ impl JournalEntry {
             let (delta_time, delta_len) = parse_variable_length_quantity(data)?;
             data.advance(delta_len); // Consume VLQ bytes
 
-            let command_start = data.remaining_bytes();
-            // Attempt to read the command length based on its first byte (status byte)
-            let (command_len, _is_sysex_start) = if command_start.is_empty() {
-                (0, false)
-            } else {
-                midi_command_length(command_start[0])?
-            };
+            let command_start = data.remaining();
+            let command_len = if command_start.is_empty() { 0 } else { midi_command_length(command_start[0])? };
 
             if data.remaining() < command_len {
                 return Err(anyhow!("Not enough data for MIDI command in journal entry"));
             }
             let command_bytes = data.copy_to_bytes(command_len).to_vec();
-            commands.push(MidiMessage::new(delta_time, command_bytes));
+            commands.push(MidiCommand::new(delta_time, command_bytes));
         }
 
         Ok(Self { sequence_nr, commands })
