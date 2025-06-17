@@ -1,6 +1,6 @@
 use anyhow::Result;
 use ddp_rs::connection::DDPConnection;
-use core::{DataStreamNetSender, StreamError};
+use core::{DataStreamNetSender, StreamError, DataStreamNetReceiver};
 
 /// Wrapper pro DDP odesílač implementující sjednocené API
 pub struct DdpSender {
@@ -35,6 +35,28 @@ pub fn create_ddp_sender(ip: &str, port: u16, _led_count: usize, _rgbw: bool) ->
     let socket = std::net::UdpSocket::bind("0.0.0.0:0")?;
     let sender = DDPConnection::try_new(addr, pixel_config, ddp_rs::protocol::ID::Custom(1), socket)?;
     Ok(sender)
+}
+
+/// Šablona pro DDP přijímač implementující sjednocené API
+pub struct DdpReceiver {
+    // zde bude např. socket nebo jiný zdroj
+}
+
+impl DdpReceiver {
+    pub fn new() -> Self {
+        Self { }
+    }
+}
+
+impl DataStreamNetReceiver for DdpReceiver {
+    fn init(&mut self) -> Result<(), StreamError> {
+        // TODO: Inicializace přijímače (např. otevření socketu)
+        Ok(())
+    }
+    fn poll(&mut self, _buf: &mut [u8]) -> Result<Option<(u64, usize)>, StreamError> {
+        // TODO: Čtení dat z DDP streamu
+        Ok(None)
+    }
 }
 
 #[cfg(test)]
