@@ -1,7 +1,6 @@
 use std::ffi::{CStr, CString};
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::thread::{self, JoinHandle};
 use libc::c_char;
 use crate::{Config, run_service_loop};
 use crate::wled_control;

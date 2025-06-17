@@ -1,8 +1,7 @@
 use anyhow::Result;
-use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use cpal::traits::{DeviceTrait, HostTrait};
 use cpal::{Sample, SampleFormat};
 use crossbeam_channel::Sender;
-use log::{error, info, warn};
 use num_traits;
 
 /// Starts audio capture from the specified device (or default if None).

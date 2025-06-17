@@ -6,7 +6,6 @@ use jni::sys::jint;
 use std::thread;
 use log::info;
 use tokio::runtime::Runtime;
-use std::sync::Arc;
 use once_cell::sync::Lazy;
 
 #[cfg(target_os = "android")]

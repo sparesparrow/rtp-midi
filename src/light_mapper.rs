@@ -1,6 +1,3 @@
-use crate::audio_analysis;
-use rustfft::FftPlanner;
-use rustfft::num_complex::Complex;
 
 /// Maps FFT magnitudes to LED RGB values.
 pub fn map_audio_to_leds(magnitudes: &[f32], led_count: usize) -> Vec<u8> {

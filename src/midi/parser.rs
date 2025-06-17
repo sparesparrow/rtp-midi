@@ -1,6 +1,5 @@
 use anyhow::{anyhow, Result};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
-use log::warn;
 use serde::{Deserialize, Serialize};
 
 /// Represents a MIDI command.
