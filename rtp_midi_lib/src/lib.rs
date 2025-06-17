@@ -13,6 +13,9 @@ use network::midi::parser::{self, MidiCommand};
 use network::midi::rtp::message::MidiMessage;
 use network::midi::rtp::session::RtpMidiSession;
 use output as wled;
+use output::ddp_output::{DdpSender, create_ddp_sender};
+use output::wled_control::WledSender;
+use core::DataStreamNetSender;
 
 // --- Structs defined at the library root ---
 #[derive(Debug, serde::Deserialize, Clone, PartialEq)]
@@ -50,6 +53,17 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
     let midi_port = config.midi_port.unwrap_or(5004);
     let mappings = config.mappings.clone();
     let ddp_port = config.ddp_port.unwrap_or(4048);
+
+    // --- Výstupní zařízení ---
+    let mut outputs: Vec<Box<dyn DataStreamNetSender>> = Vec::new();
+    // WLED JSON sender
+    outputs.push(Box::new(WledSender::new(wled_ip.clone())));
+    // DDP sender
+    if let Ok(ddp_conn) = create_ddp_sender(&wled_ip, ddp_port, config.led_count, config.color_format.as_deref() == Some("RGBW")) {
+        outputs.push(Box::new(DdpSender::new(ddp_conn)));
+    } else {
+        error!("DDP sender could not be initialized, DDP output will be unavailable.");
+    }
 
     // --- Event Bus Setup ---
     let (event_tx, mut audio_event_rx) = event_bus::create_event_bus();
@@ -135,7 +149,13 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
                                 if bass_level >= trigger_threshold && !bass_preset_triggered {
                                     info!("Bass peak detected! Level: {:.2}. Triggering actions.", bass_level);
                                     for action in &mapping.output {
-                                        wled::wled_control::execute_wled_action(action, &wled_ip).await;
+                                        // --- Sjednocené volání výstupů ---
+                                        for output in &mut outputs {
+                                            // Pro WLED: předpokládáme, že action lze serializovat do JSON
+                                            if let Ok(payload) = serde_json::to_vec(action) {
+                                                let _ = output.send(0, &payload);
+                                            }
+                                        }
                                     }
                                     bass_preset_triggered = true;
                                 } else if bass_level < trigger_threshold && bass_preset_triggered {
@@ -149,7 +169,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
         }
 
         // --- MIDI Processing ---
-        if let Ok(event) = midi_event_rx.try_recv() { // event is MidiMessage
+        if let Ok(event) = midi_event_rx.try_recv() {
             if let core::event_bus::Event::MidiMessageReceived(midi_command_bytes) = event {
                 if let Ok((parsed_command, _)) = parser::parse_midi_message(&midi_command_bytes) {
                     if let Some(mappings) = &mappings {
@@ -161,7 +181,11 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
                                     _ => ()
                                 }
                                 for action in &mapping.output {
-                                    wled::wled_control::execute_wled_action(action, &wled_ip).await;
+                                    for output in &mut outputs {
+                                        if let Ok(payload) = serde_json::to_vec(action) {
+                                            let _ = output.send(0, &payload);
+                                        }
+                                    }
                                 }
                             }
                         }
