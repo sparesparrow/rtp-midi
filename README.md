@@ -596,4 +596,47 @@ stateDiagram-v2
     class Idle,Listening,Processing,Sending,Error state;
 ```
 
+## Entity Relationship Diagram (Configuration & Mapping)
+
+```mermaid
+---
+title: RTP-MIDI Configuration & Mapping ER Diagram
+theme: forest
+---
+erDiagram
+    CONFIG {
+        string id
+        string name
+        string version
+    }
+    AUDIOMAPPING {
+        string id
+        string config_id
+        string type
+        string params
+    }
+    MIDIMAPPING {
+        string id
+        string config_id
+        string channel
+        string note
+        string action
+    }
+    LEDPROFILE {
+        string id
+        string config_id
+        string color_profile
+        int led_count
+    }
+    DEVICE {
+        string id
+        string name
+        string type
+    }
+    CONFIG ||--o{ AUDIOMAPPING : has
+    CONFIG ||--o{ MIDIMAPPING : has
+    CONFIG ||--o{ LEDPROFILE : has
+    DEVICE ||--o{ CONFIG : uses
+```
+
 ---
