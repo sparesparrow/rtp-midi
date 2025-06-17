@@ -29,6 +29,8 @@ libc = { workspace = true }
 jni = { workspace = true }
 android_logger = { workspace = true }
 rsbinder = { workspace = true }
+reqwest = { workspace = true, features = ["json"] }
+serde_json = { workspace = true }
 
 [build-dependencies]
 rsbinder-aidl = { workspace = true }

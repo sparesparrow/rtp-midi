@@ -4,6 +4,7 @@ use anyhow::Result;
 use tokio::net::UdpSocket;
 use tokio::sync::broadcast;
 use log::{error, info};
+use std::sync::Arc;
 
 use crate::event_bus::Event;
 
