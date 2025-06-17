@@ -1,12 +1,12 @@
 // src/midi/rtp/message.rs
 
-use crate::midi::parser::midi_command_length;
+use network::midi::parser::midi_command_length;
 use anyhow::{anyhow, Result};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use serde::{Deserialize, Serialize};
 
-use crate::journal_engine::{JournalData, JournalEntry};
-use crate::packet_processor::ParsedPacket;
+use core::journal_engine::{JournalData, JournalEntry};
+use core::packet_processor::ParsedPacket;
 
 /// Represents a single MIDI message with its delta-time.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

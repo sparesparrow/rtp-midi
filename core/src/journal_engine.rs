@@ -4,8 +4,8 @@ use anyhow::{anyhow, Result};
 use log::{info, warn};
 use std::collections::BTreeSet;
 
-use crate::midi::parser::midi_command_length;
-use crate::midi::rtp::message::MidiMessage;
+use network::midi::parser::midi_command_length;
+use network::midi::rtp::message::MidiMessage;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 /// Represents a history entry in the recovery journal.

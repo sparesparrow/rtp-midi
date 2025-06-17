@@ -2,13 +2,12 @@ use anyhow::Result;
 use reqwest::Client;
 use serde_json::json;
 use log::{error, info};
-use crate::event_bus::Event;
-use crate::network_interface::NetworkInterface;
-use crate::rtp_midi_lib::UdpSocket;
+use core::event_bus::Event;
+use network::network_interface::NetworkInterface;
+use core::mapping::WledOutputAction;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use std::net::SocketAddr;
-use crate::mapping::WledOutputAction;
 
 /// Sends a generic JSON command to the WLED device.
 pub async fn send_wled_json_command(

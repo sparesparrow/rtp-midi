@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use crate::midi::parser::MidiCommand;
+use network::midi::parser::MidiCommand;
 
 /// Enum reprezentující různé typy vstupních událostí, které mohou spustit mapování.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

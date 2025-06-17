@@ -6,7 +6,7 @@ use tokio::sync::broadcast;
 use log::{error, info};
 use std::sync::Arc;
 
-use crate::event_bus::Event;
+use core::event_bus::Event;
 
 pub async fn start_network_interface(
     mut receiver: broadcast::Receiver<Event>,
