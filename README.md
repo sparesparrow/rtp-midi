@@ -577,4 +577,23 @@ classDiagram
     class MidiEvent,Packet,LightMapping,DdpPacket core;
 ```
 
+## State Diagram (LED State Machine)
+
+```mermaid
+---
+title: RTP-MIDI LED State Machine
+theme: forest
+---
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Listening: Start
+    Listening --> Processing: Audio/MIDI Event
+    Processing --> Sending: DDP Packet Ready
+    Sending --> Idle: Success
+    Processing --> Error: Failure
+    Error --> Idle: Reset
+    classDef state fill:#f9d776,stroke:#333,stroke-width:2px;
+    class Idle,Listening,Processing,Sending,Error state;
+```
+
 ---
