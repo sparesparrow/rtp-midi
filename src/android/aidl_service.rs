@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use log::{info, error};
 use tokio::runtime::Runtime;
-use binder_ndk::{Interface, BinderFeatures, Result as BinderResult, StatusCode, Strong};
+use rsbinder::{Interface, BinderFeatures, Result as BinderResult, Strong, StatusCode};
 
 use crate::{Config, run_service_loop, wled_control};
 
@@ -57,7 +57,7 @@ impl MidiWledService {
     }
 }
 
-// Implementace pro `binder::Interface`. Je nutná pro každou službu.
+// Implementace pro `rsbinder::Interface`. Je nutná pro každou službu.
 impl Interface for MidiWledService {}
 
 // Implementace samotného AIDL rozhraní `IMidiWledService`.
@@ -180,11 +180,11 @@ pub fn register_service() {
     let binder: Strong<dyn IMidiWledService> = BnMidiWledService::new_binder(service, BinderFeatures::default());
 
     // Registrace služby u Android Service Manageru.
-    match binder::add_service(SERVICE_NAME, binder.as_binder()) {
+    match rsbinder::add_service(SERVICE_NAME, binder.as_binder()) {
         Ok(_) => {
             info!("Successfully registered '{}'. Joining thread pool.", SERVICE_NAME);
             // Udržíme vlákno naživu, aby služba mohla přijímat požadavky.
-            binder::ProcessState::join_thread_pool();
+            rsbinder::ProcessState::join_thread_pool();
         }
         Err(e) => {
             error!("Failed to register service: {:?}", e);
