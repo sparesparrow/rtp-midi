@@ -7,7 +7,7 @@ use log::{error, info};
 
 // --- Core Modules & Imports ---
 use crate::audio_analysis::compute_fft_magnitudes;
-// `audio_input` is brought in by `pub mod` below, so this `use` is not needed.
+// `audio_input` is brought in by `pub mod` below, so the `use` statement was removed.
 use crate::mapping::{InputEvent, Mapping}; // Corrected: `Config` is defined in this file.
 use crate::midi::parser::{self, MidiCommand};
 use crate::midi::rtp::message::MidiMessage;
@@ -40,7 +40,7 @@ pub struct Config {
 }
 
 // --- Implementation for Config ---
-// This block adds the missing `load_from_file` function.
+// This block adds the missing `load_from_file` function needed by ffi.rs.
 impl Config {
     pub fn load_from_file(path: &str) -> anyhow::Result<Self> {
         let content = fs::read_to_string(path)?;
@@ -76,7 +76,6 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
             .await
             .expect("Failed to create RTP-MIDI session");
 
-        // The listener now correctly accepts a `Vec<MidiMessage>`.
         session.add_listener(move |commands: Vec<MidiMessage>| {
             for command in commands {
                 if let Err(e) = midi_tx_clone.send(command) {
@@ -127,13 +126,10 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
 
         // --- MIDI Processing ---
         if let Ok(event) = midi_rx.try_recv() { // event is MidiMessage
-            // FIX: Parse the raw command from the message into a MidiCommand enum
             if let Ok((parsed_command, _)) = parser::parse_midi_message(&event.command) {
                 if let Some(mappings) = &mappings {
                     for mapping in mappings {
-                        // Use the parsed command for matching
                         if mapping.matches_midi_command(&parsed_command) {
-                            // Use the parsed command for the match statement
                             match parsed_command {
                                 MidiCommand::NoteOn { key, .. } => info!("MIDI NoteOn {} matched a mapping.", key),
                                 MidiCommand::ControlChange { control, value, ..} => info!("MIDI CC {} ({}) matched a mapping.", control, value),
@@ -153,3 +149,4 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
 
     info!("Service has shut down gracefully.");
 }
+
