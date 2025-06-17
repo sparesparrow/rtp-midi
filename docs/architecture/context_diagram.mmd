@@ -1,32 +1,29 @@
 ---
-title: RTP-MIDI System Context Diagram
+title: RTP-MIDI System Context Diagram (C4)
+theme: forest
 ---
 
 flowchart LR
     User([User])
-    QtUI([Qt Desktop UI])
-    WebFrontend([Web Frontend])
-    AndroidApp([Android App])
-    RustCore([Rust Core Backend])
-    WLED([WLED/ESP32 Controller])
-    AudioInput([Audio Input Device])
-    MIDIInput([MIDI Input Device])
+    HostOS([Host OS: ALSA/CoreMIDI/WinMM])
+    Network([Network: UDP/IP])
+    Bonjour([Bonjour/mDNS])
+    AppleMIDI([AppleMIDI Session])
+    RFC6295([RFC 6295 RTP-MIDI])
+    EventBus([Event Bus])
+    rtpMidi([rtp-midi Core System])
 
-    User -- interacts with --> QtUI
-    User -- interacts with --> WebFrontend
-    User -- interacts with --> AndroidApp
+    User -- interacts with --> rtpMidi
+    rtpMidi -- uses --> HostOS
+    rtpMidi -- sends/receives --> Network
+    rtpMidi -- advertises/discovers --> Bonjour
+    rtpMidi -- manages session --> AppleMIDI
+    rtpMidi -- implements --> RFC6295
+    rtpMidi -- event-driven --> EventBus
 
-    QtUI -- FFI (C++/Rust) --> RustCore
-    WebFrontend -- WebSocket/WebRTC --> RustCore
-    AndroidApp -- JNI/AIDL --> RustCore
+    classDef ext fill:#e0e0e0,stroke:#333,stroke-width:2px;
+    class User,HostOS,Network,Bonjour,AppleMIDI,RFC6295 ext;
+    classDef core fill:#c6e48b,stroke:#333,stroke-width:2px;
+    class rtpMidi,EventBus core;
 
-    RustCore -- UDP/DDP --> WLED
-    RustCore -- reads --> AudioInput
-    RustCore -- reads --> MIDIInput
-
-    WLED -- controls --> LEDStrips([LED Strips])
-
-    classDef external fill:#f9f,stroke:#333,stroke-width:2px;
-    classDef internal fill:#bbf,stroke:#333,stroke-width:2px;
-    class User,QtUI,WebFrontend,AndroidApp,WLED,AudioInput,MIDIInput external;
-    class RustCore,LEDStrips internal; 
+    %% Note: rtp-midi core is compliant with both RFC 6295 and AppleMIDI protocols, and is architected around an internal event bus for maximum modularity and testability. 
