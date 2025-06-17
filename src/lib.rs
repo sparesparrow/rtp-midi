@@ -5,10 +5,9 @@ use std::time::Duration;
 use log::{error, info};
 
 use crate::audio_analysis::compute_fft_magnitudes;
-use crate::audio_input;
 use crate::mapping::{Config, InputEvent};
 use crate::midi::parser::MidiCommand;
-use crate::midi::rtp::RtpMidiSession;
+use crate::midi::rtp::message::RtpMidiPacket as RtpMidiSession;
 use crate::wled_control as wled;
 
 pub mod android;

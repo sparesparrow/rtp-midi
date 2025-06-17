@@ -1,6 +1,8 @@
 use anyhow::Result;
 use reqwest::Client;
 use serde_json::json;
+use log::error;
+use crate::mapping::WledOutputAction;
 
 /// Sets a WLED preset by ID via the JSON API.
 pub async fn set_wled_preset(wled_ip: &str, preset_id: i32) -> Result<()> {
@@ -66,4 +68,28 @@ pub async fn set_wled_palette(wled_ip: &str, palette_id: i32) -> Result<()> {
         anyhow::bail!("WLED palette set failed: {}", res.status());
     }
     Ok(())
+}
+
+pub async fn execute_wled_action(action: &WledOutputAction, wled_ip: &str) {
+    let result = match action {
+        WledOutputAction::SetPreset { id } => {
+            set_wled_preset(wled_ip, *id).await
+        }
+        WledOutputAction::SetBrightness { value } => {
+            set_wled_brightness(wled_ip, *value).await
+        }
+        WledOutputAction::SetColor { r, g, b } => {
+            set_wled_color(wled_ip, *r, *g, *b).await
+        }
+        WledOutputAction::SetEffect { id, speed, intensity } => {
+            set_wled_effect(wled_ip, *id, *speed, *intensity).await
+        }
+        WledOutputAction::SetPalette { id } => {
+            set_wled_palette(wled_ip, *id).await
+        }
+    };
+
+    if let Err(e) = result {
+        error!("Failed to execute WLED action {:?}: {}", action, e);
+    }
 } 
