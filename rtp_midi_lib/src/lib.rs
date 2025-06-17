@@ -55,15 +55,9 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
     let ddp_port = config.ddp_port.unwrap_or(4048);
 
     // --- Výstupní zařízení ---
-    let mut outputs: Vec<Box<dyn DataStreamNetSender>> = Vec::new();
-    // WLED JSON sender
-    outputs.push(Box::new(WledSender::new(wled_ip.clone())));
-    // DDP sender
-    if let Ok(ddp_conn) = create_ddp_sender(&wled_ip, ddp_port, config.led_count, config.color_format.as_deref() == Some("RGBW")) {
-        outputs.push(Box::new(DdpSender::new(ddp_conn)));
-    } else {
-        error!("DDP sender could not be initialized, DDP output will be unavailable.");
-    }
+    let mut wled_sender = WledSender::new(wled_ip.clone());
+    // DDP sender lze přidat obdobně, až budou akce
+    // let mut ddp_sender = ...
 
     // --- Event Bus Setup ---
     let (event_tx, mut audio_event_rx) = event_bus::create_event_bus();
@@ -149,12 +143,9 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
                                 if bass_level >= trigger_threshold && !bass_preset_triggered {
                                     info!("Bass peak detected! Level: {:.2}. Triggering actions.", bass_level);
                                     for action in &mapping.output {
-                                        // --- Sjednocené volání výstupů ---
-                                        for output in &mut outputs {
-                                            // Pro WLED: předpokládáme, že action lze serializovat do JSON
-                                            if let Ok(payload) = serde_json::to_vec(action) {
-                                                let _ = output.send(0, &payload);
-                                            }
+                                        // --- Směrování pouze na WLED výstup ---
+                                        if let Ok(payload) = serde_json::to_vec(action) {
+                                            let _ = wled_sender.send(0, &payload);
                                         }
                                     }
                                     bass_preset_triggered = true;
@@ -181,10 +172,8 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
                                     _ => ()
                                 }
                                 for action in &mapping.output {
-                                    for output in &mut outputs {
-                                        if let Ok(payload) = serde_json::to_vec(action) {
-                                            let _ = output.send(0, &payload);
-                                        }
+                                    if let Ok(payload) = serde_json::to_vec(action) {
+                                        let _ = wled_sender.send(0, &payload);
                                     }
                                 }
                             }
