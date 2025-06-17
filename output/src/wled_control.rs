@@ -10,7 +10,14 @@ use tokio::sync::broadcast;
 use std::net::SocketAddr;
 use core::{DataStreamNetSender, StreamError};
 
-/// Wrapper pro WLED JSON API odesílač implementující sjednocené API
+/// Wrapper pro WLED JSON API odesílač implementující sjednocené API.
+/// 
+/// Umožňuje odesílat příkazy na WLED zařízení přes HTTP/JSON jednotným způsobem (implementace DataStreamNetSender).
+/// Použijte např. v service loop nebo v enum dispatch pro embedded buildy.
+///
+/// Příklad použití:
+/// let mut sender = WledSender::new("192.168.1.100".to_string());
+/// sender.send(0, br#"{\"bri\":128}"#);
 pub struct WledSender {
     ip: String,
 }

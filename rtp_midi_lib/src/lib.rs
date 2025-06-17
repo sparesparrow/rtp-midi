@@ -46,6 +46,17 @@ impl Config {
 }
 
 // --- Main Service Loop ---
+/// Hlavní service loop pro orchestraci audio/MIDI vstupů a výstupů.
+/// 
+/// Výstupy (WLED, DDP, ...) používejte přes sjednocené API (DataStreamNetSender).
+/// Pro rozšíření mappingů o další typy akcí/výstupů:
+///   - Přidejte nový enum (např. DdpOutputAction) do utils.
+///   - Přidejte nový sender (např. DdpSender) a implementujte DataStreamNetSender.
+///   - V service loop směrujte akce na správný výstup podle typu.
+///
+/// Příklad rozšíření:
+/// if let MappingOutput::Wled(action) = ... { wled_sender.send(...); }
+/// if let MappingOutput::Ddp(action) = ... { ddp_sender.send(...); }
 pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
     info!("Service loop starting...");
 
