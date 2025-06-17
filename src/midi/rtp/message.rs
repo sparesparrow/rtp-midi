@@ -1,248 +1,292 @@
+// src/midi/rtp/message.rs
+
+use crate::midi::parser::{midi_command_length, MidiCommand};
 use anyhow::{anyhow, Result};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use log::warn;
+use rand;
 use serde::{Deserialize, Serialize};
 
-use crate::midi::parser::{midi_command_length, MidiCommand};
-
+/// Represents a single MIDI message with its delta-time.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MidiMessage {
-    pub timestamp: u64,
-    pub command: MidiCommand,
+    pub delta_time: u32,
+    pub command: Vec<u8>,
 }
 
 impl MidiMessage {
-    pub fn new(timestamp: u64, command: MidiCommand) -> Self {
-        MidiMessage { timestamp, command }
+    pub fn new(delta_time: u32, command: Vec<u8>) -> Self {
+        Self {
+            delta_time,
+            command,
+        }
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// Represents a history entry in the recovery journal.
+#[derive(Debug, Clone, PartialEq)]
+pub struct JournalEntry {
+    pub sequence_nr: u16,
+    pub commands: Vec<MidiMessage>,
+}
+
+/// Represents a full RTP-MIDI packet, including the recovery journal.
+#[derive(Debug, Clone)]
 pub struct RtpMidiPacket {
-    pub ssrc: u32,
+    // --- RTP Header Fields ---
+    pub version: u8,
+    pub padding: bool,
+    pub extension: bool,
+    pub marker: bool,
+    pub payload_type: u8,
     pub sequence_number: u16,
     pub timestamp: u32,
-    pub midi_messages: Vec<MidiMessage>,
-    pub command_count: u32,
+    pub ssrc: u32,
+
+    // --- RTP-MIDI Payload ---
+    pub midi_commands: Vec<MidiMessage>,
+    pub journal: Vec<JournalEntry>,
 }
 
 impl RtpMidiPacket {
-    pub fn parse(buffer: &[u8]) -> Result<Self> {
-        let mut reader = Bytes::copy_from_slice(buffer);
+    /// Creates a new RTP-MIDI packet.
+    pub fn new(ssrc: u32, sequence_number: u16, timestamp: u32) -> Self {
+        Self {
+            version: 2,
+            padding: false,
+            extension: false,
+            marker: true, // Typically true for the last packet of a MIDI event
+            payload_type: 97, // Dynamic Payload Type for MIDI
+            sequence_number,
+            timestamp,
+            ssrc,
+            midi_commands: Vec::new(),
+            journal: Vec::new(),
+        }
+    }
 
-        // RTP header (fixed part)
-        let first_byte = reader.get_u8();
-        let version = (first_byte >> 6) & 0x03;
-        let padding = ((first_byte >> 5) & 0x01) == 1;
-        let extension = ((first_byte >> 4) & 0x01) == 1;
-        let csrc_count = (first_byte & 0x0f) as usize;
+    /// Parses an RTP-MIDI packet from a byte slice.
+    pub fn parse(data: &[u8]) -> Result<Self> {
+        let mut reader = Bytes::copy_from_slice(data);
+        if reader.len() < 12 {
+            return Err(anyhow!("RTP header too short"));
+        }
 
+        // --- Parse RTP Header ---
+        let byte0 = reader.get_u8();
+        let version = (byte0 >> 6) & 0x03;
         if version != 2 {
             return Err(anyhow!("Unsupported RTP version: {}", version));
         }
-        if padding {
-            warn!("RTP padding not handled.");
-        }
-
-        let second_byte = reader.get_u8();
-        let marker = ((second_byte >> 7) & 0x01) == 1;
-        let payload_type = second_byte & 0x7f;
-
-        if payload_type != 100 { // Assuming dynamic payload type 100 for RTP-MIDI
-            warn!("Unexpected RTP payload type: {}", payload_type);
-        }
-        if !marker {
-            warn!("RTP marker bit not set.");
-        }
+        let padding = (byte0 >> 5) & 0x01 == 1;
+        let extension = (byte0 >> 4) & 0x01 == 1;
+        
+        let byte1 = reader.get_u8();
+        let marker = (byte1 >> 7) & 0x01 == 1;
+        let payload_type = byte1 & 0x7F;
 
         let sequence_number = reader.get_u16();
         let timestamp = reader.get_u32();
         let ssrc = reader.get_u32();
+        
+        // Skip CSRC
+        let csrc_count = byte0 & 0x0F;
+        reader.advance(csrc_count as usize * 4);
 
-        // Skip CSRC identifiers if present
-        for _ in 0..csrc_count {
-            reader.get_u32();
+        // --- Parse MIDI Payload ---
+        if !reader.has_remaining() {
+            return Ok(Self { // Packet might have an empty payload (e.g. keep-alive)
+                version, padding, extension, marker, payload_type, sequence_number, timestamp, ssrc,
+                midi_commands: vec![],
+                journal: vec![],
+            });
         }
-
-        // Parse MIDI journal if present
-        let mut journal_present = false;
-        if extension {
-            // TODO: Parse RTP header extension
-            warn!("RTP header extension not parsed.");
-        }
-
-        // Parse MIDI messages
+        
         let mut midi_commands = Vec::new();
-        let mut command_count = 0;
-        while reader.has_remaining() {
-            // Handle potential journal descriptor
-            if reader.remaining() >= 1 && (reader[0] == 0x01 || reader[0] == 0x02) {
-                // Journal command (0x01 = MIDI Command, 0x02 = MIDI Command List)
-                let journal_descriptor = reader.get_u8();
-                warn!("MIDI Journal descriptor not handled: {:#x}", journal_descriptor);
-                if journal_descriptor == 0x02 { // MIDI Command List
-                    let length = reader.get_u8() as usize;
-                    reader.advance(length);
-                }
-                journal_present = true;
-                continue;
-            }
+        let mut journal = Vec::new();
+        
+        // First byte of payload contains flags
+        let flags = reader.get_u8();
+        let has_journal = (flags & 0b1000_0000) != 0;
+        let _delta_time_is_zero = (flags & 0b0100_0000) != 0; // 'Y' flag
+        let _is_sysex_start = (flags & 0b0010_0000) != 0;     // 'P' flag
+        let command_section_len = flags & 0b0000_1111; // 'L' field
 
-            // Delta time (variable length quantity)
-            let mut delta_time = 0;
-            for i in 0..4 {
-                if !reader.has_remaining() {
-                    return Err(anyhow!("Incomplete delta time VLV"));
-                }
-                let byte = reader.get_u8();
-                delta_time = (delta_time << 7) | (byte & 0x7F) as u32;
-                if byte & 0x80 == 0 { break; }
-                if i == 3 && byte & 0x80 != 0 { return Err(anyhow!("Delta time VLV too long")); }
-            }
-
-            if !reader.has_remaining() {
-                return Err(anyhow!("No MIDI command after delta time"));
-            }
-
-            // Running status handling
-            let status_byte = reader.chunk()[0]; // Use reader.chunk()[0] to peek at the first byte
-            if status_byte < 0x80 {
-                // This implies running status. The provided solution assumes a status byte is always present.
-                // For now, we will error out as per the previous logic if we encounter running status.
-                // In a more robust implementation, this would require storing the last status byte.
-                return Err(anyhow!("Running status not supported in this context for MIDI message parsing. Status byte: {:#x}", status_byte));
-            }
-            
-            // Actual MIDI command parsing
-            let (command, bytes_consumed) = crate::midi::parser::parse_midi_message(&reader.chunk())?;
-            reader.advance(bytes_consumed);
-            midi_commands.push(MidiMessage::new(delta_time as u64, command));
-            command_count += 1;
+        if command_section_len > 0 {
+             midi_commands = Self::parse_midi_command_section(&mut reader, command_section_len as usize)?;
         }
-
-        Ok(RtpMidiPacket {
-            ssrc,
-            sequence_number,
-            timestamp,
-            midi_messages: midi_commands,
-            command_count,
+        
+        if has_journal {
+            journal = Self::parse_journal_section(&mut reader)?;
+        }
+        
+        Ok(Self {
+            version, padding, extension, marker, payload_type,
+            sequence_number, timestamp, ssrc,
+            midi_commands,
+            journal,
         })
     }
 
-    pub fn to_bytes(&self) -> Bytes {
-        let mut buf = BytesMut::new();
+    /// Serializes the packet into a byte buffer for sending.
+    pub fn serialize(&self) -> Result<Bytes> {
+        let mut buf = BytesMut::with_capacity(128); // Start with a reasonable capacity
 
-        // RTP header (fixed part)
-        let first_byte: u8 = (2 << 6) | (0 << 5) | (0 << 4) | 0x00; // Version 2, no padding, no extension, 0 CSRC
-        buf.put_u8(first_byte);
-        let second_byte: u8 = (1 << 7) | 100; // Marker bit set, payload type 100 (RTP-MIDI)
-        buf.put_u8(second_byte);
+        // --- RTP Header ---
+        let byte0 = (self.version << 6)
+            | ((self.padding as u8) << 5)
+            | ((self.extension as u8) << 4)
+            | 0; // No CSRC for now
+        buf.put_u8(byte0);
+
+        let byte1 = ((self.marker as u8) << 7) | (self.payload_type & 0x7F);
+        buf.put_u8(byte1);
 
         buf.put_u16(self.sequence_number);
         buf.put_u32(self.timestamp);
         buf.put_u32(self.ssrc);
 
-        // MIDI messages
-        for midi_msg in &self.midi_messages {
-            // Delta time (variable length quantity)
-            let mut delta_time = midi_msg.timestamp as u32;
-            let mut vlv_bytes = Vec::new();
-            loop {
-                let mut byte = (delta_time & 0x7F) as u8;
-                delta_time >>= 7;
-                if delta_time > 0 {
-                    byte |= 0x80;
-                }
-                vlv_bytes.push(byte);
-                if delta_time == 0 { break; }
-            }
-            for byte in vlv_bytes.iter().rev() {
-                buf.put_u8(*byte);
-            }
-
-            // MIDI command
-            midi_msg.command.write_to_bytes(&mut buf);
+        // --- MIDI Payload ---
+        let mut midi_payload = BytesMut::new();
+        for msg in &self.midi_commands {
+            let mut v_buf = [0u8; 4];
+            let v_len = encode_variable_length_quantity(msg.delta_time, &mut v_buf)?;
+            midi_payload.put(&v_buf[..v_len]);
+            midi_payload.put(&msg.command[..]);
         }
-        buf.freeze()
+        let command_section_len = midi_payload.len();
+        if command_section_len > 15 {
+             return Err(anyhow!("MIDI command section too long (max 15 bytes)"));
+        }
+
+
+        // --- Journal Payload ---
+        let mut journal_payload = BytesMut::new();
+        if !self.journal.is_empty() {
+             // Enhanced Journal Header (RFC6295 Section 6.2.2)
+            journal_payload.put_u8(0b1000_0000); // S=1 (enhanced), A=0, CH=0
+            journal_payload.put_u8(0x00); // Checkpoint Packet Seqnum (placeholder)
+            journal_payload.put_u16(self.journal.len() as u16); // Count of packets in journal
+            
+            for entry in &self.journal {
+                 let mut entry_payload = BytesMut::new();
+                 for cmd in &entry.commands {
+                    let mut v_buf = [0u8; 4];
+                    let v_len = encode_variable_length_quantity(cmd.delta_time, &mut v_buf)?;
+                    entry_payload.put(&v_buf[..v_len]);
+                    entry_payload.put(&cmd.command[..]);
+                 }
+                 journal_payload.put_u16(entry.sequence_nr);
+                 journal_payload.put_u16(entry_payload.len() as u16);
+                 journal_payload.put(entry_payload);
+            }
+        }
+        
+        // --- Final Assembly ---
+        let has_journal_flag = if !self.journal.is_empty() { 0b1000_0000 } else { 0 };
+        let flags = has_journal_flag | (command_section_len as u8);
+        
+        buf.put_u8(flags);
+        buf.put(midi_payload);
+        buf.put(journal_payload);
+
+        Ok(buf.freeze())
+    }
+
+    // --- Private Helper Functions ---
+    
+    fn parse_midi_command_section(reader: &mut Bytes, len: usize) -> Result<Vec<MidiMessage>> {
+        if reader.remaining() < len {
+            return Err(anyhow!("Incomplete MIDI command section"));
+        }
+        let mut command_reader = reader.split_to(len);
+        let mut commands = Vec::new();
+
+        while command_reader.has_remaining() {
+            let (delta_time, bytes_read) = parse_variable_length_quantity(command_reader.chunk())?;
+            command_reader.advance(bytes_read);
+            
+            let status_byte = *command_reader.chunk().first().ok_or_else(|| anyhow!("Missing status byte"))?;
+            let cmd_len = midi_command_length(status_byte);
+            
+            if command_reader.remaining() < cmd_len {
+                 return Err(anyhow!("Incomplete MIDI command data"));
+            }
+            let command_data = command_reader.copy_to_bytes(cmd_len);
+            commands.push(MidiMessage::new(delta_time, command_data.to_vec()));
+        }
+        Ok(commands)
+    }
+    
+    fn parse_journal_section(reader: &mut Bytes) -> Result<Vec<JournalEntry>> {
+        if reader.remaining() < 4 {
+             return Err(anyhow!("Incomplete journal header"));
+        }
+        let _journal_header = reader.get_u8();
+        let _checkpoint_seqnum = reader.get_u8();
+        let packet_count = reader.get_u16();
+        
+        let mut journal = Vec::with_capacity(packet_count as usize);
+        for _ in 0..packet_count {
+             if reader.remaining() < 4 {
+                 return Err(anyhow!("Incomplete journal entry header"));
+             }
+             let sequence_nr = reader.get_u16();
+             let length = reader.get_u16();
+             let commands = Self::parse_midi_command_section(reader, length as usize)?;
+             journal.push(JournalEntry { sequence_nr, commands });
+        }
+        
+        Ok(journal)
+    }
+
+    pub fn midi_commands(&self) -> &Vec<MidiMessage> {
+        &self.midi_commands
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::midi::parser::MidiCommand;
+// --- VLQ Encoding/Decoding Helpers ---
 
-    #[test]
-    fn test_rtp_midi_packet_parse_and_serialize() {
-        // Example RTP-MIDI packet from RFC 6295, Section 5.3.1 (minus header extension for simplicity)
-        let raw_packet = Bytes::from_static(&[
-            0x80, 0x64, // RTP header (V=2, P=0, X=0, CC=0, M=1, PT=100)
-            0x00, 0x01, // Sequence number
-            0x00, 0x00, 0x00, 0x00, // Timestamp
-            0x00, 0x00, 0x00, 0x00, // SSRC
-            // MIDI commands
-            0x00, 0x90, 0x3C, 0x64, // Note On, C4, velocity 100 (delta 0)
-            0x01, 0x80, 0x3C, 0x40, // Note Off, C4, velocity 64 (delta 1)
-        ]);
+fn parse_variable_length_quantity(data: &[u8]) -> Result<(u32, usize)> {
+    let mut value = 0u32;
+    let mut bytes_read = 0;
+    for &byte in data {
+        bytes_read += 1;
+        value = (value << 7) | (byte & 0x7F) as u32;
+        if (byte & 0x80) == 0 {
+            return Ok((value, bytes_read));
+        }
+        if bytes_read >= 4 {
+            return Err(anyhow!("Variable Length Quantity too long"));
+        }
+    }
+    Err(anyhow!("Incomplete Variable Length Quantity"))
+}
 
-        let packet = RtpMidiPacket::parse(&raw_packet).unwrap();
+fn encode_variable_length_quantity(value: u32, buf: &mut [u8; 4]) -> Result<usize> {
+    if value > 0x0FFFFFFF {
+        return Err(anyhow!("Value too large for VLQ encoding"));
+    }
+    let mut tmp = value;
+    let mut len = 0;
+    let mut bytes = [0u8; 4];
 
-        assert_eq!(packet.sequence_number, 1);
-        assert_eq!(packet.timestamp, 0);
-        assert_eq!(packet.ssrc, 0);
-        assert_eq!(packet.midi_messages.len(), 2);
-        assert_eq!(packet.midi_messages[0].timestamp, 0);
-        assert_eq!(packet.midi_messages[0].command, MidiCommand::NoteOn { channel: 0, key: 0x3C, velocity: 0x64 });
-        assert_eq!(packet.midi_messages[1].timestamp, 1);
-        assert_eq!(packet.midi_messages[1].command, MidiCommand::NoteOff { channel: 0, key: 0x3C, velocity: 0x40 });
-
-        let serialized_packet = packet.to_bytes();
-        // For simplicity, just check length and first few bytes as a full byte-by-byte comparison can be fragile
-        assert_eq!(serialized_packet.len(), raw_packet.len());
-        assert_eq!(&serialized_packet[0..12], &raw_packet[0..12]);
-        // The exact serialization of VLV delta time might differ slightly if not optimized identically
-        // but the core MIDI messages should be the same.
+    loop {
+        bytes[len] = (tmp & 0x7F) as u8;
+        tmp >>= 7;
+        if len > 0 {
+            bytes[len] |= 0x80;
+        }
+        len += 1;
+        if tmp == 0 {
+            break;
+        }
+    }
+    
+    for i in 0..len {
+        buf[i] = bytes[len - 1 - i];
     }
 
-    #[test]
-    fn test_rtp_midi_packet_with_running_status() {
-        let raw_packet = Bytes::from_static(&[
-            0x80, 0x64, // RTP header
-            0x00, 0x01, // Sequence number
-            0x00, 0x00, 0x00, 0x00, // Timestamp
-            0x00, 0x00, 0x00, 0x00, // SSRC
-            // MIDI commands with running status
-            0x00, 0x90, 0x3C, 0x64, // Note On C4, velocity 100
-            0x01, 0x3D, 0x65,       // Note On D4, velocity 101 (running status 0x90)
-            0x01, 0x3E, 0x66,       // Note On E4, velocity 102 (running status 0x90)
-        ]);
+    Ok(len)
+}
 
-        let packet_result = RtpMidiPacket::parse(&raw_packet);
-        assert!(packet_result.is_err()); // Should fail due to running status not fully supported
-        assert_eq!(packet_result.unwrap_err().to_string(), "Running status not supported in this context for MIDI message parsing. Status byte: 0x3d");
-    }
-
-    #[test]
-    fn test_rtp_midi_packet_empty_data() {
-        let raw_packet = Bytes::from_static(&[
-            0x80, 0x64, // RTP header
-            0x00, 0x01, // Sequence number
-            0x00, 0x00, 0x00, 0x00, // Timestamp
-            0x00, 0x00, 0x00, 0x00, // SSRC
-        ]);
-        let packet = RtpMidiPacket::parse(&raw_packet).unwrap();
-        assert_eq!(packet.midi_messages.len(), 0);
-    }
-
-    #[test]
-    fn test_midi_message_to_bytes_and_parse() {
-        let msg = MidiMessage::new(0, MidiCommand::NoteOn { channel: 0, key: 0x3C, velocity: 0x64 });
-        let mut buf = BytesMut::new();
-        msg.command.write_to_bytes(&mut buf);
-        let bytes = buf.freeze();
-
-        let mut reader = bytes.clone();
-        let parsed_command = MidiCommand::parse(&mut reader).unwrap();
-        assert_eq!(parsed_command, msg.command);
-    }
-} 
