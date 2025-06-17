@@ -7,13 +7,16 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use log::{info, error};
 use tokio::runtime::Runtime;
-use binder::{Interface, BinderFeatures, Result as BinderResult, StatusCode, Strong};
+use binder_ndk::{Interface, BinderFeatures, Result as BinderResult, StatusCode, Strong};
 
 use crate::{Config, run_service_loop, wled_control};
 
+pub mod service;
+pub mod types;
+
 // Zahrnutí vygenerovaného kódu z AIDL.
 // Cargo automaticky najde tento soubor v `OUT_DIR`.
-include!(concat!(env!("OUT_DIR"), "/com_example_rtpmidi_IMidiWledService.rs"));
+include!(concat!(env!("OUT_DIR"), "/com/example/rtpmidi/IMidiWledService.rs"));
 
 // Název služby, pod kterým bude registrována v Android Service Manageru.
 pub const SERVICE_NAME: &str = "com.example.rtpmidi.MidiWledService";
