@@ -37,8 +37,8 @@ fn main() {
 
     // Spuštění rsbinder-aidl překladače
     rsbinder_aidl::Builder::new()
-        .source(&aidl_file)
-        .output(&generated_rust_file_path)
+        .source(aidl_file)
+        .output(generated_rust_file_path.clone())
         .generate()
         .expect("Failed to execute rsbinder-aidl compiler.");
 

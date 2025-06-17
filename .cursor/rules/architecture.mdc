@@ -1,0 +1,90 @@
+description: High-level overview of the rtp-midi project architecture, its components, and general development guidelines. This rule applies to all core components of the project.
+glob:
+  - "src/**/*.rs"
+  - "qt_ui/**/*.{h,cpp}"
+  - "frontend/**/*.{html,js}"
+  - "Cargo.toml"
+  - "build.rs"
+  - "build_android.sh"
+  - "README.md"
+---
+# Project Architecture & Guidelines: rtp-midi
+
+This document provides a high-level overview of the `rtp-midi` project architecture, its components, and general development guidelines.
+
+## 1. Core Philosophy
+
+The project is built around a central Rust backend that handles the core logic for MIDI processing, audio analysis, and device control. Various frontends and integrations connect to this backend to provide user interfaces and extend functionality to different platforms.
+
+The primary goals are:
+- **Performance and Reliability:** Using Rust for the core logic ensures memory safety and high performance for real-time operations.
+- **Modularity:** Components are designed to be loosely coupled, allowing them to be developed, tested, and run independently where possible.
+- **Cross-Platform:** The architecture supports multiple frontends (Web, Desktop) and platforms (Linux, Windows, macOS, Android).
+
+## 2. Component Overview
+
+The project is divided into several main components:
+
+### 2.1. Rust Backend (The Core)
+
+-   **Location:** `src/`
+-   **Description:** This is the heart of the application.
+-   **Key Crates/Modules:**
+    -   `rtp_midi` (library - `src/lib.rs`): Contains the shared logic for MIDI, audio analysis (`audio_analysis.rs`), and device control (`wled_control.rs`).
+    -   `rtp_midi` (binary - `src/main.rs`): The main application entry point. It boots up the necessary services, servers, and control loops.
+    -   `audio_server` (binary - `src/audio_server/main.rs`): A potentially separate process for handling audio input and processing, keeping it isolated.
+    -   `client_app` (binary - `src/client_app/main.rs`): A command-line or headless client.
+
+### 2.2. Qt Desktop UI
+
+-   **Location:** `qt_ui/`
+-   **Description:** A cross-platform desktop UI built with Qt/C++.
+-   **Communication:** It interacts with the Rust backend via a Foreign Function Interface (FFI).
+-   **Key Files:**
+    -   `src/ffi.rs`: Defines the `extern "C"` functions that are exposed from Rust.
+    -   `qt_ui/rust_service_bridge.h` / `.cpp`: C++ wrapper code that calls the Rust functions.
+-   **See also:** `ffi_qt_bridge.md` for detailed rules on this interface.
+
+### 2.3. Web Frontend
+
+-   **Location:** `frontend/`
+-   **Description:** A web-based interface for controlling the application.
+-   **Communication:** Uses WebSockets and/or WebRTC to communicate with a server provided by the Rust backend.
+-   **Key Files:**
+    -   `frontend/index.html`: The main UI page.
+    -   `frontend/script.js`: Client-side logic for connecting to the backend and handling UI events.
+    -   `frontend/webrtc_client.html`: A specific client for WebRTC-based communication.
+
+### 2.4. Android Integration
+
+-   **Location:** `src/android/`, `build_android.sh`
+-   **Description:** Provides functionality to run the Rust core as a service on Android.
+-   **Communication:** Uses the Java Native Interface (JNI) to bridge between Rust and the Android (Java/Kotlin) environment. It may also use AIDL for inter-process communication on Android.
+-   **Key Files:**
+    -   `src/android/jni.rs`: The JNI bindings.
+    -   `src/android/aidl_service.rs`: Rust implementation of an AIDL service.
+-   **See also:** `midi_esp32_android.md` for specific implementation details.
+
+## 3. Development Guidelines
+
+### 3.1. Coding Style
+
+-   **Rust:** All Rust code **must** be formatted with `rustfmt`. Run `cargo fmt` before committing.
+-   **Clippy:** All Rust code **must** be free of warnings from `clippy`. Run `cargo clippy -- -D warnings` to enforce this.
+-   **C++:** Follow a consistent style (e.g., Google C++ Style Guide).
+
+### 3.2. Error Handling (Rust)
+
+-   Use the `anyhow` crate for application-level error handling where simple, context-rich error reports are needed (e.g., in `main.rs` and binaries).
+-   Use the `thiserror` crate for library-level code where custom, typed errors are beneficial for consumers of the library.
+-   Avoid using `.unwrap()` or `.expect()`. Use `?` for propagation or pattern match `Result` and `Option` to handle failures gracefully.
+
+### 3.3. Logging (Rust)
+
+-   Use the `tracing` crate for structured logging.
+-   Initialize a subscriber like `tracing_subscriber` in the `main` function of each binary.
+-   Use structured log events with key-value pairs to provide context, e.g., `tracing::info!(peer_addr = %addr, "new connection established");`.
+
+### 3.4. Commits
+
+-   Follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification. This helps in generating changelogs and understanding the history. Example: `feat(audio): add FFT-based beat detection`.

@@ -1,0 +1,125 @@
+description: Outlines the patterns and procedures for the Foreign Function Interface (FFI) between the core Rust application and the C++/Qt user interface. This rule applies to all files involved in the Rust-Qt bridge.
+glob:
+  - "src/ffi.rs"
+  - "qt_ui/**/*.{h,cpp}"
+  - "build.rs"
+---
+# FFI Rule: Bridging Rust and the Qt UI
+
+This document outlines the patterns and procedures for the Foreign Function Interface (FFI) between the core Rust application and the C++/Qt user interface.
+
+## 1. Overview
+
+The connection is established through a C-style FFI layer.
+-   **Rust Side:** Exposes `extern "C"` functions. These functions are responsible for acting as a safe boundary, translating data types, handling memory, and catching panics.
+-   **C++ Side:** A "bridge" class (`RustServiceBridge`) provides C++-friendly methods that call the exposed Rust functions.
+
+### Key Files
+-   **Rust:** `src/ffi.rs`
+-   **C++:** `qt_ui/rust_service_bridge.h`, `qt_ui/rust_service_bridge.cpp`
+-   **Build Script:** `build.rs` (may be used to generate headers or link libraries)
+
+## 2. Memory Management
+
+**The Golden Rule:** The entity that allocates the memory is responsible for freeing it.
+
+-   **Rust to C++:** When Rust allocates memory (e.g., a `String` or a `struct`) and passes ownership to C++, it must provide a corresponding `extern "C"` function to free that memory. The C++ code is obligated to call this function when it's done with the memory.
+    -   **Strings:** Convert `String` to `*const c_char` using `CString::new(s)?.into_raw()`. Provide a `my_lib_free_string(*mut c_char)` function that rebuilds the `CString` and drops it.
+    -   **Structs:** Pass structs behind a pointer using `Box::into_raw(Box::new(my_struct))`. Provide a `my_lib_free_struct(*mut MyStruct)` function that uses `Box::from_raw` to reclaim and drop the struct.
+-   **C++ to Rust:** When C++ passes a pointer to Rust, Rust should generally not take ownership of that memory. It should treat it as a borrowed reference.
+
+## 3. Safety and Panics
+
+The FFI boundary is inherently `unsafe`.
+
+-   **No Panics Across FFI:** A panic across the FFI boundary is **undefined behavior**. All exposed `extern "C"` functions must catch any potential panics and translate them into an error code or a null pointer. The `std::panic::catch_unwind` function is the primary tool for this.
+-   **Null Pointers:** Always check for null pointers passed from C++.
+
+## 4. How to Expose a New Rust Function to Qt
+
+**Scenario:** We want to create a function in Qt that can call a Rust function `get_device_status(device_id: u32) -> String`.
+
+### Step 1: Define the `extern "C"` Function in Rust (`src/ffi.rs`)
+
+```rust
+// src/ffi.rs
+use std::ffi::{CStr, CString};
+use std::os::raw::c_char;
+use crate::core_logic; // Assuming your logic is here
+
+/// Get the status of a device as a JSON string.
+///
+/// The returned C-style string is allocated by Rust and must be freed
+/// by the caller using `rtp_midi_free_string`.
+///
+/// # Safety
+/// The caller must not use the returned pointer after it has been freed.
+/// Returns a null pointer on error or if the internal Rust string contains null bytes.
+#[no_mangle]
+pub extern "C" fn rtp_midi_get_device_status(device_id: u32) -> *mut c_char {
+    // It's good practice to wrap the core logic in catch_unwind
+    let result = std::panic::catch_unwind(|| {
+        core_logic::get_device_status(device_id)
+    });
+
+    match result {
+        Ok(Ok(status_string)) => {
+            // Convert the Rust String to a C-compatible string
+            match CString::new(status_string) {
+                Ok(c_string) => c_string.into_raw(),
+                Err(_) => std::ptr::null_mut(), // String contained a null byte
+            }
+        },
+        _ => std::ptr::null_mut(), // Panic occurred or core logic returned an Err
+    }
+}
+
+/// Frees a string that was allocated by Rust.
+///
+/// # Safety
+/// The `s` pointer must be a non-null pointer that was previously
+/// returned by a function from this library.
+#[no_mangle]
+pub unsafe extern "C" fn rtp_midi_free_string(s: *mut c_char) {
+    if !s.is_null() {
+        // This takes ownership of the pointer and frees the memory when CString goes out of scope.
+        let _ = CString::from_raw(s);
+    }
+}
+Step 2: Declare the Function in the C++ Header (qt_ui/rust_service_bridge.h)// qt_ui/rust_service_bridge.h
+
+#include <cstdint>
+
+// Forward declare the C functions from the Rust library
+extern "C" {
+    char* rtp_midi_get_device_status(uint32_t device_id);
+    void rtp_midi_free_string(char* s);
+}
+
+class RustServiceBridge {
+public:
+    // ... other methods
+    QString getDeviceStatus(uint32_t deviceId);
+};
+Step 3: Implement the Bridge Method in C++ (qt_ui/rust_service_bridge.cpp)// qt_ui/rust_service_bridge.cpp
+#include "rust_service_bridge.h"
+#include <QString>
+#include <memory>
+
+QString RustServiceBridge::getDeviceStatus(uint32_t deviceId) {
+    // Call the Rust function
+    char* status_c_str = rtp_midi_get_device_status(deviceId);
+
+    // Check for null pointer, indicating an error in Rust
+    if (!status_c_str) {
+        return QString("Error: Failed to get device status from Rust backend.");
+    }
+
+    // Use a unique_ptr with a custom deleter to ensure the memory is freed
+    // This is a robust, exception-safe way to manage the memory.
+    auto custom_deleter = [](char* p){ rtp_midi_free_string(p); };
+    std::unique_ptr<char, decltype(custom_deleter)> guard(status_c_str, custom_deleter);
+
+    // Convert the C string to a Qt string
+    return QString::fromUtf8(guard.get());
+}

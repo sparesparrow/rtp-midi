@@ -7,12 +7,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use log::{info, error};
 use tokio::runtime::Runtime;
-use rsbinder::{Interface, BinderFeatures, Result as BinderResult, Strong, StatusCode};
+use rsbinder::{Interface, Result as BinderResult, Strong, StatusCode};
 
 use crate::{Config, run_service_loop, wled_control};
-
-pub mod service;
-pub mod types;
 
 // Zahrnutí vygenerovaného kódu z AIDL.
 // Cargo automaticky najde tento soubor v `OUT_DIR`.
@@ -177,10 +174,10 @@ pub fn register_service() {
     
     // Vytvoření instance naší služby.
     let service = MidiWledService::new(config);
-    let binder: Strong<dyn IMidiWledService> = BnMidiWledService::new_binder(service, BinderFeatures::default());
+    let binder: Strong<dyn IMidiWledService> = BnMidiWledService::new_binder(service, Default::default());
 
     // Registrace služby u Android Service Manageru.
-    match rsbinder::add_service(SERVICE_NAME, binder.as_binder()) {
+    match rsbinder::hub::add_service(SERVICE_NAME, binder.as_binder()) {
         Ok(_) => {
             info!("Successfully registered '{}'. Joining thread pool.", SERVICE_NAME);
             // Udržíme vlákno naživu, aby služba mohla přijímat požadavky.
