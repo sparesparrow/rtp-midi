@@ -1,17 +1,32 @@
-graph TD
-    A[User] --> B(rtp-midi System);
-    B -- Controls --> C[WLED/DDP LED Controller];
-    B -- Interacts With --> D[MIDI Controller];
-    B -- Connects To --> E[Android Device];
-    B -- Serves --> F[Web Frontend];
-    B -- Communicates With --> G[Qt Desktop UI];
-    B -- Processes --> H[Audio Input];
+---
+title: RTP-MIDI System Context Diagram
+---
 
-    subgraph External Systems
-        C
-        D
-        E
-        F
-        G
-        H
-    end 
+flowchart LR
+    User([User])
+    QtUI([Qt Desktop UI])
+    WebFrontend([Web Frontend])
+    AndroidApp([Android App])
+    RustCore([Rust Core Backend])
+    WLED([WLED/ESP32 Controller])
+    AudioInput([Audio Input Device])
+    MIDIInput([MIDI Input Device])
+
+    User -- interacts with --> QtUI
+    User -- interacts with --> WebFrontend
+    User -- interacts with --> AndroidApp
+
+    QtUI -- FFI (C++/Rust) --> RustCore
+    WebFrontend -- WebSocket/WebRTC --> RustCore
+    AndroidApp -- JNI/AIDL --> RustCore
+
+    RustCore -- UDP/DDP --> WLED
+    RustCore -- reads --> AudioInput
+    RustCore -- reads --> MIDIInput
+
+    WLED -- controls --> LEDStrips([LED Strips])
+
+    classDef external fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef internal fill:#bbf,stroke:#333,stroke-width:2px;
+    class User,QtUI,WebFrontend,AndroidApp,WLED,AudioInput,MIDIInput external;
+    class RustCore,LEDStrips internal; 
