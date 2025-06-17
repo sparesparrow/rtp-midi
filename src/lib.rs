@@ -1,6 +1,6 @@
 use anyhow::Result;
 use bytes::{Bytes, BytesMut};
-use cpal::traits::{DeviceTrait, HostTrait};
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Sample, SampleFormat};
 use crossbeam_channel::Sender;
 use futures_util::{SinkExt, StreamExt};
@@ -9,6 +9,8 @@ use num_traits;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc;
@@ -262,7 +264,6 @@ pub fn create_ddp_sender(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::net::UdpSocket;
 
     #[test]
     fn test_create_ddp_sender_invalid_addr() {
@@ -273,29 +274,27 @@ mod tests {
     // Note: For a real integration test, bind a UDP socket and check for received data.
 }
 
-// Placeholder for MidiMessage struct, as src/midi/message.rs was not found
-// This should be replaced with the actual MidiMessage definition if it exists elsewhere
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MidiMessage {
-    command_byte: u8,
-    data_bytes: Vec<u8>,
+    pub delta_time: u32,
+    pub command: Vec<u8>,
 }
 
 impl MidiMessage {
-    pub fn command(&self) -> u8 {
-        self.command_byte
+    pub fn new(delta_time: u32, command: Vec<u8>) -> Self {
+        Self { delta_time, command }
     }
 }
+
 
 pub mod midi_rtp_packet {
     use super::{Bytes, BytesMut, MidiMessage, Result, Serialize, Deserialize, SystemTime, UNIX_EPOCH}; 
 
     const RTP_VERSION: u8 = 2;
-    const MIDI_PAYLOAD_TYPE: u8 = 97; // Standardní číslo pro MIDI
+    const MIDI_PAYLOAD_TYPE: u8 = 97;
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct RtpMidiPacket {
-        // RTP Header
         version: u8,
         padding: bool,
         extension: bool,
@@ -306,48 +305,38 @@ pub mod midi_rtp_packet {
         timestamp: u32,
         ssrc: u32,
         
-        // RTP MIDI specifické položky
         journal_present: bool,
-        first_midi_command: u8,
         
-        // MIDI data
         midi_commands: Vec<MidiMessage>,
     }
 
     impl RtpMidiPacket {
-        /// Vytvoří nový RTP-MIDI paket s danými MIDI zprávami
         pub fn create(midi_messages: Vec<MidiMessage>) -> Self {
-            // Získání aktuálního času v milisekundách od epochy
             let timestamp = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
-                .expect("Čas před UNIX epochou")
+                .expect("Time went backwards")
                 .as_millis() as u32;
-            
-            let first_midi_command = if midi_messages.is_empty() { 0 } else { midi_messages[0].command() };
             
             Self {
                 version: RTP_VERSION,
                 padding: false,
                 extension: false,
                 csrc_count: 0,
-                marker: false,
+                marker: false, // RFC 6295: Marker bit should be 1 for the last packet of a MIDI event
                 payload_type: MIDI_PAYLOAD_TYPE,
-                sequence_number: 0, // Bude nastaveno sessionem
+                sequence_number: 0, 
                 timestamp,
-                ssrc: 0, // Bude nastaveno sessionem
+                ssrc: 0,
                 journal_present: false,
-                first_midi_command,
                 midi_commands: midi_messages,
             }
         }
         
-        /// Parsuje RTP-MIDI paket z bytů
         pub fn parse(data: &[u8]) -> Result<Self> {
-            if data.len() < 12 { // Minimum size for RTP header (12 bytes)
-                return Err(anyhow::anyhow!("Data too short for RTP header"));
+            if data.len() < 12 {
+                return Err(anyhow::anyhow!("Data too short for RTP header ({} bytes)", data.len()));
             }
             
-            // RTP Header
             let b0 = data[0];
             let b1 = data[1];
             
@@ -362,50 +351,79 @@ pub mod midi_rtp_packet {
             let timestamp = u32::from_be_bytes([data[4], data[5], data[6], data[7]]);
             let ssrc = u32::from_be_bytes([data[8], data[9], data[10], data[11]]);
             
-            let header_size = 12 + (csrc_count as usize) * 4 + if extension { 4 } else { 0 }; // Basic RTP header + CSRC + Extension header (simplified)
-            
-            if data.len() < header_size + 1 { // Need at least 1 byte for MIDI header
-                 return Err(anyhow::anyhow!("Data too short for MIDI header"));
+            let header_size = 12 + (csrc_count as usize) * 4;
+            if extension {
+                 // Simplified: skipping extension header parsing
+                 return Err(anyhow::anyhow!("RTP extension headers not supported"));
             }
             
-            // RTP MIDI Header (1 byte)
-            let midi_header = data[header_size];
-            let journal_present = ((midi_header >> 7) & 0x01) != 0;
-            let first_midi_command = midi_header & 0x7F;
+            if data.len() <= header_size {
+                 return Err(anyhow::anyhow!("Data too short for MIDI payload"));
+            }
             
-            // Parsování MIDI zpráv
-            let _midi_data = &data[header_size + 1..]; // Changed to _midi_data
-            let midi_commands = Vec::new(); // Removed mut
+            let midi_payload = &data[header_size..];
+            let midi_header = midi_payload[0];
+            let journal_present = (midi_header >> 7) & 1 != 0;
+            let _b_bit = (midi_header >> 6) & 1 != 0; // B-bit for command section structure, not used here
+            let _midi_list_len = (midi_header & 0x0F) as usize; // Length of the MIDI command section
+
+            let mut midi_commands = Vec::new();
+            let mut offset = 1;
             
-            // TODO: Implement proper MIDI message parsing according to RFC 6295 / RFC 4695
-            // This requires handling delta times, MIDI commands, and data bytes.
-            // For now, we'll just store the raw data after the MIDI header as a placeholder.
-            // This is incorrect for actual RTP-MIDI.
-            // For a proper implementation, refer to RFC 6295 section 3.2.
-            
-            // Placeholder: Copying raw MIDI data bytes (incorrect for RTP-MIDI structure)
-            // midi_commands = midi_data.to_vec(); // This is not MidiMessage objects
-            
-            // A proper implementation would loop through midi_data, parse each MIDI command
-            // including its delta time, and construct MidiMessage objects.
+            let mut running_status: Option<u8> = None;
+
+            while offset < midi_payload.len() {
+                // --- Parse Delta Time ---
+                let (delta_time, bytes_read) = parse_variable_length_quantity(&midi_payload[offset..])?;
+                offset += bytes_read;
+
+                // --- Parse MIDI Command ---
+                if offset >= midi_payload.len() {
+                    return Err(anyhow::anyhow!("Incomplete MIDI message: missing command"));
+                }
+                
+                let first_byte = midi_payload[offset];
+                let command_byte;
+                let mut command_data = Vec::new();
+
+                if first_byte >= 0x80 { // New status byte
+                    command_byte = first_byte;
+                    command_data.push(command_byte);
+                    offset += 1;
+                    if command_byte < 0xF0 { // Channel messages
+                       running_status = Some(command_byte);
+                    } else { // System messages
+                       running_status = None;
+                    }
+                } else { // Running status
+                    command_byte = running_status.ok_or_else(|| anyhow::anyhow!("Missing running status"))?;
+                    command_data.push(command_byte);
+                    // Do not increment offset, first_byte is data
+                }
+
+                let data_len = midi_command_length(command_byte);
+                
+                if offset + data_len > midi_payload.len() {
+                    return Err(anyhow::anyhow!("Incomplete MIDI command data"));
+                }
+                
+                // Add data bytes
+                for _ in 0..data_len {
+                    command_data.push(midi_payload[offset]);
+                    offset += 1;
+                }
+                
+                midi_commands.push(MidiMessage::new(delta_time, command_data));
+            }
             
             Ok(Self {
-                version,
-                padding,
-                extension,
-                csrc_count,
-                marker,
-                payload_type,
-                sequence_number,
-                timestamp,
-                ssrc,
+                version, padding, extension, csrc_count, marker, payload_type,
+                sequence_number, timestamp, ssrc,
                 journal_present,
-                first_midi_command,
-                midi_commands, // This will be empty or incorrectly populated with raw bytes
+                midi_commands,
             })
         }
         
-        /// Serializuje RTP-MIDI paket do bytů
         pub fn serialize(&self) -> Result<Bytes> {
             let mut buffer = BytesMut::with_capacity(1024);
             
@@ -417,48 +435,121 @@ pub mod midi_rtp_packet {
             buffer.extend_from_slice(&self.timestamp.to_be_bytes());
             buffer.extend_from_slice(&self.ssrc.to_be_bytes());
             
-            // RTP MIDI Header (1 byte)
-            let midi_header = ((self.journal_present as u8) << 7) | (self.first_midi_command & 0x7F);
-            buffer.extend_from_slice(&[midi_header]);
-            
-            // MIDI data
-            // TODO: Implement proper serialization of MidiMessage objects into RTP-MIDI format
-            // This requires encoding delta times and MIDI command bytes according to RFC 6295 section 3.3.
-            // For now, we'll just append raw command bytes if available (incorrect).
-            
-            // Placeholder: Appending raw command bytes (incorrect)
-            for cmd in &self.midi_commands {
-                // This is incorrect; need to serialize the full MidiMessage including delta time
-                // and handle running status.
-                buffer.extend_from_slice(&[cmd.command()]); // Appending just the command byte
-                // Need to also append data bytes depending on the command.
+            // --- MIDI Payload ---
+            // B-bit (bit 6) is 1, indicating each command is preceded by delta time
+            let midi_header = ((self.journal_present as u8) << 7) | (1 << 6); 
+            buffer.extend_from_slice(&[midi_header]); // Placeholder for length, will update later
+
+            let mut midi_payload = BytesMut::new();
+            for msg in &self.midi_commands {
+                // Encode and write delta time
+                let mut delta_time_buf = [0u8; 4];
+                let dt_len = encode_variable_length_quantity(msg.delta_time, &mut delta_time_buf)?;
+                midi_payload.extend_from_slice(&delta_time_buf[..dt_len]);
+
+                // Write MIDI command data
+                midi_payload.extend_from_slice(&msg.command);
             }
+            
+            // Update the length in the MIDI header
+            let len_byte_index = buffer.len() - 1;
+            let midi_list_len = self.midi_commands.len();
+            if midi_list_len > 15 {
+                return Err(anyhow::anyhow!("Too many MIDI commands in one packet (max 15)"));
+            }
+            buffer[len_byte_index] |= midi_list_len as u8;
+
+            // Append the actual MIDI payload
+            buffer.extend_from_slice(&midi_payload);
             
             Ok(buffer.freeze())
         }
         
-        /// Vrací odkaz na MIDI příkazy v paketu
-        pub fn midi_commands(&self) -> Option<&Vec<MidiMessage>> {
-            if self.midi_commands.is_empty() {
-                None
-            } else {
-                Some(&self.midi_commands)
-            }
+        pub fn midi_commands(&self) -> &Vec<MidiMessage> {
+            &self.midi_commands
         }
         
-        /// Nastaví číslo sekvence
         pub fn set_sequence_number(&mut self, seq: u16) {
             self.sequence_number = seq;
         }
         
-        /// Nastaví SSRC identifikátor
         pub fn set_ssrc(&mut self, ssrc: u32) {
             self.ssrc = ssrc;
         }
         
-        /// Nastaví příznak přítomnosti žurnálu
         pub fn set_journal_present(&mut self, present: bool) {
             self.journal_present = present;
+        }
+
+        pub fn sequence_number(&self) -> u16 {
+            self.sequence_number
+        }
+
+        pub fn ssrc(&self) -> u32 {
+            self.ssrc
+        }
+
+        pub fn journal_present(&self) -> bool {
+            self.journal_present
+        }
+    }
+
+    /// Parses a variable-length quantity (VLQ) from a byte slice.
+    /// Returns the parsed value and the number of bytes read.
+    fn parse_variable_length_quantity(data: &[u8]) -> Result<(u32, usize)> {
+        let mut value: u32 = 0;
+        let mut bytes_read = 0;
+        for (i, &byte) in data.iter().enumerate() {
+            if i >= 4 { return Err(anyhow::anyhow!("VLQ too long")); }
+            value = (value << 7) | (byte & 0x7F) as u32;
+            bytes_read += 1;
+            if byte & 0x80 == 0 { // End of VLQ
+                return Ok((value, bytes_read));
+            }
+        }
+        Err(anyhow::anyhow!("Incomplete VLQ data"))
+    }
+
+    /// Encodes a u32 value into a variable-length quantity (VLQ).
+    /// Returns the number of bytes written to the buffer.
+    fn encode_variable_length_quantity(value: u32, buf: &mut [u8; 4]) -> Result<usize> {
+        if value > 0x0FFFFFFF {
+            return Err(anyhow::anyhow!("Value too large for VLQ encoding"));
+        }
+        let mut temp = value;
+        let mut bytes = [0u8; 4];
+        let mut i = 3;
+
+        loop {
+            bytes[i] = (temp & 0x7F) as u8;
+            temp >>= 7;
+            if i < 3 { bytes[i] |= 0x80; }
+            if temp == 0 { break; }
+            if i == 0 { return Err(anyhow::anyhow!("VLQ encoding error")); }
+            i -= 1;
+        }
+
+        let len = 4 - i;
+        buf[..len].copy_from_slice(&bytes[i..]);
+        Ok(len)
+    }
+    
+    /// Returns the expected number of data bytes for a given MIDI command status byte.
+    fn midi_command_length(status_byte: u8) -> usize {
+        match status_byte & 0xF0 {
+            0x80 | 0x90 | 0xA0 | 0xB0 | 0xE0 => 2, // Note Off, Note On, Aftertouch, CC, Pitch Bend
+            0xC0 | 0xD0 => 1, // Program Change, Channel Pressure
+            0xF0 => { // System messages
+                match status_byte {
+                    0xF1 | 0xF3 => 1, // MTC Quarter Frame, Song Select
+                    0xF2 => 2, // Song Position Pointer
+                    0xF6 => 0, // Tune Request
+                    // F0 (SysEx) and F7 (SysEx End) are handled differently (variable length).
+                    // This simple implementation does not support multi-packet SysEx.
+                    _ => 0,
+                }
+            }
+            _ => 0,
         }
     }
 }
@@ -715,10 +806,108 @@ pub mod midi {
         pub use super::super::midi_rtp_packet::*;
     }
     pub mod message {
-        // Placeholder for midi::message module, if it existed
         pub use super::super::MidiMessage;
     }
 }
 pub mod signaling_server {
     pub use super::signaling_server_module::*;
-} 
+}
+
+pub mod wled_control;
+
+/// Main logic loop for audio processing and DDP output.
+/// This function is shared between the desktop main.rs and the Android AIDL service.
+pub fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
+    info!("Core service loop started.");
+
+    // Setup channels for inter-thread communication
+    let (audio_tx, audio_rx) = crossbeam_channel::bounded(8);
+    let (fft_tx, fft_rx) = crossbeam_channel::bounded(8);
+    let (led_tx, led_rx) = crossbeam_channel::bounded(8);
+
+    // --- Audio Input Thread ---
+    let audio_config = config.clone();
+    let running_audio = running.clone();
+    let audio_handle = thread::spawn(move || {
+        match start_audio_input(audio_config.audio_device.as_deref(), audio_tx) {
+            Ok(stream) => {
+                // stream.play() is essential to start capturing audio
+                if let Err(e) = stream.play() {
+                    error!("Failed to play audio stream: {}", e);
+                    return;
+                }
+                info!("Audio input stream started.");
+                // Loop to keep the thread alive while the service is running
+                while running_audio.load(Ordering::Relaxed) {
+                    thread::sleep(std::time::Duration::from_millis(100));
+                }
+                info!("Audio input stream stopping.");
+            }
+            Err(e) => error!("Failed to start audio input: {}", e),
+        }
+    });
+
+    // --- Audio Analysis Thread ---
+    let running_analysis = running.clone();
+    let analysis_handle = thread::spawn(move || {
+        let mut prev = Vec::new();
+        let smoothing = 0.7; // This could be moved to Config
+        while running_analysis.load(Ordering::Relaxed) {
+             // Use a timeout to prevent blocking indefinitely if the audio stream stops
+             if let Ok(buffer) = audio_rx.recv_timeout(std::time::Duration::from_secs(1)) {
+                let mags = compute_fft_magnitudes(&buffer, &mut prev, smoothing);
+                if fft_tx.send(mags).is_err() {
+                    // Stop if the receiving end has disconnected
+                    break;
+                }
+            }
+        }
+        info!("Audio analysis thread stopped.");
+    });
+
+    // --- Light Mapping Thread ---
+    let led_count_mapping = config.led_count;
+    let running_mapping = running.clone();
+    let mapping_handle = thread::spawn(move || {
+        while running_mapping.load(Ordering::Relaxed) {
+            if let Ok(mags) = fft_rx.recv_timeout(std::time::Duration::from_secs(1)) {
+                let leds = map_audio_to_leds(&mags, led_count_mapping);
+                if led_tx.send(leds).is_err() {
+                    break;
+                }
+            }
+        }
+        info!("Light mapping thread stopped.");
+    });
+
+    // --- DDP Output Thread ---
+    let ddp_config = config.clone();
+    let running_ddp = running.clone();
+    let ddp_handle = thread::spawn(move || {
+        let rgbw = ddp_config.color_format.as_deref().unwrap_or("RGB").eq_ignore_ascii_case("RGBW");
+        let mut sender = match create_ddp_sender(&ddp_config.wled_ip, ddp_config.ddp_port.unwrap_or(4048), ddp_config.led_count, rgbw) {
+            Ok(s) => s,
+            Err(e) => {
+                error!("Failed to create DDP sender: {}", e);
+                return;
+            }
+        };
+        info!("DDP sender created for {}", ddp_config.wled_ip);
+
+        while running_ddp.load(Ordering::Relaxed) {
+            if let Ok(leds) = led_rx.recv_timeout(std::time::Duration::from_millis(100)) {
+                if let Err(e) = send_ddp_frame(&mut sender, &leds) {
+                    warn!("Failed to send DDP frame: {}", e);
+                }
+            }
+        }
+        info!("DDP output thread stopped.");
+    });
+
+    // Wait for all threads to finish their work after `running` is set to false.
+    audio_handle.join().expect("Audio input thread panicked");
+    analysis_handle.join().expect("Audio analysis thread panicked");
+    mapping_handle.join().expect("Light mapping thread panicked");
+    ddp_handle.join().expect("DDP output thread panicked");
+    info!("All service threads have been joined.");
+}

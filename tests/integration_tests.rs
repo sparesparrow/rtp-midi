@@ -6,6 +6,12 @@ use futures_util::{SinkExt, StreamExt};
 use serde_json::json;
 
 use rtp_midi::{signaling_server::run_server, PeerType, signaling_server::RegisterPayload, signaling_server::SignalingMessage};
+use rtp_midi::midi::message::MidiMessage;
+use rtp_midi::midi::rtp::RtpMidiPacket;
+use rtp_midi::{map_audio_to_leds};
+use rtp_midi::wled_control;
+use mockito;
+
 
 #[tokio::test]
 async fn test_client_registration() -> Result<(), Box<dyn std::error::Error>> {
@@ -57,4 +63,91 @@ async fn test_client_registration() -> Result<(), Box<dyn std::error::Error>> {
     println!("Client successfully registered and received register_success.");
 
     Ok(())
-} 
+}
+
+#[test]
+fn test_rtp_midi_packet_roundtrip() -> Result<(), Box<dyn std::error::Error>> {
+    // Tento test ověřuje, že RTP-MIDI paket lze serializovat a deserializovat bez ztráty dat.
+    // Je to klíčové pro zajištění spolehlivosti síťové komunikace.
+
+    // 1. Vytvoření vzorové MIDI zprávy
+    let midi_note_on = MidiMessage::new(0, vec![0x90, 60, 127]); // Note On, Channel 1, Middle C, full velocity
+    let mut original_packet = RtpMidiPacket::create(vec![midi_note_on]);
+    original_packet.set_sequence_number(12345);
+    original_packet.set_ssrc(54321);
+
+    // 2. Serializace paketu
+    let serialized_data = original_packet.serialize()?;
+
+    // 3. Deserializace dat zpět na paket
+    let parsed_packet = RtpMidiPacket::parse(&serialized_data)?;
+
+    // 4. Ověření, že jsou pakety shodné
+    assert_eq!(original_packet.sequence_number(), parsed_packet.sequence_number());
+    assert_eq!(original_packet.ssrc(), parsed_packet.ssrc());
+    assert_eq!(original_packet.midi_commands(), parsed_packet.midi_commands());
+    assert_eq!(original_packet.journal_present(), parsed_packet.journal_present());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_wled_preset_control_mocked() -> Result<(), Box<dyn std::error::Error>> {
+    // Tento test používá mock server k simulaci WLED zařízení.
+    // Ověřuje, že funkce pro ovládání WLED odesílá správně formátované HTTP požadavky.
+
+    // 1. Spuštění mock serveru na náhodném portu
+    let mut server = mockito::Server::new_async().await;
+    let url = server.url(); // Např. "http://127.0.0.1:1234"
+
+    // 2. Vytvoření mocku pro WLED JSON API endpoint
+    let mock = server.mock("POST", "/json/state")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(r#"{"success":true}"#)
+        .expect(1) // Očekáváme přesně jeden požadavek
+        .with_body(r#"{"ps":5}"#) // Očekáváme toto konkrétní JSON tělo
+        .create_async().await;
+
+    // 3. Zavolání naší funkce, která má odeslat HTTP požadavek
+    // Adresa serveru se předává bez "http://"
+    let ip_and_port = url.strip_prefix("http://").unwrap();
+    wled_control::set_wled_preset(ip_and_port, 5).await?;
+
+    // 4. Ověření, že mock byl skutečně zavolán
+    mock.assert_async().await;
+
+    Ok(())
+}
+
+
+#[test]
+fn test_audio_to_led_pipeline() {
+    // Tento test ověřuje celý řetězec zpracování audia na LED barvy.
+
+    // 1. Vytvoření vzorového zvukového signálu (magnitud)
+    // Simulujeme silné basy, slabé středy a žádné výšky.
+    let mut magnitudes = vec![0.0; 90];
+    // Silné basy (první třetina)
+    for i in 0..30 { magnitudes[i] = 0.9; }
+    // Slabé středy (druhá třetina)
+    for i in 30..60 { magnitudes[i] = 0.2; }
+    // Žádné výšky (třetí třetina)
+
+    let led_count = 10;
+
+    // 2. Spuštění mapovací funkce
+    let led_data = map_audio_to_leds(&magnitudes, led_count);
+
+    // 3. Ověření výsledku
+    // Očekávané hodnoty: R = 0.9*255=229, G = 0.2*255=51, B = 0.0*255=0
+    assert_eq!(led_data.len(), led_count * 3, "Incorrect number of LED data bytes");
+    for i in 0..led_count {
+        let r = led_data[i * 3];
+        let g = led_data[i * 3 + 1];
+        let b = led_data[i * 3 + 2];
+        assert_eq!(r, 229, "Red component mismatch at LED {}", i);
+        assert_eq!(g, 51, "Green component mismatch at LED {}", i);
+        assert_eq!(b, 0, "Blue component mismatch at LED {}", i);
+    }
+}
