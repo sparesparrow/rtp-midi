@@ -57,4 +57,23 @@ graph TD
     style CI_CD fill:#fec,stroke:#333,stroke-width:2px
 ```
 
+## Spuštění hlavního binárního souboru
+
+Hlavní binární soubor `rtp-midi-node` lze spustit ve třech režimech podle role:
+
+- **Server:**
+  ```sh
+  cargo run --bin rtp-midi-node -- --role server
+  ```
+- **Client:**
+  ```sh
+  cargo run --bin rtp-midi-node -- --role client
+  ```
+- **UI Host (webserver pro WASM UI):**
+  ```sh
+  cargo run --bin rtp-midi-node -- --role ui-host
+  ```
+
+Každý režim spouští odpovídající službu podle autodetekce role.
+
 ---

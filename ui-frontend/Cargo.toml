@@ -1,1 +1,17 @@
-[package]\nname = "ui-frontend"\nversion = "0.1.0"\nedition = "2021"\n\n[lib]\ncrate-type = ["cdylib"]\n\n[dependencies]\nyew = "0.21"\nwasm-bindgen = "0.2"\nserde = { version = "1", features = ["derive"] }\nserde_json = "1"\nweb-sys = { version = "0.3", features = ["WebSocket", "console"] }\n\n[features]\ndefault = []\n
+[package]
+name = "ui-frontend"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+yew = { version = "0.21", features = ["csr"] }
+wasm-bindgen = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+web-sys = { version = "0.3", features = ["WebSocket", "console"] }
+
+[features]
+default = []

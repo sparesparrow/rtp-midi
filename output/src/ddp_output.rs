@@ -1,5 +1,5 @@
 use anyhow::Result;
-use ddp_rs::connection::DDPConnection;
+use ddp_rs::DDPConnection;
 use core::{DataStreamNetSender, StreamError, DataStreamNetReceiver};
 
 /// Wrapper pro DDP odesílač implementující sjednocené API.

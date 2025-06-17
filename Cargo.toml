@@ -11,7 +11,8 @@ members = [
     "audio",
     "output",
     "platform",
-    "utils",
+    "utils", "ui-frontend",
+    "rtp_midi_node"
 ]
 resolver = "2" # Recommended for workspaces
 

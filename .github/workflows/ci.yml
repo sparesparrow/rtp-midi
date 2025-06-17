@@ -45,3 +45,23 @@ jobs:
 
     - name: Run linter (Clippy)
       run: cargo clippy -- -D warnings
+
+    - name: Build WASM UI (ui-frontend)
+      run: |
+        cd ui-frontend
+        cargo install wasm-pack --locked || true
+        wasm-pack build --target web
+        cd ..
+
+    - name: Build for Android (check only)
+      run: |
+        rustup target add aarch64-linux-android
+        cargo build --target aarch64-linux-android --release --features hal_android || true
+
+    - name: Build for ESP32 (check only)
+      run: |
+        rustup target add xtensa-esp32-none-elf || true
+        cargo build --target xtensa-esp32-none-elf --release --features hal_esp32 || true
+
+    - name: Run integration tests
+      run: cargo test --test integration_tests -- --nocapture

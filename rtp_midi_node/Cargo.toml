@@ -1,0 +1,9 @@
+[package]
+name = "rtp_midi_node"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+simple-server = "0.4.0"
+rtp_midi_lib = { path = "../rtp_midi_lib" }
+client_app = { path = "../client_app" }

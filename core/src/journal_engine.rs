@@ -7,11 +7,18 @@ use std::collections::BTreeSet;
 use utils::{midi_command_length, MidiCommand};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
+/// MIDI příkaz s časováním (delta_time)
+#[derive(Debug, Clone, PartialEq)]
+pub struct TimedMidiCommand {
+    pub delta_time: u32,
+    pub command: MidiCommand,
+}
+
 /// Represents a history entry in the recovery journal.
 #[derive(Debug, Clone, PartialEq)]
 pub struct JournalEntry {
     pub sequence_nr: u16,
-    pub commands: Vec<MidiCommand>,
+    pub commands: Vec<TimedMidiCommand>,
 }
 
 /// Represents the data contained within the RTP-MIDI Recovery Journal.
@@ -36,12 +43,15 @@ impl JournalEntry {
         // Sequence Number (2 bytes)
         buf.put_u16(self.sequence_nr);
 
-        // Midi Commands (Variable Length)
+        // Timed MIDI Commands (Variable Length)
         for msg in &self.commands {
             let mut v_buf = [0u8; 4];
             let v_len = encode_variable_length_quantity(msg.delta_time, &mut v_buf)?;
             buf.put(&v_buf[..v_len]);
-            buf.put(&msg.command[..]);
+            // Serializace samotného MIDI příkazu do bytu
+            let mut midi_bytes = Vec::new();
+            serialize_midi_command(&msg.command, &mut midi_bytes)?;
+            buf.put(&midi_bytes[..]);
         }
         Ok(buf.freeze())
     }
@@ -57,14 +67,18 @@ impl JournalEntry {
             let (delta_time, delta_len) = parse_variable_length_quantity(data)?;
             data.advance(delta_len); // Consume VLQ bytes
 
-            let command_start = data.remaining();
-            let command_len = if command_start.is_empty() { 0 } else { midi_command_length(command_start[0])? };
-
+            if !data.has_remaining() {
+                break;
+            }
+            let status_byte = data[0];
+            let command_len = midi_command_length(status_byte)?;
             if data.remaining() < command_len {
                 return Err(anyhow!("Not enough data for MIDI command in journal entry"));
             }
-            let command_bytes = data.copy_to_bytes(command_len).to_vec();
-            commands.push(MidiCommand::new(delta_time, command_bytes));
+            let command_bytes = data.copy_to_bytes(command_len);
+            let mut command_reader = Bytes::from(command_bytes.clone());
+            let command = MidiCommand::parse(&mut command_reader)?;
+            commands.push(TimedMidiCommand { delta_time, command });
         }
 
         Ok(Self { sequence_nr, commands })
@@ -180,4 +194,61 @@ fn encode_variable_length_quantity(value: u32, buf: &mut [u8; 4]) -> Result<usiz
         buf[i] = buf[start + i];
     }
     Ok(length)
+}
+
+// MIDI příkaz na byty (pro serializaci)
+fn serialize_midi_command(cmd: &MidiCommand, out: &mut Vec<u8>) -> Result<()> {
+    // Pro jednoduchost použijeme existující serializaci do raw MIDI bytu
+    // (můžete rozšířit podle potřeby)
+    match cmd {
+        MidiCommand::NoteOff { channel, key, velocity } => {
+            out.push(0x80 | (channel & 0x0F));
+            out.push(*key);
+            out.push(*velocity);
+        }
+        MidiCommand::NoteOn { channel, key, velocity } => {
+            out.push(0x90 | (channel & 0x0F));
+            out.push(*key);
+            out.push(*velocity);
+        }
+        MidiCommand::PolyphonicKeyPressure { channel, key, value } => {
+            out.push(0xA0 | (channel & 0x0F));
+            out.push(*key);
+            out.push(*value);
+        }
+        MidiCommand::ControlChange { channel, control, value } => {
+            out.push(0xB0 | (channel & 0x0F));
+            out.push(*control);
+            out.push(*value);
+        }
+        MidiCommand::ProgramChange { channel, program } => {
+            out.push(0xC0 | (channel & 0x0F));
+            out.push(*program);
+        }
+        MidiCommand::ChannelPressure { channel, value } => {
+            out.push(0xD0 | (channel & 0x0F));
+            out.push(*value);
+        }
+        MidiCommand::PitchBendChange { channel, value } => {
+            out.push(0xE0 | (channel & 0x0F));
+            out.push((*value & 0x7F) as u8);
+            out.push(((*value >> 7) & 0x7F) as u8);
+        }
+        MidiCommand::TimingClock => out.push(0xF8),
+        MidiCommand::Start => out.push(0xFA),
+        MidiCommand::Continue => out.push(0xFB),
+        MidiCommand::Stop => out.push(0xFC),
+        MidiCommand::ActiveSensing => out.push(0xFE),
+        MidiCommand::TuneRequest => out.push(0xF6),
+        MidiCommand::SystemExclusive(data) => {
+            out.push(0xF0);
+            out.extend_from_slice(data);
+            out.push(0xF7);
+        }
+        MidiCommand::Unknown { status, data } => {
+            out.push(*status);
+            out.extend_from_slice(data);
+        }
+    }
+    Ok(())
 } 

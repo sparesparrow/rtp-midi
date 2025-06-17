@@ -120,7 +120,7 @@ pub async fn toggle_wled_power(wled_ip: &str) -> Result<()> {
 pub async fn execute_wled_action(action: &WledOutputAction, wled_ip: &str) {
     let result = match action {
         WledOutputAction::SetPreset { id } => {
-            set_wled_preset(wled_ip, *id).await
+            set_wled_preset(wled_ip, (*id).try_into().unwrap()).await
         }
         WledOutputAction::SetBrightness { value } => {
             set_wled_brightness(wled_ip, *value).await
