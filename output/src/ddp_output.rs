@@ -1,5 +1,27 @@
 use anyhow::Result;
 use ddp_rs::connection::DDPConnection;
+use core::{DataStreamNetSender, StreamError};
+
+/// Wrapper pro DDP odesílač implementující sjednocené API
+pub struct DdpSender {
+    conn: DDPConnection,
+}
+
+impl DdpSender {
+    pub fn new(conn: DDPConnection) -> Self {
+        Self { conn }
+    }
+}
+
+impl DataStreamNetSender for DdpSender {
+    fn init(&mut self) -> Result<(), StreamError> {
+        // DDPConnection je již inicializován
+        Ok(())
+    }
+    fn send(&mut self, _ts: u64, payload: &[u8]) -> Result<(), StreamError> {
+        self.conn.write(payload).map_err(|e| StreamError::Other(e.to_string()))
+    }
+}
 
 /// Sends a frame of LED data to the DDP receiver (WLED).
 pub fn send_ddp_frame(sender: &mut DDPConnection, data: &[u8]) -> Result<()> {
