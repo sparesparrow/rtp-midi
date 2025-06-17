@@ -395,3 +395,18 @@ Connect your hardware synthesizer via a USB-MIDI interface. The rtp-midi app wil
 Run the signaling_server and rtp-midi binaries.
 Open frontend/index.html.
 The web UI can now send MIDI notes through the WebRTC data channel to the rtp-midi backend, which then forwards them to the hardware synthesizer.
+
+# RTP-MIDI Architecture Diagrams
+
+The following diagrams provide a visual overview of the system architecture, following the C4 model and key workflows. Click on each diagram to view or edit the Mermaid source.
+
+| Diagram Type      | Preview                                                                 | Source Link |
+|-------------------|------------------------------------------------------------------------|-------------|
+| Context Diagram   | ![Context Diagram](docs/architecture/context_diagram.mmd)               | [View Mermaid](docs/architecture/context_diagram.mmd) |
+| Container Diagram | ![Container Diagram](docs/architecture/container_diagram.mmd)           | [View Mermaid](docs/architecture/container_diagram.mmd) |
+| Component Diagram | ![Component Diagram](docs/architecture/component_diagram.mmd)           | [View Mermaid](docs/architecture/component_diagram.mmd) |
+| Sequence Diagram  | ![Sequence Diagram](docs/architecture/sequence_diagram.mmd)             | [View Mermaid](docs/architecture/sequence_diagram.mmd) |
+
+> _Diagrams are written in [Mermaid](https://mermaid.js.org/intro/) and can be edited or rendered using the Mermaid Live Editor or compatible Markdown viewers._
+
+---
