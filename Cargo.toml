@@ -1,12 +1,30 @@
-# Cargo.toml
-
 [package]
 name = "rtp-midi"
 version = "0.1.0"
 edition = "2021"
 build = "build.rs"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+# Definuje knihovnu pro FFI (Android, Qt)
+[lib]
+name = "rtp_midi_lib"
+crate-type = ["cdylib", "rlib"]
+
+# Definuje samostatné binární aplikace
+[[bin]]
+name = "rtp-midi"
+path = "src/main.rs"
+
+[[bin]]
+name = "signaling_server"
+path = "src/bin/signaling_server.rs"
+
+[[bin]]
+name = "audio_server"
+path = "src/bin/audio_server.rs"
+
+[[bin]]
+name = "client_app"
+path = "src/bin/client_app.rs"
 
 [dependencies]
 # --- Základní nástroje a utility ---
@@ -23,13 +41,15 @@ crossbeam-channel = "0.5"
 num-traits = "0.2"
 url = "2.5.0"
 async-trait = "0.1"
+once_cell = "1.19" # PŘIDÁNO
+rand = "0.8"       # PŘIDÁNO
 
 # --- Asynchronní a síťová komunikace ---
 tokio = { version = "1", features = ["full"] }
 tokio-tungstenite = { version = "0.27.0", features = ["connect"] }
 futures-util = "0.3"
 reqwest = { version = "0.12.20", features = ["json", "rustls-tls"] }
-ddp-rs = "1.0.0" # <-- Použití veřejné verze z crates.io
+ddp-rs = "1.0.0"
 
 # --- Audio a MIDI ---
 cpal = "0.16.0"
@@ -53,37 +73,3 @@ rtp-midi = { path = "." }
 # --- Specifické závislosti pro Android target ---
 [target.aarch64-linux-android.dependencies]
 openssl = { version = "0.10.64", features = ["vendored"] }
-
-[lib]
-name = "rtp_midi_lib"
-crate-type = ["cdylib", "rlib"]
-
-[[bin]]
-name = "rtp-midi"
-path = "src/main.rs"
-
-[[bin]]
-name = "signaling_server"
-path = "src/bin/signaling_server.rs"
-
-[[bin]]
-name = "audio_server"
-path = "src/bin/audio_server.rs"
-
-[[bin]]
-name = "client_app"
-path = "src/bin/client_app.rs"
-
-# For Android, we define the target specific binary for the AIDL service
-[target.'aarch64-linux-android'.profile.release]
-# Optimize for size
-opt-level = "s"
-lto = true
-codegen-units = 1
-
-[target.'armv7-linux-androideabi'.profile.release]
-# Optimize for size
-opt-level = "s"
-lto = true
-codegen-units = 1
-

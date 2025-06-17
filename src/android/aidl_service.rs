@@ -2,12 +2,23 @@
 
 //! AIDL service implementation for Android IPC (Rust side)
 
+// PŘIDÁNO: Celý obsah souboru obalen do cfg atributu
+#![cfg(target_os = "android")]
+
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use log::{info, error};
 use tokio::runtime::{Runtime, Handle};
 use rsbinder::{Interface, Result as BinderResult, Strong, StatusCode};
+use android_logger::Config as AndroidLogConfig;
+use jni::JNIEnv;
+use jni::objects::{JClass, JObject, JString};
+use jni::sys::jstring;
+use log::Level;
+use once_cell::sync::Lazy;
+use rsbinder::{Strong, IBinder, Parcel, TransactionFlags};
+use tokio::runtime::{Builder};
 
 use crate::{Config, run_service_loop, wled_control};
 
@@ -208,6 +219,46 @@ pub fn register_service(config_path: &str, rt_handle: Handle) {
         }
         Err(e) => {
             error!("Failed to register service: {:?}", e);
+        }
+    }
+}
+
+static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
+    Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+});
+
+const SERVICE_DESCRIPTOR: &str = "com.example.rtpmidi.IMidiWledService";
+const TRANSACTION_SET_WLED_CONFIG: u32 = IBinder::FIRST_CALL_TRANSACTION + 0;
+
+#[no_mangle]
+#[allow(non_snake_case)]
+pub extern "C" fn Java_com_example_rtpmidi_MidiWledService_nativeSetWledConfig(
+    env: JNIEnv,
+    _class: JClass,
+    config_json: JString,
+) {
+    android_logger::init_once(
+        AndroidLogConfig::default().with_min_level(Level::Info).with_tag("RTP_MIDI_NATIVE")
+    );
+
+    let config_json_rust = env.get_string(config_json).expect("Couldn't get config_json string!").to_str().expect("Couldn't convert config_json to Rust string!");
+    info!("Received WLED config: {}", config_json_rust);
+
+    match serde_json::from_str::<Config>(config_json_rust) {
+        Ok(config) => {
+            // Start the service loop in a new Tokio task
+            RUNTIME.spawn(async move {
+                info!("Calling run_service_loop with config: {:?}", config);
+                // For now, we use a dummy AtomicBool for 'running' state, 
+                // in a real app, this would be managed by the service lifecycle.
+                run_service_loop(config, Arc::new(AtomicBool::new(true))).await;
+            });
+        },
+        Err(e) => {
+            error!("Failed to parse WLED config: {}", e);
         }
     }
 }

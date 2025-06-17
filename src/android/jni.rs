@@ -9,6 +9,7 @@ use tokio::runtime::Runtime;
 use std::sync::Arc;
 use once_cell::sync::Lazy;
 
+#[cfg(target_os = "android")]
 use super::aidl_service;
 
 static TOKIO_RUNTIME: Lazy<Runtime> = Lazy::new(|| {
@@ -59,7 +60,10 @@ pub unsafe extern "system" fn Java_com_example_rtpmidi_RustServiceWrapper_native
 
     let rt_handle = TOKIO_RUNTIME.handle().clone();
 
+    #[cfg(target_os = "android")]
     thread::spawn(move || {
         aidl_service::register_service(&path, rt_handle);
     });
+    #[cfg(not(target_os = "android"))]
+    info!("Skipping AIDL service registration: Not targeting Android.");
 }

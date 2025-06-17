@@ -1,18 +1,40 @@
-use crate::audio_analysis::compute_fft_magnitudes;
+use crate::audio_analysis;
+use rustfft::FftPlanner;
+use rustfft::num_complex::Complex;
 
 /// Maps FFT magnitudes to LED RGB values.
 pub fn map_audio_to_leds(magnitudes: &[f32], led_count: usize) -> Vec<u8> {
-    let mut leds = vec![0u8; led_count * 3];
-    let band_size = magnitudes.len() / 3;
-    let bass = magnitudes.iter().take(band_size).cloned().fold(0.0, f32::max);
-    let mid = magnitudes.iter().skip(band_size).take(band_size).cloned().fold(0.0, f32::max);
-    let treble = magnitudes.iter().skip(2 * band_size).cloned().fold(0.0, f32::max);
+    let mut leds = Vec::with_capacity(led_count * 3);
     for i in 0..led_count {
-        leds[i * 3] = (bass * 255.0) as u8;   // Red
-        leds[i * 3 + 1] = (mid * 255.0) as u8; // Green
-        leds[i * 3 + 2] = (treble * 255.0) as u8; // Blue
+        let hue = i as f32 / led_count as f32;
+        let magnitude_index = (i as f32 / led_count as f32 * magnitudes.len() as f32) as usize;
+        let brightness = magnitudes.get(magnitude_index).cloned().unwrap_or(0.0).sqrt() * 2.0;
+        let (r, g, b) = hsv_to_rgb(hue, 1.0, brightness.min(1.0));
+        leds.push(r);
+        leds.push(g);
+        leds.push(b);
     }
     leds
+}
+
+// Temporary placeholder for color conversion, ideally in a separate util module
+fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
+    let i = (h * 6.0) as u32;
+    let f = h * 6.0 - i as f32;
+    let p = v * (1.0 - s);
+    let q = v * (1.0 - f * s);
+    let t = v * (1.0 - (1.0 - f) * s);
+
+    let (r, g, b) = match i {
+        0 => (v, t, p),
+        1 => (q, v, p),
+        2 => (p, v, t),
+        3 => (p, q, v),
+        4 => (t, p, v),
+        _ => (v, p, q),
+    };
+
+    ((r * 255.0) as u8, (g * 255.0) as u8, (b * 255.0) as u8)
 }
 
 #[cfg(test)]

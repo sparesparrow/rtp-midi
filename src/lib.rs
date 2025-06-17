@@ -13,15 +13,23 @@ use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::net::UdpSocket;
 
-pub mod android;
-pub mod ffi;
-pub mod audio_input;
-pub mod light_mapper;
-pub mod ddp_output;
-pub mod midi;
-pub mod mapping;
+use crate::ddp_output as ddp_out;
+use crate::light_mapper as lm;
+use crate::midi::parser::MidiCommand;
+use crate::wled_control as wled;
+use crate::audio_analysis::compute_fft_magnitudes;
 
-pub use midi::rtp::message::{MidiMessage, RtpMidiPacket, MidiCommand};
+pub mod android;
+pub mod audio_analysis;
+pub mod audio_input;
+pub mod ddp_output;
+pub mod ffi;
+pub mod light_mapper;
+pub mod mapping;
+pub mod midi;
+pub mod wled_control;
+
+pub use midi::rtp::message::{MidiMessage, RtpMidiPacket};
 pub use mapping::InputEvent;
 
 /// Application configuration loaded from config.toml
@@ -81,8 +89,6 @@ mod config_tests {
     }
 }
 
-pub mod wled_control;
-
 pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
     info!("Service loop starting...");
 
@@ -116,7 +122,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
     while running.load(Ordering::SeqCst) {
         // Process audio data
         if let Ok(audio_buffer) = audio_rx.try_recv() {
-            let magnitudes = light_mapper::compute_fft_magnitudes(&audio_buffer, &mut prev_mags, 0.5);
+            let magnitudes = compute_fft_magnitudes(&audio_buffer, &mut prev_mags, 0.5);
 
             // AudioPeak detection
             let current_time = std::time::Instant::now();
@@ -162,7 +168,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
             // This block now expects MidiCommand, but we need to unify with InputEvent.
             // For now, I'll keep it as MidiCommand, and add a separate loop for InputEvent.
             // In a later step, we can create a unified Event enum.
-            if let MidiCommand::NoteOn { key, .. } = event {
+            if let MidiCommand::NoteOn { channel, key, velocity } = event {
                 let preset_id = (key as i32 - 47).max(1); 
                 info!("Attempting to set WLED preset {} from MIDI note {}", preset_id, key);
                 if let Err(e) = wled_control::set_wled_preset(&wled_ip, preset_id).await {
@@ -265,14 +271,13 @@ fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
     let q = v * (1.0 - f * s);
     let t = v * (1.0 - (1.0 - f) * s);
 
-    let (r, g, b) = match i % 6 {
+    let (r, g, b) = match i {
         0 => (v, t, p),
         1 => (q, v, p),
         2 => (p, v, t),
         3 => (p, q, v),
         4 => (t, p, v),
-        5 => (v, p, q),
-        _ => (v, p, q), // Should not happen
+        _ => (v, p, q),
     };
 
     ((r * 255.0) as u8, (g * 255.0) as u8, (b * 255.0) as u8)

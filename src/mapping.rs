@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use crate::midi::rtp::message::MidiCommand;
+use crate::midi::parser::MidiCommand;
 
 /// Enum reprezentující různé typy vstupních událostí, které mohou spustit mapování.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -21,6 +21,7 @@ pub enum InputEvent {
         band: String, // Např. "bass", "mid", "treble"
         threshold: Option<f32>, // Volitelná prahová hodnota pro aktivaci
     },
+    Midi(MidiCommand),
 }
 
 /// Enum reprezentující různé typy akcí, které lze provést na WLED zařízení.
@@ -63,13 +64,13 @@ impl Mapping {
     /// Porovná daný MIDI příkaz se vstupní událostí typu MidiNoteOn nebo MidiControlChange.
     pub fn matches_midi_command(&self, command: &MidiCommand) -> bool {
         match (&self.input, command) {
-            (InputEvent::MidiNoteOn { note, velocity }, MidiCommand::NoteOn { key, vel, .. }) => {
-                (note.is_none() || note == Some(*key))
-                    && (velocity.is_none() || velocity == Some(*vel))
+            (InputEvent::MidiNoteOn { note, velocity: note_vel }, MidiCommand::NoteOn { channel: _, key, velocity: cmd_vel }) => {
+                (note.is_none() || *note == Some(*key))
+                    && (note_vel.is_none() || *note_vel == Some(*cmd_vel))
             },
-            (InputEvent::MidiControlChange { controller, value }, MidiCommand::ControlChange { control, value: cc_val, .. }) => {
-                (controller.is_none() || controller == Some(*control))
-                    && (value.is_none() || value == Some(*cc_val))
+            (InputEvent::MidiControlChange { controller, value }, MidiCommand::ControlChange { channel: _, control, value: cc_val }) => {
+                (controller.is_none() || *controller == Some(*control))
+                    && (value.is_none() || *value == Some(*cc_val))
             },
             _ => false,
         }
