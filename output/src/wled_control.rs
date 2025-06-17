@@ -8,6 +8,41 @@ use utils::WledOutputAction;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use std::net::SocketAddr;
+use core::{DataStreamNetSender, StreamError};
+
+/// Wrapper pro WLED JSON API odesílač implementující sjednocené API
+pub struct WledSender {
+    ip: String,
+}
+
+impl WledSender {
+    pub fn new(ip: String) -> Self {
+        Self { ip }
+    }
+}
+
+impl DataStreamNetSender for WledSender {
+    fn init(&mut self) -> Result<(), StreamError> {
+        // Není potřeba žádná speciální inicializace
+        Ok(())
+    }
+    fn send(&mut self, _ts: u64, payload: &[u8]) -> Result<(), StreamError> {
+        // Payload je JSON (nebo serializovaný příkaz)
+        let json_payload = match serde_json::from_slice::<serde_json::Value>(payload) {
+            Ok(val) => val,
+            Err(e) => return Err(StreamError::Other(format!("Invalid JSON payload: {}", e))),
+        };
+        // Blokující verze pro jednoduchost (v produkci by bylo async)
+        let client = reqwest::blocking::Client::new();
+        let url = format!("http://{}/json/state", self.ip);
+        let resp = client.post(&url).json(&json_payload).send();
+        match resp {
+            Ok(r) if r.status().is_success() => Ok(()),
+            Ok(r) => Err(StreamError::Other(format!("WLED HTTP error: {}", r.status()))),
+            Err(e) => Err(StreamError::Other(format!("WLED send error: {}", e))),
+        }
+    }
+}
 
 /// Sends a generic JSON command to the WLED device.
 pub async fn send_wled_json_command(
