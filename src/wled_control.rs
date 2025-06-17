@@ -24,4 +24,46 @@ pub async fn set_wled_color(wled_ip: &str, r: u8, g: u8, b: u8) -> Result<()> {
         anyhow::bail!("WLED color set failed: {}", res.status());
     }
     Ok(())
+}
+
+/// Sets the overall WLED brightness via the JSON API.
+pub async fn set_wled_brightness(wled_ip: &str, brightness: u8) -> Result<()> {
+    let client = Client::new();
+    let url = format!("http://{}/json/state", wled_ip);
+    let payload = json!({ "bri": brightness });
+    let res = client.post(&url).json(&payload).send().await?;
+    if !res.status().is_success() {
+        anyhow::bail!("WLED brightness set failed: {}", res.status());
+    }
+    Ok(())
+}
+
+/// Sets a WLED effect for the primary segment via the JSON API.
+pub async fn set_wled_effect(wled_ip: &str, effect_id: i32, speed: Option<u8>, intensity: Option<u8>) -> Result<()> {
+    let client = Client::new();
+    let url = format!("http://{}/json/state", wled_ip);
+    
+    let mut seg_payload = serde_json::Map::new();
+    seg_payload.insert("fx".to_string(), json!(effect_id));
+    if let Some(s) = speed { seg_payload.insert("sx".to_string(), json!(s)); }
+    if let Some(i) = intensity { seg_payload.insert("ix".to_string(), json!(i)); }
+
+    let payload = json!({ "seg": [seg_payload] });
+    let res = client.post(&url).json(&payload).send().await?;
+    if !res.status().is_success() {
+        anyhow::bail!("WLED effect set failed: {}", res.status());
+    }
+    Ok(())
+}
+
+/// Sets a WLED color palette for the primary segment via the JSON API.
+pub async fn set_wled_palette(wled_ip: &str, palette_id: i32) -> Result<()> {
+    let client = Client::new();
+    let url = format!("http://{}/json/state", wled_ip);
+    let payload = json!({ "seg": [{ "pal": palette_id }] });
+    let res = client.post(&url).json(&payload).send().await?;
+    if !res.status().is_success() {
+        anyhow::bail!("WLED palette set failed: {}", res.status());
+    }
+    Ok(())
 } 

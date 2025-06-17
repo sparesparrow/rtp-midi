@@ -5,8 +5,8 @@ set -e
 
 # --- Configuration ---
 # Name of the Rust library target, from Cargo.toml [lib] name.
-# This will be compiled into librtp_midi.so
-LIB_NAME="rtp_midi"
+# This will be compiled into librtp_midi_lib.so
+LIB_NAME="rtp_midi_lib"
 
 # Android NDK path. Update this if your NDK is in a different location.
 # Check for ANDROID_NDK_HOME, otherwise try to find it automatically.
@@ -18,7 +18,7 @@ if [ -z "$ANDROID_NDK_HOME" ]; then
         echo "Found NDK at: $ANDROID_NDK_HOME"
     elif [ -d "$HOME/Android/Sdk/ndk" ]; then
         # This path structure is common with Android Studio's SDK manager
-        NDK_VERSION=$(ls "$HOME/Android/Sdk/ndk" | sort -r | head -n 1)
+        NDK_VERSION=$(ls "$HOME/Android/Sdk/ndk" | sort -rV | head -n 1)
         export ANDROID_NDK_HOME="$HOME/Android/Sdk/ndk/$NDK_VERSION"
         echo "Found NDK at: $ANDROID_NDK_HOME"
     else
@@ -28,7 +28,6 @@ if [ -z "$ANDROID_NDK_HOME" ]; then
 fi
 
 HOST_OS=$(uname -s)
-HOST_ARCH=$(uname -m)
 PREBUILT_HOST_DIR=""
 
 if [ "$HOST_OS" = "Linux" ]; then
@@ -47,7 +46,7 @@ rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-andro
 
 # --- Cargo Configuration for Android ---
 # Create a .cargo/config.toml to specify the NDK linkers for each target.
-# This is a cleaner approach than setting environment variables.
+# While env vars are primary, this is a good fallback.
 mkdir -p .cargo
 cat > .cargo/config.toml << EOL
 # Cargo configuration for Android cross-compilation
@@ -70,6 +69,26 @@ linker = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/${PREBUILT_HOST_DIR}/bin/
 EOL
 
 echo "--- Created .cargo/config.toml for NDK toolchains ---"
+
+# --- Build Environment Setup (THE FIX) ---
+# Set environment variables for the C Compiler and Archiver for each target.
+# This is the most reliable way to inform build scripts (like cc-rs) about the toolchain.
+MIN_API_LEVEL=21
+TOOLCHAIN_PATH="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/${PREBUILT_HOST_DIR}/bin"
+
+# Compilers
+export CC_aarch64_linux_android="${TOOLCHAIN_PATH}/aarch64-linux-android${MIN_API_LEVEL}-clang"
+export CC_armv7_linux_androideabi="${TOOLCHAIN_PATH}/armv7a-linux-androideabi${MIN_API_LEVEL}-clang"
+export CC_i686_linux_android="${TOOLCHAIN_PATH}/i686-linux-android${MIN_API_LEVEL}-clang"
+export CC_x86_64_linux_android="${TOOLCHAIN_PATH}/x86_64-linux-android${MIN_API_LEVEL}-clang"
+
+# Archivers (New fix)
+export AR_aarch64_linux_android="${TOOLCHAIN_PATH}/llvm-ar"
+export AR_armv7_linux_androideabi="${TOOLCHAIN_PATH}/llvm-ar"
+export AR_i686_linux_android="${TOOLCHAIN_PATH}/llvm-ar"
+export AR_x86_64_linux_android="${TOOLCHAIN_PATH}/llvm-ar"
+
+echo "--- Set C compilers and Archivers in environment variables ---"
 
 # --- Build Function ---
 # This function builds for a specific target and copies the output.
@@ -99,4 +118,3 @@ build_for_target "x86_64-linux-android" "x86_64"
 echo ""
 echo "--- Android build finished successfully ---"
 echo "Shared libraries are located in: target/android_libs/"
-

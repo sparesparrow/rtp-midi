@@ -25,6 +25,7 @@ pub mod audio_input;
 pub mod light_mapper;
 pub mod ddp_output;
 pub mod midi;
+pub mod mapping;
 
 pub use midi::rtp::message::{MidiMessage, RtpMidiPacket};
 
@@ -51,6 +52,8 @@ pub struct Config {
     pub midi_port: Option<u16>,
     /// Log level (info, debug, etc.)
     pub log_level: Option<String>,
+    /// Advanced mappings from input events to WLED actions
+    pub mappings: Option<Vec<mapping::Mapping>>,
 }
 
 impl Config {
@@ -282,6 +285,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
     let wled_ip = config.wled_ip.clone();
     let audio_device_name = config.audio_device.clone();
     let midi_port = config.midi_port.unwrap_or(5004);
+    let mappings = config.mappings.clone(); // Clone mappings for use in the loop
 
     let (audio_tx, audio_rx) = crossbeam_channel::unbounded();
     let (midi_tx, midi_rx) = crossbeam_channel::unbounded();
@@ -353,6 +357,88 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
                 info!("Attempting to set WLED preset {} from MIDI note {}", preset_id, key);
                 if let Err(e) = wled_control::set_wled_preset(&wled_ip, preset_id).await {
                     error!("Failed to set WLED preset: {}", e);
+                }
+            } else {
+                match midi_command {
+                    MidiCommand::NoteOn { channel, key, velocity } => {
+                        info!("Note On: ch={}, key={}, vel={}", channel, key, velocity);
+                        if let Some(mappings) = &mappings {
+                            for mapping in mappings {
+                                if mapping.matches_midi_command(&MidiCommand::NoteOn { channel, key, velocity }) {
+                                    info!("MIDI Note On matched a mapping, executing WLED actions.");
+                                    for action in &mapping.output {
+                                        match action {
+                                            mapping::WledOutputAction::SetPreset { id } => {
+                                                if let Err(e) = wled_control::set_wled_preset(&wled_ip, *id).await {
+                                                    error!("Failed to set WLED preset {}: {}", id, e);
+                                                }
+                                            },
+                                            mapping::WledOutputAction::SetBrightness { value } => {
+                                                if let Err(e) = wled_control::set_wled_brightness(&wled_ip, *value).await {
+                                                    error!("Failed to set WLED brightness {}: {}", value, e);
+                                                }
+                                            },
+                                            mapping::WledOutputAction::SetColor { r, g, b } => {
+                                                if let Err(e) = wled_control::set_wled_color(&wled_ip, *r, *g, *b).await {
+                                                    error!("Failed to set WLED color: R={}, G={}, B={}: {}", r, g, b, e);
+                                                }
+                                            },
+                                            mapping::WledOutputAction::SetEffect { id, speed, intensity } => {
+                                                if let Err(e) = wled_control::set_wled_effect(&wled_ip, *id, *speed, *intensity).await {
+                                                    error!("Failed to set WLED effect {}: {}", id, e);
+                                                }
+                                            },
+                                            mapping::WledOutputAction::SetPalette { id } => {
+                                                if let Err(e) = wled_control::set_wled_palette(&wled_ip, *id).await {
+                                                    error!("Failed to set WLED palette {}: {}", id, e);
+                                                }
+                                            },
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    MidiCommand::ControlChange { channel, control, value } => {
+                        info!("Control Change: ch={}, ctrl={}, val={}", channel, control, value);
+                        if let Some(mappings) = &mappings {
+                            for mapping in mappings {
+                                if mapping.matches_midi_command(&MidiCommand::ControlChange { channel, control, value }) {
+                                    info!("MIDI Control Change matched a mapping, executing WLED actions.");
+                                    for action in &mapping.output {
+                                        match action {
+                                            mapping::WledOutputAction::SetPreset { id } => {
+                                                if let Err(e) = wled_control::set_wled_preset(&wled_ip, *id).await {
+                                                    error!("Failed to set WLED preset {}: {}", id, e);
+                                                }
+                                            },
+                                            mapping::WledOutputAction::SetBrightness { value } => {
+                                                if let Err(e) = wled_control::set_wled_brightness(&wled_ip, *value).await {
+                                                    error!("Failed to set WLED brightness {}: {}", value, e);
+                                                }
+                                            },
+                                            mapping::WledOutputAction::SetColor { r, g, b } => {
+                                                if let Err(e) = wled_control::set_wled_color(&wled_ip, *r, *g, *b).await {
+                                                    error!("Failed to set WLED color for CC: R={}, G={}, B={}: {}", r, g, b, e);
+                                                }
+                                            },
+                                            mapping::WledOutputAction::SetEffect { id, speed, intensity } => {
+                                                if let Err(e) = wled_control::set_wled_effect(&wled_ip, *id, *speed, *intensity).await {
+                                                    error!("Failed to set WLED effect for CC: {}: {}", id, e);
+                                                }
+                                            },
+                                            mapping::WledOutputAction::SetPalette { id } => {
+                                                if let Err(e) = wled_control::set_wled_palette(&wled_ip, *id).await {
+                                                    error!("Failed to set WLED palette for CC: {}: {}", id, e);
+                                                }
+                                            },
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    _ => {}
                 }
             }
         }
