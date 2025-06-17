@@ -217,7 +217,7 @@ pub fn parse_midi_message(data: &[u8]) -> Result<(MidiCommand, usize)> {
         return Err(anyhow!("Empty MIDI data"));
     }
 
-    let mut reader = Bytes::from(data);
+    let mut reader = Bytes::copy_from_slice(data);
     let status_byte = reader.chunk()[0]; // Peek to handle running status later if needed
 
     // Check for running status (data byte without preceding status byte)
