@@ -639,4 +639,24 @@ erDiagram
     DEVICE ||--o{ CONFIG : uses
 ```
 
+## User Journey Diagram (Typical Workflow)
+
+```mermaid
+---
+title: RTP-MIDI User Journey - Device to LED Feedback
+theme: forest
+---
+journey
+    title User configures device, triggers MIDI, and observes LED feedback
+    section Configuration
+      User opens Qt UI: 5: User
+      User selects device: 4: User
+      User configures mapping: 3: User
+    section Operation
+      User triggers MIDI event: 5: User
+      Rust core processes event: 4: System
+      WLED receives DDP packet: 4: System
+      LEDs update in real time: 5: User
+```
+
 ---
