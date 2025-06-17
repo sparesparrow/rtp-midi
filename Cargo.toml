@@ -6,6 +6,12 @@ members = [
     "client_app",
     "rtp_midi_utils",
     "integration_tests",
+    "core",
+    "network",
+    "audio",
+    "output",
+    "platform",
+    "utils",
 ]
 resolver = "2" # Recommended for workspaces
 
