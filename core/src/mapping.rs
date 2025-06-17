@@ -1,64 +1,6 @@
 use utils::{InputEvent, WledOutputAction, Mapping};
 use network::midi::parser::MidiCommand;
-
-/// Enum reprezentující různé typy vstupních událostí, které mohou spustit mapování.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum InputEvent {
-    /// Událost MIDI Note On. Obsahuje volitelnou notu a velocity pro filtrování.
-    MidiNoteOn {
-        note: Option<u8>,
-        velocity: Option<u8>,
-    },
-    /// Událost MIDI Control Change. Obsahuje volitelný kontroler a hodnotu.
-    MidiControlChange {
-        controller: Option<u8>,
-        value: Option<u8>,
-    },
-    /// Událost detekce špičky v audio signálu.
-    AudioPeak,
-    /// Událost spojená s konkrétním frekvenčním pásmem audia.
-    AudioBand {
-        band: String, // Např. "bass", "mid", "treble"
-        threshold: Option<f32>, // Volitelná prahová hodnota pro aktivaci
-    },
-    Midi(MidiCommand),
-}
-
-/// Enum reprezentující různé typy akcí, které lze provést na WLED zařízení.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum WledOutputAction {
-    /// Nastaví WLED preset.
-    SetPreset {
-        id: i32,
-    },
-    /// Nastaví celkový jas WLED zařízení.
-    SetBrightness {
-        value: u8, // 0-255
-    },
-    /// Nastaví barvu WLED segmentu (aktuálně jen pro hlavní segment).
-    SetColor {
-        r: u8,
-        g: u8,
-        b: u8,
-    },
-    /// Nastaví efekt WLED segmentu.
-    SetEffect {
-        id: i32,
-        speed: Option<u8>, // 0-255
-        intensity: Option<u8>, // 0-255
-    },
-    /// Nastaví paletu barev WLED segmentu.
-    SetPalette {
-        id: i32,
-    },
-}
-
-/// Struktura definující jedno mapování ze vstupní události na WLED akci.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct Mapping {
-    pub input: InputEvent,
-    pub output: Vec<WledOutputAction>,
-}
+// All Mapping methods must now be implemented in utils.
 
 impl Mapping {
     /// Porovná daný MIDI příkaz se vstupní událostí typu MidiNoteOn nebo MidiControlChange.
