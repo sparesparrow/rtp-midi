@@ -2,7 +2,8 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use log::{info, error};
 use ctrlc;
-use rtp_midi_lib::{Config, run_service_loop};
+use rtp_midi_lib::{Config, run_service_loop, MidiCommand, RtpMidiPacket};
+use tokio::runtime::Runtime;
 
 /// Main entry point for the desktop application.
 /// This loads the configuration and runs the service loop until interrupted.
@@ -20,6 +21,9 @@ fn main() {
     };
     info!("Configuration loaded successfully: {:?}", config);
 
+    // Create a new Tokio runtime for the main application
+    let rt = Runtime::new().expect("Failed to create Tokio runtime");
+
     // Create an atomically-shared boolean flag to signal the service to stop.
     // This allows the Ctrl+C handler to communicate with the main service loop.
     let running = Arc::new(AtomicBool::new(true));
@@ -34,9 +38,10 @@ fn main() {
 
     info!("Service starting. Press Ctrl+C to stop.");
 
-    // Run the main service loop. This function is blocking and will run until
-    // the `running` flag is set to false by the Ctrl+C handler.
-    run_service_loop(config, running);
+    // Pass the runtime handle to the service loop
+    rt.block_on(async {
+        run_service_loop(config, running).await;
+    });
 
     info!("Service has shut down gracefully.");
 }

@@ -276,68 +276,93 @@ pub mod signaling_server {
 
 pub mod wled_control;
 
-pub fn run_service_loop(config: Config, running: Arc<AtomicBool>, rt_handle: tokio::runtime::Handle) {
+pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
     info!("Service loop starting...");
 
     let wled_ip = config.wled_ip.clone();
-    let ddp_port = config.ddp_port.unwrap_or(4048);
-    let led_count = config.led_count;
-    let audio_device = config.audio_device.clone();
+    let audio_device_name = config.audio_device.clone();
     let midi_port = config.midi_port.unwrap_or(5004);
 
-    // Create channels for inter-thread communication
     let (audio_tx, audio_rx) = crossbeam_channel::unbounded();
     let (midi_tx, midi_rx) = crossbeam_channel::unbounded();
 
-    // --- Audio Input Thread ---
-    let running_clone = running.clone();
-    let audio_input_config_name = audio_device.clone();
-    let _audio_input_handle = thread::spawn(move || {
-        info!("Audio input thread started.");
-        let _audio_stream = match audio_input::start_audio_input(audio_input_config_name.as_deref(), audio_tx) {
-            Ok(stream) => {
-                info!("Audio stream started.");
-                stream.play().expect("Failed to play audio stream");
-                stream
-            },
-            Err(e) => {
-                error!("Failed to start audio input: {}", e);
-                running_clone.store(false, Ordering::SeqCst);
-                return;
-            }
-        };
-        while running_clone.load(Ordering::SeqCst) {
-            thread::sleep(Duration::from_millis(100)); // Keep thread alive
-        }
-        info!("Audio input thread stopping.");
+    // Audio Input Thread
+    let audio_input_config = config.clone();
+    let audio_input_handle = std::thread::spawn(move || {
+        audio_input::start_audio_input(audio_input_config, audio_tx)
+            .expect("Failed to start audio input stream");
     });
 
-    // --- Audio Processing & DDP Output Loop ---
-    let mut prev_mags = Vec::new();
-    let mut ddp_sender = rt_handle.block_on(async {
-        ddp_output::create_ddp_sender(&wled_ip, ddp_port, led_count, false).expect("Failed to create DDP sender")
+    // RTP-MIDI Receiver Task (Async)
+    let signaling_server_clients = signaling_server_module::Clients::new();
+    let signaling_server_clients_clone = signaling_server_clients.clone();
+    let midi_tx_clone = midi_tx.clone();
+    tokio::spawn(async move {
+        let session = RtpMidiSession::new(
+            "Rust WLED Hub".to_string(),
+            midi_port,
+        ).await.expect("Failed to create RTP-MIDI session");
+
+        session.add_listener(RtpMidiEventType::MidiPacket, move |data| {
+            for command in data.commands() {
+                // Filter out clock and active sensing messages
+                match command {
+                    MidiCommand::TimingClock | MidiCommand::ActiveSensing => { /* ignore */ },
+                    _ => {
+                        info!("MIDI Command Received: {:?}", command);
+                        if let Err(e) = midi_tx_clone.send(command) {
+                            error!("Failed to send MIDI command to channel: {}", e);
+                        }
+                    }
+                }
+            }
+        }).await;
+
+        info!("RTP-MIDI Server started on port {}. Waiting for connections...", midi_port);
+        // Start the server, accepting all incoming session invitations
+        let _ = session.start(RtpMidiSession::accept_all_invitations).await;
     });
+
+    // Main service loop for audio processing and DDP output
+    let mut prev_mags = Vec::new();
+    let mut ddp_sender = ddp_output::create_ddp_sender(
+        &wled_ip,
+        config.ddp_port.unwrap_or(4048),
+        config.led_count,
+        false // is_rgbw
+    ).expect("Failed to create DDP sender");
 
     while running.load(Ordering::SeqCst) {
-        // Process audio input
+        // Process audio data
         if let Ok(audio_buffer) = audio_rx.try_recv() {
             let magnitudes = light_mapper::compute_fft_magnitudes(&audio_buffer, &mut prev_mags, 0.5);
-            let leds = light_mapper::map_audio_to_leds(&magnitudes, led_count);
-            if let Err(e) = rt_handle.block_on(async { ddp_output::send_ddp_frame(&mut ddp_sender, &leds) }) {
+            let leds = light_mapper::map_audio_to_leds(&magnitudes, config.led_count);
+            if let Err(e) = ddp_output::send_ddp_frame(&mut ddp_sender, &leds) {
                 error!("Failed to send DDP frame: {}", e);
             }
         }
 
-        // TODO: Process MIDI input
-        if let Ok(_midi_message) = midi_rx.try_recv() {
-            // info!("Received MIDI message: {:?}", midi_message.command);
-            // Placeholder for MIDI processing and WLED control based on MIDI
+        // Process MIDI data
+        while let Ok(midi_command) = midi_rx.try_recv() {
+            info!("Processing MIDI command: {:?}", midi_command);
+            // Example: set WLED preset based on MIDI Note On
+            if let MidiCommand::NoteOn { key, .. } = midi_command {
+                // Map MIDI key to a WLED preset (e.g., C3=48 -> Preset 1)
+                let preset_id = (key as i32 - 47).max(1); 
+                // Ensure preset_id is at least 1
+                info!("Attempting to set WLED preset {} from MIDI note {}", preset_id, key);
+                if let Err(e) = wled_control::set_wled_preset(&wled_ip, preset_id).await {
+                    error!("Failed to set WLED preset: {}", e);
+                }
+            }
         }
 
-        thread::sleep(Duration::from_millis(10)); // Control loop speed
+        // Yield control to the Tokio scheduler briefly
+        tokio::time::sleep(Duration::from_millis(10)).await;
     }
 
     info!("Service loop stopped.");
+    audio_input_handle.join().expect("Could not join audio input thread");
 }
 
 // Temporary placeholder for color conversion, ideally in a separate util module

@@ -7,8 +7,13 @@ use std::thread;
 use log::info;
 use tokio::runtime::Runtime;
 use std::sync::Arc;
+use once_cell::sync::Lazy;
 
 use super::aidl_service;
+
+static TOKIO_RUNTIME: Lazy<Runtime> = Lazy::new(|| {
+    Runtime::new().expect("Failed to create global Tokio runtime")
+});
 
 /// Tato funkce je volána Androidem, když je knihovna poprvé načtena.
 /// Je to hlavní vstupní bod pro inicializaci naší nativní služby.
@@ -24,9 +29,7 @@ pub extern "system" fn JNI_OnLoad(vm: jni::JavaVM, _: std::ffi::c_void) -> jint 
 
     info!("JNI_OnLoad called: Initializing Tokio runtime and spawning service registration thread.");
 
-    // Vytvoříme jeden Tokio runtime pro celou aplikaci
-    let rt = Arc::new(Runtime::new().expect("Failed to create Tokio runtime"));
-    let rt_handle_clone = rt.handle().clone();
+    let rt_handle_clone = TOKIO_RUNTIME.handle().clone();
 
     // Registrace služby musí proběhnout v samostatném vlákně,
     // abychom neblokovali `JNI_OnLoad`.
@@ -54,13 +57,7 @@ pub unsafe extern "system" fn Java_com_example_rtpmidi_RustServiceWrapper_native
     let path: String = env.get_string(&config_path).unwrap().into();
     info!("nativeInit called with config path: {}", path);
 
-    // Získejte handle na existující Tokio runtime (pokud je již inicializován v JNI_OnLoad)
-    // nebo vytvořte nový, pokud je tato funkce volána nezávisle.
-    // Pro tento případ předpokládáme, že runtime je již připraven a dostupný globálně.
-    // V reálné aplikaci byste chtěli předat handle z JNI_OnLoad nebo mít globální Arc<Runtime>.
-    // Pro zjednodušení teď vytvoříme nový runtime, ale v budoucnu by se to mělo předat.
-    let rt = Arc::new(Runtime::new().expect("Failed to create Tokio runtime in nativeInit"));
-    let rt_handle = rt.handle().clone();
+    let rt_handle = TOKIO_RUNTIME.handle().clone();
 
     thread::spawn(move || {
         aidl_service::register_service(&path, rt_handle);

@@ -7,6 +7,11 @@ use crate::{Config, run_service_loop};
 use crate::wled_control;
 use tokio::runtime::Runtime;
 use log::{error, info};
+use once_cell::sync::Lazy;
+
+static TOKIO_RUNTIME: Lazy<Runtime> = Lazy::new(|| {
+    Runtime::new().expect("Failed to create global Tokio runtime for FFI")
+});
 
 /// Opaque struct to hold the state for a running service instance.
 /// The pointer to this struct acts as a handle for the C/C++ side.
@@ -14,7 +19,7 @@ pub struct ServiceHandle {
     config: Arc<Mutex<Option<Config>>>,
     running: Arc<AtomicBool>,
     worker_thread: Mutex<Option<JoinHandle<()>>>,
-    tokio_rt: Mutex<Runtime>,
+    tokio_rt_handle: tokio::runtime::Handle,
 }
 
 /// Creates a new service instance but does not start it.
@@ -44,7 +49,7 @@ pub unsafe extern "C" fn create_service(config_path: *const c_char) -> *mut Serv
         config: Arc::new(Mutex::new(config)),
         running: Arc::new(AtomicBool::new(false)),
         worker_thread: Mutex::new(None),
-        tokio_rt: Mutex::new(Runtime::new().expect("Failed to create Tokio runtime for FFI")), // Create and store Runtime
+        tokio_rt_handle: TOKIO_RUNTIME.handle().clone(), // Clone handle from global Runtime
     });
 
     Box::into_raw(handle)
@@ -77,10 +82,13 @@ pub unsafe extern "C" fn start_service(handle: *mut ServiceHandle) {
 
     handle_ref.running.store(true, Ordering::SeqCst);
     let running_clone = handle_ref.running.clone();
-    let rt_handle_clone = handle_ref.tokio_rt.lock().unwrap().handle().clone(); // Get handle from stored Runtime
+    let rt_handle_clone = handle_ref.tokio_rt_handle.clone(); // Use stored handle
 
     let thread = thread::spawn(move || {
-        run_service_loop(config, running_clone, rt_handle_clone);
+        // run_service_loop is now async, needs to be run on a Tokio runtime
+        rt_handle_clone.block_on(async {
+            run_service_loop(config, running_clone).await;
+        });
     });
 
     *worker_guard = Some(thread);
@@ -123,7 +131,7 @@ pub unsafe extern "C" fn destroy_service(handle: *mut ServiceHandle) {
 
     // Take ownership of the Runtime and drop it.
     let handle_box = Box::from_raw(handle);
-    // The `tokio_rt` will be dropped when `handle_box` goes out of scope.
+    // The `tokio_rt_handle` is merely a handle, no need to drop the runtime here.
     info!("Service handle destroyed.");
 }
 
@@ -139,7 +147,7 @@ pub unsafe extern "C" fn set_wled_preset(handle: *mut ServiceHandle, preset_id: 
     let config_guard = handle_ref.config.lock().unwrap();
     if let Some(config) = config_guard.as_ref() {
         let ip = config.wled_ip.clone();
-        let rt_handle = handle_ref.tokio_rt.lock().unwrap().handle().clone(); // Get handle from stored Runtime
+        let rt_handle = handle_ref.tokio_rt_handle.clone(); // Use stored handle
         rt_handle.spawn(async move { // Spawn the async task
             if let Err(e) = wled_control::set_wled_preset(&ip, preset_id).await {
                 error!("FFI: Failed to set WLED preset: {}", e);

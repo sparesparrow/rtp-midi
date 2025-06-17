@@ -13,6 +13,7 @@ use webrtc::peer_connection::RTCPeerConnection;
 use webrtc::track::track_local::track_local_static_sample::TrackLocalStaticSample;
 use webrtc::track::track_local::{TrackLocal, TrackLocalWriter};
 use webrtc::ice_transport::ice_server::RTCIceServer;
+use webrtc::ice_transport::ice_candidate::RTCIceCandidateInit;
 use opus::{Encoder, Channels, Application};
 use url::Url;
 use midir::{MidiInput, MidiInputPort, MidiInputConnection};
@@ -173,15 +174,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         
         Box::pin(async move {
             if let Some(candidate) = candidate {
+                let candidate_payload = serde_json::json!({
+                    "candidate": candidate.to_json().unwrap(),
+                    "sdpMid": candidate.sdp_mid,
+                    "sdpMLineIndex": candidate.sdp_mline_index,
+                });
+
+                if let Ok(candidate_init) = serde_json::from_value::<RTCIceCandidateInit>(candidate_payload.clone()) {
+                    if let Err(e) = peer_connection.add_ice_candidate(candidate_init).await {
+                        eprintln!("[ClientApp] Chyba při přidávání ICE kandidáta: {}", e);
+                    }
+                } else {
+                    eprintln!("[ClientApp] Nepodařilo se deserializovat ICE kandidáta z payloadu.");
+                }
+
                 let candidate_msg = SignalingMessage {
                     message_type: "ice_candidate".to_string(),
                     sender_id: client_id,
                     receiver_id: Some(audio_server_id),
-                    payload: serde_json::json!({
-                        "candidate": candidate.to_json().unwrap(),
-                        "sdpMid": candidate.sdp_mid,
-                        "sdpMLineIndex": candidate.sdp_mline_index,
-                    }),
+                    payload: candidate_payload,
                 };
                 
                 if let Ok(msg_str) = serde_json::to_string(&candidate_msg) {
