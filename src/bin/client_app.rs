@@ -8,7 +8,7 @@ use serde_json::json;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::TcpStream;
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::mpsc;
 use tokio_tungstenite::{connect_async, tungstenite::Message, WebSocketStream};
 use url::Url;
 use uuid::Uuid;
@@ -16,7 +16,7 @@ use webrtc::api::media_engine::{MediaEngine, MIME_TYPE_OPUS};
 use webrtc::api::APIBuilder;
 use webrtc::data_channel::data_channel_state::RTCDataChannelState;
 use webrtc::data_channel::RTCDataChannel;
-use webrtc::ice_transport::ice_candidate::RTCIceCandidateInit;
+use webrtc::ice_transport::ice_candidate::{RTCIceCandidate, RTCIceCandidateInit};
 use webrtc::ice_transport::ice_server::RTCIceServer;
 use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
@@ -24,7 +24,9 @@ use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc::peer_connection::RTCPeerConnection;
 use webrtc::rtp_transceiver::rtp_codec::RTCRtpCodecCapability;
 use webrtc::track::track_local::track_local_static_sample::TrackLocalStaticSample;
-use webrtc::track::track_local::{TrackLocal, TrackLocalWriter};
+use webrtc::track::track_local::TrackLocal;
+use log::{error, info, warn};
+use tokio::sync::Mutex;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 enum PeerType {
@@ -141,9 +143,10 @@ async fn main() -> Result<()> {
     let client_id_clone = client_id.clone();
     let audio_server_id_clone = audio_server_id.clone();
     
+    let ws_write_for_ice_candidate_closure = Arc::clone(&ws_write_clone);
     peer_connection
-        .on_ice_candidate(Box::new(move |candidate: Option<RTCIceCandidateInit>| {
-            let ws_write = Arc::clone(&ws_write_clone);
+        .on_ice_candidate(Box::new(move |candidate: Option<RTCIceCandidate>| {
+            let ws_write = ws_write_for_ice_candidate_closure;
             let client_id = client_id_clone.clone();
             let audio_server_id = audio_server_id_clone.clone();
     
@@ -158,21 +161,19 @@ async fn main() -> Result<()> {
     
                     if let Ok(msg_str) = serde_json::to_string(&candidate_msg) {
                         if let Err(e) = ws_write.lock().await.send(Message::text(msg_str)).await {
-                            eprintln!("[ClientApp] Chyba při odesílání ICE kandidáta: {}", e);
+                            error!("[ClientApp] Chyba při odesílání ICE kandidáta: {}", e);
                         }
                     }
                 }
             })
-        }))
-        .await;
+        }));
     
     peer_connection
         .on_peer_connection_state_change(Box::new(move |state: RTCPeerConnectionState| {
             Box::pin(async move {
                 println!("[ClientApp] Stav připojení změněn na {:?}", state);
             })
-        }))
-        .await;
+        }));
     
     let offer = peer_connection.create_offer(None).await?;
     peer_connection.set_local_description(offer.clone()).await?;

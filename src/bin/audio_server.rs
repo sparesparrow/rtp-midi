@@ -13,13 +13,15 @@ use uuid::Uuid;
 use webrtc::api::media_engine::{MediaEngine, MIME_TYPE_OPUS};
 use webrtc::api::APIBuilder;
 use webrtc::data_channel::RTCDataChannel;
-use webrtc::ice_transport::ice_candidate::RTCIceCandidateInit;
+use webrtc::ice_transport::ice_candidate::RTCIceCandidate;
 use webrtc::ice_transport::ice_server::RTCIceServer;
 use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc::peer_connection::RTCPeerConnection;
 use webrtc::track::track_remote::TrackRemote;
+use webrtc::rtp_transceiver::RTCRtpTransceiver;
+use webrtc::rtp_transceiver::rtp_receiver::RTCRtpReceiver;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 enum PeerType {
@@ -41,7 +43,6 @@ struct SignalingMessage {
     payload: serde_json::Value,
 }
 
-#[derive(Debug)]
 struct ClientConnection {
     peer_connection: Arc<RTCPeerConnection>,
     data_channel: Option<Arc<RTCDataChannel>>,
@@ -149,7 +150,7 @@ async fn handle_offer(
     let server_id_clone = server_id.to_string();
     let client_id_clone = client_id.to_string();
     
-    peer_connection.on_ice_candidate(Box::new(move |candidate: Option<RTCIceCandidateInit>| {
+    peer_connection.on_ice_candidate(Box::new(move |candidate: Option<RTCIceCandidate>| {
         let ws_write = ws_write_clone.clone();
         let server_id = server_id_clone.clone();
         let client_id = client_id_clone.clone();
@@ -170,7 +171,7 @@ async fn handle_offer(
                 }
             }
         })
-    })).await;
+    }));
     
     let client_id_for_dc = client_id.to_string();
     let client_connections_clone = Arc::clone(&client_connections);
@@ -186,7 +187,7 @@ async fn handle_offer(
     
             data_channel.on_message(Box::new(move |msg| {
                 Box::pin(async move {
-                    if msg.is_binary() {
+                    if !msg.is_string {
                         info!("[AudioServer] MIDI data od klienta {}: {:?}", client_id_clone, msg.data);
                     }
                 })
@@ -200,17 +201,15 @@ async fn handle_offer(
     }));
     
     let client_id_on_track = client_id.to_string();
-    peer_connection.on_track(Box::new(move |track: Option<Arc<TrackRemote>>, _receiver| {
+    peer_connection.on_track(Box::new(move |track: Arc<TrackRemote>, receiver: Arc<RTCRtpReceiver>, transceiver: Arc<RTCRtpTransceiver>| {
         let track_client_id = client_id_on_track.clone();
         Box::pin(async move {
-            if let Some(track) = track {
-                info!(
-                    "[AudioServer] Přijat stream SSRC {} od klienta {}, typ: {}",
-                    track.ssrc(),
-                    track_client_id,
-                    track.kind()
-                );
-            }
+            info!(
+                "[AudioServer] Přijat stream SSRC {} od klienta {}, typ: {}",
+                track.ssrc(),
+                track_client_id,
+                track.kind()
+            );
         })
     }));
     

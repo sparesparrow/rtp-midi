@@ -54,6 +54,9 @@ ddp-rs = "1.0.0"
 # --- Audio a MIDI ---
 cpal = "0.16.0"
 rustfft = "6.1"
+midir = "0.10.0"
+opus = "0.3.0"
+webrtc = "0.9"
 
 # --- Android a FFI ---
 libc = "0.2"
@@ -74,7 +77,3 @@ rtp-midi = { path = "." }
 [target.aarch64-linux-android.dependencies]
 openssl = { version = "0.10.64", features = ["vendored"] }
 
-# --- Additional dependencies ---
-midir = "0.10.0"
-opus = "0.3.0"
-webrtc = "0.9"
