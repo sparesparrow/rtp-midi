@@ -1,5 +1,5 @@
 ---
-title: RTP-MIDI Container Diagram
+title: RTP-MIDI Modular Container Diagram
 ---
 
 flowchart TB
@@ -7,12 +7,20 @@ flowchart TB
         QtUI["Qt Desktop UI (C++/QML)"]
         WebFrontend["Web Frontend (HTML/JS)"]
         AndroidApp["Android App (Kotlin/Java)"]
+        CLI["CLI Client"]
+    end
+
+    subgraph Platform Abstraction
+        PlatformBridge["Platform Bridge (FFI/JNI/Web)"]
     end
 
     subgraph Core Services
-        RustCore["Rust Core Backend"]
-        AudioServer["Audio Server (Rust)"]
-        SignalingServer["Signaling Server (Rust)"]
+        EventBus["Event Bus (Broker)"]
+        PacketProcessor["Packet Processor"]
+        RecoveryJournal["Recovery Journal"]
+        AudioModule["Audio Input & Analysis"]
+        MidiNetwork["MIDI Network I/O (RTP/AppleMIDI)"]
+        WledOutput["WLED/LED Output (DDP, Mapping)"]
     end
 
     subgraph External
@@ -22,21 +30,34 @@ flowchart TB
         MIDIInput["MIDI Input Device"]
     end
 
-    QtUI -- FFI (C++/Rust) --> RustCore
-    WebFrontend -- WebSocket/WebRTC --> SignalingServer
-    AndroidApp -- JNI/AIDL --> RustCore
+    %% Platform connections
+    QtUI -- FFI (C++/Rust) --> PlatformBridge
+    AndroidApp -- JNI/AIDL --> PlatformBridge
+    WebFrontend -- WebSocket/WebRTC --> PlatformBridge
+    CLI -- Direct Call --> PlatformBridge
+    PlatformBridge -- Event API --> EventBus
 
-    RustCore -- IPC/Channel --> AudioServer
-    RustCore -- IPC/Channel --> SignalingServer
-    RustCore -- UDP/DDP --> WLED
-    RustCore -- reads --> AudioInput
-    RustCore -- reads --> MIDIInput
+    %% Core modular flows
+    EventBus -- Event Dispatch --> PacketProcessor
+    EventBus -- Event Dispatch --> AudioModule
+    EventBus -- Event Dispatch --> MidiNetwork
+    EventBus -- Event Dispatch --> WledOutput
+    EventBus -- Log/State --> RecoveryJournal
+    PacketProcessor -- Publishes Events --> EventBus
+    AudioModule -- Publishes Events --> EventBus
+    MidiNetwork -- Publishes Events --> EventBus
+    WledOutput -- Publishes Events --> EventBus
+    RecoveryJournal -- Recovery Events --> EventBus
 
+    %% External IO
+    AudioModule -- reads --> AudioInput
+    MidiNetwork -- reads --> MIDIInput
+    WledOutput -- UDP/DDP --> WLED
     WLED -- controls --> LEDStrips
-    AudioServer -- reads --> AudioInput
-    SignalingServer -- WebSocket/WebRTC --> WebFrontend
 
     classDef container fill:#bbf,stroke:#333,stroke-width:2px;
     classDef external fill:#f9f,stroke:#333,stroke-width:2px;
-    class QtUI,WebFrontend,AndroidApp,RustCore,AudioServer,SignalingServer container;
+    classDef core fill:#bfb,stroke:#333,stroke-width:2px;
+    class QtUI,WebFrontend,AndroidApp,CLI,PlatformBridge container;
     class WLED,LEDStrips,AudioInput,MIDIInput external;
+    class EventBus,PacketProcessor,RecoveryJournal,AudioModule,MidiNetwork,WledOutput core;
