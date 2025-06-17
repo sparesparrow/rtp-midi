@@ -1,0 +1,34 @@
+---
+title: RTP-MIDI Rust Core Component Diagram
+---
+
+flowchart TB
+    subgraph RustCore["Rust Core Backend"]
+        AudioInput["audio_input.rs: Audio Input"]
+        AudioAnalysis["audio_analysis.rs: Audio Analysis"]
+        LightMapper["light_mapper.rs: Light Mapper"]
+        DDPOutput["ddp_output.rs: DDP Output"]
+        WLEDControl["wled_control.rs: WLED Control"]
+        MIDI["midi/: MIDI Stack"]
+        PacketProcessor["packet_processor.rs: Packet Processor"]
+        EventBus["event_bus.rs: Event Bus"]
+        JournalEngine["journal_engine.rs: Recovery Journal"]
+        FFI["ffi.rs: FFI Boundary"]
+        Mapping["mapping.rs: Mapping Logic"]
+    end
+
+    AudioInput -- provides data --> AudioAnalysis
+    AudioAnalysis -- features --> LightMapper
+    LightMapper -- mapped values --> DDPOutput
+    DDPOutput -- sends packets --> WLEDControl
+    MIDI -- events --> PacketProcessor
+    PacketProcessor -- updates --> EventBus
+    EventBus -- notifies --> JournalEngine
+    JournalEngine -- recovery info --> PacketProcessor
+    FFI -- exposes --> EventBus
+    FFI -- exposes --> JournalEngine
+    FFI -- exposes --> WLEDControl
+    Mapping -- used by --> LightMapper
+
+    classDef component fill:#bbf,stroke:#333,stroke-width:2px;
+    class AudioInput,AudioAnalysis,LightMapper,DDPOutput,WLEDControl,MIDI,PacketProcessor,EventBus,JournalEngine,FFI,Mapping component; 
