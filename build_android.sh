@@ -27,10 +27,23 @@ if [ -z "$ANDROID_NDK_HOME" ]; then
     fi
 fi
 
+HOST_OS=$(uname -s)
+HOST_ARCH=$(uname -m)
+PREBUILT_HOST_DIR=""
+
+if [ "$HOST_OS" = "Linux" ]; then
+    PREBUILT_HOST_DIR="linux-x86_64"
+elif [ "$HOST_OS" = "Darwin" ]; then
+    PREBUILT_HOST_DIR="darwin-x86_64"
+else
+    echo "ERROR: Unsupported host OS: $HOST_OS"
+    exit 1
+fi
+
 # --- Toolchain and Targets ---
 # Add Android targets using rustup
 echo "--- Adding Rust Android targets ---"
-rustup target add aarch64-linux-android armv7-linux-androideabi
+rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
 
 # --- Cargo Configuration for Android ---
 # Create a .cargo/config.toml to specify the NDK linkers for each target.
@@ -40,21 +53,20 @@ cat > .cargo/config.toml << EOL
 # Cargo configuration for Android cross-compilation
 
 [target.aarch64-linux-android]
-ar = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
-linker = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang"
+ar = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/${PREBUILT_HOST_DIR}/bin/llvm-ar"
+linker = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/${PREBUILT_HOST_DIR}/bin/aarch64-linux-android21-clang"
 
 [target.armv7-linux-androideabi]
-ar = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
-linker = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang"
+ar = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/${PREBUILT_HOST_DIR}/bin/llvm-ar"
+linker = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/${PREBUILT_HOST_DIR}/bin/armv7a-linux-androideabi21-clang"
 
-# You can add other targets like i686 and x86_64 here if needed
-# [target.i686-linux-android]
-# ar = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
-# linker = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android21-clang"
-#
-# [target.x86_64-linux-android]
-# ar = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
-# linker = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android21-clang"
+[target.i686-linux-android]
+ar = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/${PREBUILT_HOST_DIR}/bin/llvm-ar"
+linker = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/${PREBUILT_HOST_DIR}/bin/i686-linux-android21-clang"
+
+[target.x86_64-linux-android]
+ar = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/${PREBUILT_HOST_DIR}/bin/llvm-ar"
+linker = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/${PREBUILT_HOST_DIR}/bin/x86_64-linux-android21-clang"
 EOL
 
 echo "--- Created .cargo/config.toml for NDK toolchains ---"
@@ -81,6 +93,8 @@ build_for_target() {
 # Build for the most common architectures
 build_for_target "aarch64-linux-android" "arm64-v8a"
 build_for_target "armv7-linux-androideabi" "armeabi-v7a"
+build_for_target "i686-linux-android" "x86"
+build_for_target "x86_64-linux-android" "x86_64"
 
 echo ""
 echo "--- Android build finished successfully ---"

@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use log::{info, error};
-use tokio::runtime::Runtime;
+use tokio::runtime::{Runtime, Handle};
 use rsbinder::{Interface, Result as BinderResult, Strong, StatusCode};
 
 use crate::{Config, run_service_loop, wled_control};
@@ -26,17 +26,17 @@ struct ServiceState {
     // Handle na pracovní vlákno, abychom na něj mohli počkat.
     worker_thread: Option<thread::JoinHandle<()>>,
     // Tokio runtime pro asynchronní operace (např. volání WLED API).
-    tokio_rt: Arc<Runtime>,
+    tokio_rt_handle: Handle, // Store only the handle
 }
 
 impl ServiceState {
-    fn new(config: Config) -> Self {
+    fn new(config: Config, tokio_rt_handle: Handle) -> Self {
         Self {
             config,
             running_flag: Arc::new(AtomicBool::new(false)),
             status_message: "Stopped".to_string(),
             worker_thread: None,
-            tokio_rt: Arc::new(Runtime::new().expect("Failed to create Tokio runtime for service")),
+            tokio_rt_handle,
         }
     }
 }
@@ -47,9 +47,9 @@ pub struct MidiWledService {
 }
 
 impl MidiWledService {
-    pub fn new(config: Config) -> Self {
+    pub fn new(config: Config, tokio_rt_handle: Handle) -> Self {
         Self {
-            state: Arc::new(Mutex::new(ServiceState::new(config))),
+            state: Arc::new(Mutex::new(ServiceState::new(config, tokio_rt_handle))),
         }
     }
 }
@@ -73,13 +73,14 @@ impl IMidiWledService for MidiWledService {
         
         let config_clone = state.config.clone();
         let running_clone = state.running_flag.clone();
-        
+        let rt_handle_clone = state.tokio_rt_handle.clone(); // Clone the handle
+
         // Nastavíme flag před spuštěním vlákna.
         running_clone.store(true, Ordering::SeqCst);
 
         let thread_handle = thread::spawn(move || {
             // Tato funkce je z `lib.rs` a obsahuje hlavní logiku.
-            run_service_loop(config_clone, running_clone);
+            run_service_loop(config_clone, running_clone, rt_handle_clone);
         });
 
         state.worker_thread = Some(thread_handle);
@@ -118,14 +119,12 @@ impl IMidiWledService for MidiWledService {
         let state = self.state.lock().unwrap();
         
         let wled_ip = state.config.wled_ip.clone();
-        let rt = state.tokio_rt.clone();
+        let rt_handle = state.tokio_rt_handle.clone(); // Get handle instead of Arc<Runtime>
 
-        // Blokujeme na asynchronní operaci.
-        // Je to v pořádku, protože `setWledPreset` je rychlá síťová operace.
-        rt.block_on(async {
+        // Spawn the async task without blocking the binder thread
+        rt_handle.spawn(async move {
             if let Err(e) = wled_control::set_wled_preset(&wled_ip, preset_id).await {
                 error!("Failed to set WLED preset from AIDL: {}", e);
-                // Zde bychom mohli vrátit specifickou chybu, pokud by to AIDL podporovalo lépe.
             }
         });
         
@@ -146,34 +145,19 @@ impl IMidiWledService for MidiWledService {
 }
 
 /// Funkce pro vytvoření a registraci služby.
-pub fn register_service() {
+pub fn register_service(config_path: &str, rt_handle: Handle) {
     info!("Attempting to register Rust AIDL service...");
 
-    // POZNÁMKA: Cesta ke konfiguračnímu souboru je zde pevně daná.
-    // V reálné aplikaci by měla být cesta předána z Android (Java/Kotlin) strany,
-    // např. při startu služby.
-    let config_path = "/data/data/com.example.rtpmidi/files/config.toml";
     let config = match Config::load_from_file(config_path) {
         Ok(cfg) => cfg,
         Err(e) => {
             error!("FATAL: Could not load config from '{}'. Service cannot start. Error: {}", config_path, e);
-            // Zde by aplikace měla selhat, protože bez konfigurace nemůže fungovat.
-            // Pro jednoduchost jen zalogujeme a pokračujeme, ale služba nebude funkční.
-            // Vytvoříme prázdnou konfiguraci, aby se kód zkompiloval.
-            Config {
-                wled_ip: "0.0.0.0".to_string(),
-                ddp_port: None,
-                led_count: 0,
-                color_format: None,
-                audio_device: None,
-                midi_port: None,
-                log_level: None,
-            }
+            return; // Stop execution
         }
     };
     
     // Vytvoření instance naší služby.
-    let service = MidiWledService::new(config);
+    let service = MidiWledService::new(config, rt_handle);
     let binder: Strong<dyn IMidiWledService> = BnMidiWledService::new_binder(service, Default::default());
 
     // Registrace služby u Android Service Manageru.
