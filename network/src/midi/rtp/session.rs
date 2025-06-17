@@ -8,7 +8,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use super::message::{JournalEntry, MidiMessage, RtpMidiPacket, JournalData};
-use crate::packet_processor::ParsedPacket;
+use utils::ParsedPacket;
 
 // The listener now receives only the MIDI commands, not the whole packet, for cleaner separation.
 type MidiCommandListener = Arc<Mutex<dyn Fn(Vec<MidiMessage>) + Send + Sync>>;

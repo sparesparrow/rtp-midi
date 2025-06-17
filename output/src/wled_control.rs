@@ -4,7 +4,7 @@ use serde_json::json;
 use log::{error, info};
 use core::event_bus::Event;
 use network::network_interface::NetworkInterface;
-use core::mapping::WledOutputAction;
+use utils::WledOutputAction;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use std::net::SocketAddr;

@@ -1,18 +1,6 @@
+use utils::ParsedPacket;
 use anyhow::{anyhow, Result};
 use bytes::Buf;
-
-/// Represents the parsed components of a raw network packet.
-pub struct ParsedPacket {
-    pub version: u8,
-    pub padding: bool,
-    pub extension: bool,
-    pub marker: bool,
-    pub payload_type: u8,
-    pub sequence_number: u16,
-    pub timestamp: u32,
-    pub ssrc: u32,
-    pub payload: Vec<u8>,
-}
 
 impl ParsedPacket {
     /// Parses a raw byte slice into a ParsedPacket, extracting RTP header and payload.

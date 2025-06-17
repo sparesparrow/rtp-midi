@@ -6,7 +6,7 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 use serde::{Deserialize, Serialize};
 
 use core::journal_engine::{JournalData, JournalEntry};
-use core::packet_processor::ParsedPacket;
+use utils::ParsedPacket;
 
 /// Represents a single MIDI message with its delta-time.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

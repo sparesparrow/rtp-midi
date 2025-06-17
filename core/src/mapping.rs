@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use utils::{InputEvent, WledOutputAction, Mapping};
 use network::midi::parser::MidiCommand;
 
 /// Enum reprezentující různé typy vstupních událostí, které mohou spustit mapování.
