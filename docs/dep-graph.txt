@@ -1,2933 +1,1065 @@
-rtp-midi v0.1.0 (/home/sparrow/projects/rust/rtp-midi)
-android_logger feature "default"
-android_logger v0.11.3
-env_logger v0.10.2
-log feature "default"
-log v0.4.27
-log feature "std"
-log v0.4.27
-regex feature "perf"
-regex v1.11.1
-aho-corasick v1.1.3
-memchr v2.7.5
-memchr v2.7.5
-regex-syntax v0.8.5
-regex-automata feature "alloc"
-regex-automata v0.4.9
-aho-corasick v1.1.3 (*)
-memchr v2.7.5
-regex-syntax v0.8.5
-regex-automata feature "meta"
-regex-automata v0.4.9 (*)
-regex-automata feature "nfa-pikevm"
-regex-automata v0.4.9 (*)
-regex-automata feature "nfa-thompson"
-regex-automata v0.4.9 (*)
-regex-automata feature "alloc" (*)
-regex-automata feature "syntax"
-regex-automata v0.4.9 (*)
-regex-automata feature "alloc" (*)
-regex-automata feature "nfa-pikevm" (*)
-regex-automata feature "syntax" (*)
-regex feature "perf-backtrack"
-regex v1.11.1 (*)
-regex-automata feature "nfa-backtrack"
-regex-automata v0.4.9 (*)
-regex-automata feature "nfa-thompson" (*)
-regex feature "perf-cache"
-regex v1.11.1 (*)
-regex feature "perf-dfa"
-regex v1.11.1 (*)
-regex-automata feature "hybrid"
-regex-automata v0.4.9 (*)
-regex-automata feature "alloc" (*)
-regex-automata feature "nfa-thompson" (*)
-regex feature "perf-inline"
-regex v1.11.1 (*)
-regex-automata feature "perf-inline"
-regex-automata v0.4.9 (*)
-regex feature "perf-literal"
-regex v1.11.1 (*)
-regex-automata feature "perf-literal"
-regex-automata v0.4.9 (*)
-regex-automata feature "perf-literal-multisubstring"
-regex-automata v0.4.9 (*)
-regex-automata feature "std"
-regex-automata v0.4.9 (*)
-aho-corasick feature "std"
-aho-corasick v1.1.3 (*)
-memchr feature "std"
-memchr v2.7.5
-memchr feature "alloc"
-memchr v2.7.5
-memchr feature "std" (*)
-regex-automata feature "alloc" (*)
-regex-syntax feature "std"
-regex-syntax v0.8.5
-regex-automata feature "perf-literal-substring"
-regex-automata v0.4.9 (*)
-aho-corasick feature "perf-literal"
-aho-corasick v1.1.3 (*)
-regex feature "perf-onepass"
-regex v1.11.1 (*)
-regex-automata feature "dfa-onepass"
-regex-automata v0.4.9 (*)
-regex-automata feature "nfa-thompson" (*)
-regex feature "std"
-regex v1.11.1 (*)
-aho-corasick feature "std" (*)
-memchr feature "std" (*)
-regex-automata feature "std" (*)
-regex-syntax feature "std" (*)
-android_log-sys feature "default"
-android_log-sys v0.2.0
-log feature "default" (*)
-once_cell feature "default"
-once_cell v1.21.3
-once_cell feature "std"
-once_cell v1.21.3
-once_cell feature "alloc"
-once_cell v1.21.3
-once_cell feature "race"
-once_cell v1.21.3
-android_logger feature "regex"
-android_logger v0.11.3 (*)
-env_logger feature "regex"
-env_logger v0.10.2 (*)
-log feature "default" (*)
-once_cell feature "default" (*)
-anyhow feature "default"
-anyhow v1.0.98
-anyhow feature "std"
-anyhow v1.0.98
-async-trait feature "default"
-async-trait v0.1.88 (proc-macro)
-proc-macro2 feature "default"
-proc-macro2 v1.0.95
-unicode-ident feature "default"
-unicode-ident v1.0.18
-proc-macro2 feature "proc-macro"
-proc-macro2 v1.0.95 (*)
-quote feature "default"
-quote v1.0.40
-proc-macro2 v1.0.95 (*)
-quote feature "proc-macro"
-quote v1.0.40 (*)
-proc-macro2 feature "proc-macro" (*)
-syn feature "clone-impls"
-syn v2.0.103
-proc-macro2 v1.0.95 (*)
-quote v1.0.40 (*)
-unicode-ident feature "default" (*)
-syn feature "full"
-syn v2.0.103 (*)
-syn feature "parsing"
-syn v2.0.103 (*)
-syn feature "printing"
-syn v2.0.103 (*)
-syn feature "proc-macro"
-syn v2.0.103 (*)
-proc-macro2 feature "proc-macro" (*)
-quote feature "proc-macro" (*)
-syn feature "visit-mut"
-syn v2.0.103 (*)
-bytes feature "default"
-bytes v1.10.1
-bytes feature "std"
-bytes v1.10.1
-cpal feature "default"
-cpal v0.16.0
-alsa feature "default"
-alsa v0.9.1
-alsa-sys feature "default"
-alsa-sys v0.3.1
-libc feature "default"
-libc v0.2.173
-libc feature "std"
-libc v0.2.173
-pkg-config feature "default"
-pkg-config v0.3.32
-libc feature "default" (*)
-bitflags feature "default"
-bitflags v2.9.1
-cfg-if feature "default"
-cfg-if v1.0.1
-libc feature "default" (*)
-dasp_sample feature "default"
-dasp_sample v0.11.0
-dasp_sample feature "std"
-dasp_sample v0.11.0
-libc feature "default" (*)
-crossbeam-channel feature "default"
-crossbeam-channel v0.5.15
-crossbeam-utils v0.8.21
-crossbeam-channel feature "std"
-crossbeam-channel v0.5.15 (*)
-crossbeam-utils feature "std"
-crossbeam-utils v0.8.21
-ctrlc feature "default"
-ctrlc v3.4.7
-nix feature "fs"
-nix v0.30.1
-libc feature "default" (*)
-libc feature "extra_traits"
-libc v0.2.173
-bitflags feature "default" (*)
-cfg-if feature "default" (*)
-cfg_aliases feature "default"
-cfg_aliases v0.2.1
-nix feature "signal"
-nix v0.30.1 (*)
-nix feature "process"
-nix v0.30.1 (*)
-ddp-rs feature "default"
-ddp-rs v1.0.0
-log feature "default" (*)
-crossbeam feature "default"
-crossbeam v0.8.4
-crossbeam-channel v0.5.15 (*)
-crossbeam-deque v0.8.6
-crossbeam-epoch v0.9.18
-crossbeam-utils v0.8.21
-crossbeam-utils v0.8.21
-crossbeam-epoch v0.9.18 (*)
-crossbeam-queue v0.3.12
-crossbeam-utils v0.8.21
-crossbeam-utils v0.8.21
-crossbeam feature "std"
-crossbeam v0.8.4 (*)
-crossbeam-channel feature "std" (*)
-crossbeam-utils feature "std" (*)
-crossbeam feature "alloc"
-crossbeam v0.8.4 (*)
-crossbeam feature "crossbeam-epoch"
-crossbeam v0.8.4 (*)
-crossbeam feature "crossbeam-queue"
-crossbeam v0.8.4 (*)
-crossbeam-epoch feature "alloc"
-crossbeam-epoch v0.9.18 (*)
-crossbeam-queue feature "alloc"
-crossbeam-queue v0.3.12 (*)
-crossbeam feature "crossbeam-channel"
-crossbeam v0.8.4 (*)
-crossbeam feature "crossbeam-deque"
-crossbeam v0.8.4 (*)
-crossbeam feature "crossbeam-epoch" (*)
-crossbeam feature "crossbeam-queue" (*)
-crossbeam-deque feature "std"
-crossbeam-deque v0.8.6 (*)
-crossbeam-utils feature "std" (*)
-crossbeam-epoch feature "std"
-crossbeam-epoch v0.9.18 (*)
-crossbeam-utils feature "std" (*)
-crossbeam-epoch feature "alloc" (*)
-crossbeam-epoch feature "std" (*)
-crossbeam-queue feature "std"
-crossbeam-queue v0.3.12 (*)
-crossbeam-utils feature "std" (*)
-crossbeam-queue feature "alloc" (*)
-dashmap feature "default"
-dashmap v5.5.3
-hashbrown v0.14.5
-once_cell feature "default" (*)
-cfg-if feature "default" (*)
-lock_api feature "default"
-lock_api v0.4.13
-scopeguard v1.2.0
-autocfg feature "default"
-autocfg v1.4.0
-lock_api feature "atomic_usize"
-lock_api v0.4.13 (*)
-parking_lot_core feature "default"
-parking_lot_core v0.9.11
-libc feature "default" (*)
-cfg-if feature "default" (*)
-smallvec feature "default"
-smallvec v1.15.1
-serde feature "default"
-serde v1.0.219
-serde_derive feature "default"
-serde_derive v1.0.219 (proc-macro)
-proc-macro2 feature "proc-macro" (*)
-quote feature "proc-macro" (*)
-syn feature "clone-impls" (*)
-syn feature "derive"
-syn v2.0.103 (*)
-syn feature "parsing" (*)
-syn feature "printing" (*)
-syn feature "proc-macro" (*)
-serde feature "std"
-serde v1.0.219 (*)
-serde feature "derive"
-serde v1.0.219 (*)
-serde feature "serde_derive"
-serde v1.0.219 (*)
-serde_json feature "default"
-serde_json v1.0.140
-memchr v2.7.5
-serde v1.0.219 (*)
-itoa feature "default"
-itoa v1.0.15
-ryu feature "default"
-ryu v1.0.20
-serde_json feature "std"
-serde_json v1.0.140 (*)
-memchr feature "std" (*)
-serde feature "std" (*)
-thiserror feature "default"
-thiserror v1.0.69
-thiserror-impl feature "default"
-thiserror-impl v1.0.69 (proc-macro)
-proc-macro2 feature "default" (*)
-quote feature "default" (*)
-syn feature "default"
-syn v2.0.103 (*)
-syn feature "clone-impls" (*)
-syn feature "derive" (*)
-syn feature "parsing" (*)
-syn feature "printing" (*)
-syn feature "proc-macro" (*)
-serde feature "default" (*)
-serde feature "derive" (*)
-serde_json feature "default" (*)
-env_logger feature "default"
-env_logger v0.11.8
-env_filter v0.1.3
-log feature "default" (*)
-log feature "std" (*)
-regex feature "perf" (*)
-regex feature "std" (*)
-log feature "default" (*)
-log feature "std" (*)
-anstream feature "wincon"
-anstream v0.6.19
-anstyle feature "default"
-anstyle v1.0.11
-anstyle feature "std"
-anstyle v1.0.11
-anstyle-parse feature "default"
-anstyle-parse v0.2.7
-utf8parse feature "default"
-utf8parse v0.2.2
-anstyle-parse feature "utf8"
-anstyle-parse v0.2.7 (*)
-utf8parse feature "default" (*)
-anstyle-query feature "default"
-anstyle-query v1.1.3
-colorchoice feature "default"
-colorchoice v1.0.4
-is_terminal_polyfill feature "default"
-is_terminal_polyfill v1.70.1
-anstyle feature "default" (*)
-jiff feature "std"
-jiff v0.2.15
-jiff feature "alloc"
-jiff v0.2.15
-env_logger feature "auto-color"
-env_logger v0.11.8 (*)
-env_logger feature "anstream"
-env_logger v0.11.8 (*)
-env_logger feature "color"
-env_logger v0.11.8 (*)
-anstream feature "auto"
-anstream v0.6.19 (*)
-env_logger feature "humantime"
-env_logger v0.11.8 (*)
-env_logger feature "regex"
-env_logger v0.11.8 (*)
-env_filter feature "regex"
-env_filter v0.1.3 (*)
-futures-util feature "default"
-futures-util v0.3.31
-futures-core v0.3.31
-futures-macro v0.3.31 (proc-macro)
-proc-macro2 feature "default" (*)
-quote feature "default" (*)
-syn feature "default" (*)
-syn feature "full" (*)
-futures-sink v0.3.31
-futures-task v0.3.31
-memchr feature "default"
-memchr v2.7.5
-memchr feature "std" (*)
-futures-channel feature "std"
-futures-channel v0.3.31
-futures-core v0.3.31
-futures-sink v0.3.31
-futures-channel feature "alloc"
-futures-channel v0.3.31 (*)
-futures-core feature "alloc"
-futures-core v0.3.31
-futures-core feature "std"
-futures-core v0.3.31
-futures-core feature "alloc" (*)
-futures-io feature "std"
-futures-io v0.3.31
-pin-project-lite feature "default"
-pin-project-lite v0.2.16
-pin-utils feature "default"
-pin-utils v0.1.0
-slab feature "default"
-slab v0.4.10
-slab feature "std"
-slab v0.4.10
-futures-util feature "async-await"
-futures-util v0.3.31 (*)
-futures-util feature "async-await-macro"
-futures-util v0.3.31 (*)
-futures-util feature "async-await" (*)
-futures-util feature "futures-macro"
-futures-util v0.3.31 (*)
-futures-util feature "std"
-futures-util v0.3.31 (*)
-futures-util feature "alloc"
-futures-util v0.3.31 (*)
-futures-core feature "alloc" (*)
-futures-task feature "alloc"
-futures-task v0.3.31
-futures-util feature "slab"
-futures-util v0.3.31 (*)
-futures-core feature "std" (*)
-futures-task feature "std"
-futures-task v0.3.31
-futures-task feature "alloc" (*)
-jni feature "default"
-jni v0.21.1
-log feature "default" (*)
-cfg-if feature "default" (*)
-thiserror feature "default" (*)
-cesu8 feature "default"
-cesu8 v1.1.0
-combine feature "default"
-combine v4.6.7
-memchr v2.7.5
-bytes feature "default" (*)
-combine feature "std"
-combine v4.6.7 (*)
-memchr feature "std" (*)
-combine feature "alloc"
-combine v4.6.7 (*)
-combine feature "bytes"
-combine v4.6.7 (*)
-jni-sys feature "default"
-jni-sys v0.3.0
-walkdir feature "default"
-walkdir v2.5.0
-same-file feature "default"
-same-file v1.0.6
-midir feature "default"
-midir v0.10.1
-alsa feature "default" (*)
-libc feature "default" (*)
-bitflags feature "default"
-bitflags v1.3.2
-tokio feature "default"
-tokio v1.45.1
-mio v1.0.4
-libc feature "default" (*)
-bytes feature "default" (*)
-libc feature "default" (*)
-pin-project-lite feature "default" (*)
-parking_lot feature "default"
-parking_lot v0.12.4
-lock_api feature "default" (*)
-parking_lot_core feature "default" (*)
-signal-hook-registry feature "default"
-signal-hook-registry v1.4.5
-libc feature "default" (*)
-socket2 feature "all"
-socket2 v0.5.10
-libc feature "default" (*)
-socket2 feature "default"
-socket2 v0.5.10 (*)
-tokio-macros feature "default"
-tokio-macros v2.5.0 (proc-macro)
-proc-macro2 feature "default" (*)
-quote feature "default" (*)
-syn feature "default" (*)
-syn feature "full" (*)
-tokio feature "full"
-tokio v1.45.1 (*)
-tokio feature "fs"
-tokio v1.45.1 (*)
-tokio feature "io-std"
-tokio v1.45.1 (*)
-tokio feature "io-util"
-tokio v1.45.1 (*)
-tokio feature "bytes"
-tokio v1.45.1 (*)
-tokio feature "macros"
-tokio v1.45.1 (*)
-tokio feature "tokio-macros"
-tokio v1.45.1 (*)
-tokio feature "net"
-tokio v1.45.1 (*)
-tokio feature "libc"
-tokio v1.45.1 (*)
-tokio feature "mio"
-tokio v1.45.1 (*)
-tokio feature "socket2"
-tokio v1.45.1 (*)
-mio feature "net"
-mio v1.0.4 (*)
-mio feature "os-ext"
-mio v1.0.4 (*)
-mio feature "os-poll"
-mio v1.0.4 (*)
-mio feature "os-poll" (*)
-tokio feature "parking_lot"
-tokio v1.45.1 (*)
-tokio feature "process"
-tokio v1.45.1 (*)
-tokio feature "bytes" (*)
-tokio feature "libc" (*)
-tokio feature "mio" (*)
-tokio feature "signal-hook-registry"
-tokio v1.45.1 (*)
-mio feature "net" (*)
-mio feature "os-ext" (*)
-mio feature "os-poll" (*)
-tokio feature "rt"
-tokio v1.45.1 (*)
-tokio feature "rt-multi-thread"
-tokio v1.45.1 (*)
-tokio feature "rt" (*)
-tokio feature "signal"
-tokio v1.45.1 (*)
-tokio feature "libc" (*)
-tokio feature "mio" (*)
-tokio feature "signal-hook-registry" (*)
-mio feature "net" (*)
-mio feature "os-ext" (*)
-mio feature "os-poll" (*)
-tokio feature "sync"
-tokio v1.45.1 (*)
-tokio feature "time"
-tokio v1.45.1 (*)
-num-traits feature "default"
-num-traits v0.2.19
-autocfg feature "default" (*)
-num-traits feature "std"
-num-traits v0.2.19 (*)
-opus feature "default"
-opus v0.3.0
-libc feature "default" (*)
-audiopus_sys feature "default"
-audiopus_sys v0.2.2
-pkg-config feature "default" (*)
-cmake feature "default"
-cmake v0.1.54
-cc feature "default"
-cc v1.2.27
-shlex feature "default"
-shlex v1.3.0
-shlex feature "std"
-shlex v1.3.0
-log feature "default"
-log v0.4.27
-rand feature "default"
-rand v0.8.5
-libc v0.2.173
-rand_chacha v0.3.1
-ppv-lite86 feature "simd"
-ppv-lite86 v0.2.21
-zerocopy feature "default"
-zerocopy v0.8.25
-zerocopy feature "simd"
-zerocopy v0.8.25
-rand_core feature "default"
-rand_core v0.6.4
-getrandom feature "default"
-getrandom v0.2.16
-libc v0.2.173
-cfg-if feature "default" (*)
-rand_core feature "default" (*)
-rand feature "std"
-rand v0.8.5 (*)
-rand feature "alloc"
-rand v0.8.5 (*)
-rand_core feature "alloc"
-rand_core v0.6.4 (*)
-rand feature "getrandom"
-rand v0.8.5 (*)
-rand_core feature "getrandom"
-rand_core v0.6.4 (*)
-rand feature "libc"
-rand v0.8.5 (*)
-rand feature "rand_chacha"
-rand v0.8.5 (*)
-rand_chacha feature "std"
-rand_chacha v0.3.1 (*)
-ppv-lite86 feature "std"
-ppv-lite86 v0.2.21 (*)
-rand_core feature "std"
-rand_core v0.6.4 (*)
-rand_core feature "alloc" (*)
-rand_core feature "getrandom" (*)
-getrandom feature "std"
-getrandom v0.2.16 (*)
-rand feature "std_rng"
-rand v0.8.5 (*)
-rand feature "rand_chacha" (*)
-reqwest feature "default"
-reqwest v0.12.20
-futures-core v0.3.31
-log feature "default" (*)
-bytes feature "default" (*)
-serde feature "default" (*)
-serde_json feature "default" (*)
-pin-project-lite feature "default" (*)
-http feature "default"
-http v1.3.1
-bytes feature "default" (*)
-itoa feature "default" (*)
-fnv feature "default"
-fnv v1.0.7
-fnv feature "std"
-fnv v1.0.7
-http feature "std"
-http v1.3.1 (*)
-http-body feature "default"
-http-body v1.0.1
-bytes feature "default" (*)
-http feature "default" (*)
-http-body-util feature "default"
-http-body-util v0.1.3
-futures-core v0.3.31
-bytes feature "default" (*)
-pin-project-lite feature "default" (*)
-http feature "default" (*)
-http-body feature "default" (*)
-hyper feature "client"
-hyper v1.6.0
-futures-util v0.3.31 (*)
-bytes feature "default" (*)
-smallvec feature "const_generics"
-smallvec v1.15.1
-smallvec feature "const_new"
-smallvec v1.15.1
-smallvec feature "const_generics" (*)
-smallvec feature "default" (*)
-itoa feature "default" (*)
-futures-channel feature "default"
-futures-channel v0.3.31 (*)
-futures-channel feature "std" (*)
-pin-project-lite feature "default" (*)
-http feature "default" (*)
-http-body feature "default" (*)
-h2 feature "default"
-h2 v0.4.10
-futures-core v0.3.31
-futures-sink v0.3.31
-bytes feature "default" (*)
-slab feature "default" (*)
-http feature "default" (*)
-fnv feature "default" (*)
-atomic-waker feature "default"
-atomic-waker v1.1.2
-indexmap feature "default"
-indexmap v2.9.0
-equivalent v1.0.2
-hashbrown v0.15.4
-indexmap feature "std"
-indexmap v2.9.0 (*)
-indexmap feature "std" (*)
-tokio feature "default" (*)
-tokio feature "io-util" (*)
-tokio-util feature "codec"
-tokio-util v0.7.15
-bytes feature "default" (*)
-futures-core feature "default"
-futures-core v0.3.31
-futures-core feature "std" (*)
-futures-sink feature "default"
-futures-sink v0.3.31
-futures-sink feature "std"
-futures-sink v0.3.31
-futures-sink feature "alloc"
-futures-sink v0.3.31
-pin-project-lite feature "default" (*)
-tokio feature "default" (*)
-tokio feature "sync" (*)
-tokio-util feature "default"
-tokio-util v0.7.15 (*)
-tokio-util feature "io"
-tokio-util v0.7.15 (*)
-tracing feature "std"
-tracing v0.1.41
-tracing-core v0.1.34
-once_cell feature "default" (*)
-pin-project-lite feature "default" (*)
-tracing-core feature "std"
-tracing-core v0.1.34 (*)
-tracing-core feature "once_cell"
-tracing-core v0.1.34 (*)
-tokio feature "default" (*)
-tokio feature "sync" (*)
-httparse feature "default"
-httparse v1.10.1
-httparse feature "std"
-httparse v1.10.1
-httpdate feature "default"
-httpdate v1.0.3
-want feature "default"
-want v0.3.1
-try-lock feature "default"
-try-lock v0.2.5
-hyper feature "default"
-hyper v1.6.0 (*)
-hyper feature "http1"
-hyper v1.6.0 (*)
-h2 feature "default" (*)
-tokio feature "net" (*)
-tokio feature "time" (*)
-hyper-util feature "client"
-hyper-util v0.1.14
-futures-util v0.3.31 (*)
-tokio v1.45.1 (*)
-bytes feature "default" (*)
-libc feature "default" (*)
-futures-channel feature "default" (*)
-futures-core feature "default" (*)
-pin-project-lite feature "default" (*)
-http feature "default" (*)
-http-body feature "default" (*)
-hyper feature "default" (*)
-socket2 feature "all" (*)
-socket2 feature "default" (*)
-tracing feature "std" (*)
-base64 feature "default"
-base64 v0.22.1
-base64 feature "std"
-base64 v0.22.1
-base64 feature "alloc"
-base64 v0.22.1
-ipnet feature "default"
-ipnet v2.11.0
-ipnet feature "std"
-ipnet v2.11.0
-percent-encoding feature "default"
-percent-encoding v2.3.1
-percent-encoding feature "std"
-percent-encoding v2.3.1
-percent-encoding feature "alloc"
-percent-encoding v2.3.1
-tower-service feature "default"
-tower-service v0.3.3
-hyper feature "client" (*)
-hyper-util feature "client-legacy"
-hyper-util v0.1.14 (*)
-tokio feature "sync" (*)
-hyper-util feature "client" (*)
-hyper-util feature "tokio"
-hyper-util v0.1.14 (*)
-tokio feature "net" (*)
-tokio feature "rt" (*)
-tokio feature "time" (*)
-hyper-util feature "tokio" (*)
-hyper-util feature "client-proxy"
-hyper-util v0.1.14 (*)
-hyper-util feature "client" (*)
-hyper-util feature "default"
-hyper-util v0.1.14 (*)
-hyper-util feature "http1"
-hyper-util v0.1.14 (*)
-hyper feature "http1" (*)
-hyper-util feature "tokio" (*)
-base64 feature "default" (*)
-percent-encoding feature "default" (*)
-tower-service feature "default" (*)
-serde_urlencoded feature "default"
-serde_urlencoded v0.7.1
-serde feature "default" (*)
-itoa feature "default" (*)
-ryu feature "default" (*)
-form_urlencoded feature "default"
-form_urlencoded v1.2.1
-percent-encoding v2.3.1
-form_urlencoded feature "std"
-form_urlencoded v1.2.1 (*)
-percent-encoding feature "std" (*)
-form_urlencoded feature "alloc"
-form_urlencoded v1.2.1 (*)
-percent-encoding feature "alloc" (*)
-encoding_rs feature "default"
-encoding_rs v0.8.35
-cfg-if feature "default" (*)
-encoding_rs feature "alloc"
-encoding_rs v0.8.35 (*)
-hyper-rustls feature "http1"
-hyper-rustls v0.27.7
-hyper v1.6.0 (*)
-rustls v0.23.28
-subtle v2.6.1
-once_cell feature "alloc" (*)
-once_cell feature "race" (*)
-ring feature "default"
-ring v0.17.14
-cfg-if v1.0.1
-getrandom feature "default" (*)
-untrusted feature "default"
-untrusted v0.9.0
-cc v1.2.27 (*)
-ring feature "alloc"
-ring v0.17.14 (*)
-ring feature "dev_urandom_fallback"
-ring v0.17.14 (*)
-rustls-pki-types feature "alloc"
-rustls-pki-types v1.12.0
-zeroize feature "default"
-zeroize v1.8.1
-zeroize_derive feature "default"
-zeroize_derive v1.4.2 (proc-macro)
-proc-macro2 feature "default" (*)
-quote feature "default" (*)
-syn feature "default" (*)
-syn feature "extra-traits"
-syn v2.0.103 (*)
-syn feature "full" (*)
-syn feature "visit"
-syn v2.0.103 (*)
-zeroize feature "alloc"
-zeroize v1.8.1 (*)
-rustls-pki-types feature "default"
-rustls-pki-types v1.12.0 (*)
-rustls-pki-types feature "alloc" (*)
-zeroize feature "default" (*)
-rustls-webpki feature "alloc"
-rustls-webpki v0.103.3
-ring v0.17.14 (*)
-rustls-pki-types v1.12.0 (*)
-untrusted feature "default" (*)
-ring feature "alloc" (*)
-rustls-pki-types feature "alloc" (*)
-tokio-rustls v0.26.2
-tokio feature "default" (*)
-rustls feature "std"
-rustls v0.23.28 (*)
-once_cell feature "std" (*)
-rustls-pki-types feature "std"
-rustls-pki-types v1.12.0 (*)
-rustls-pki-types feature "alloc" (*)
-rustls-webpki feature "std"
-rustls-webpki v0.103.3 (*)
-rustls-pki-types feature "std" (*)
-rustls-webpki feature "alloc" (*)
-http feature "default" (*)
-tokio feature "default" (*)
-hyper-util feature "client-legacy" (*)
-hyper-util feature "tokio" (*)
-tower-service feature "default" (*)
-rustls-pki-types feature "default" (*)
-webpki-roots feature "default"
-webpki-roots v1.0.0
-rustls-pki-types v1.12.0 (*)
-hyper-util feature "http1" (*)
-hyper-rustls feature "tls12"
-hyper-rustls v0.27.7 (*)
-rustls feature "tls12"
-rustls v0.23.28 (*)
-tokio-rustls feature "tls12"
-tokio-rustls v0.26.2 (*)
-rustls feature "tls12" (*)
-rustls feature "std" (*)
-rustls feature "tls12" (*)
-rustls-pki-types feature "default" (*)
-rustls-pki-types feature "std" (*)
-tokio-rustls feature "tls12" (*)
-webpki-roots feature "default" (*)
-hyper-tls feature "default"
-hyper-tls v0.6.0
-bytes feature "default" (*)
-http-body-util feature "default" (*)
-hyper feature "default" (*)
-tokio feature "default" (*)
-hyper-util feature "client-legacy" (*)
-hyper-util feature "default" (*)
-hyper-util feature "tokio" (*)
-tower-service feature "default" (*)
-native-tls feature "default"
-native-tls v0.2.14
-log feature "default" (*)
-openssl feature "default"
-openssl v0.10.73
-once_cell feature "default" (*)
-libc feature "default" (*)
-bitflags feature "default" (*)
-cfg-if feature "default" (*)
-foreign-types feature "default"
-foreign-types v0.3.2
-foreign-types-shared feature "default"
-foreign-types-shared v0.1.1
-openssl-macros feature "default"
-openssl-macros v0.1.1 (proc-macro)
-proc-macro2 feature "default" (*)
-quote feature "default" (*)
-syn feature "default" (*)
-syn feature "full" (*)
-openssl-sys feature "default"
-openssl-sys v0.9.109
-libc feature "default" (*)
-pkg-config feature "default" (*)
-cc feature "default" (*)
-vcpkg feature "default"
-vcpkg v0.2.15
-openssl-sys feature "default" (*)
-openssl-probe feature "default"
-openssl-probe v0.1.6
-tokio-native-tls feature "default"
-tokio-native-tls v0.3.1
-tokio feature "default" (*)
-native-tls feature "default" (*)
-native-tls feature "default" (*)
-tokio-native-tls feature "default" (*)
-mime feature "default"
-mime v0.3.17
-sync_wrapper feature "default"
-sync_wrapper v1.0.2
-futures-core v0.3.31
-sync_wrapper feature "futures"
-sync_wrapper v1.0.2 (*)
-sync_wrapper feature "futures-core"
-sync_wrapper v1.0.2 (*)
-tower feature "timeout"
-tower v0.5.2
-futures-util feature "alloc" (*)
-futures-core feature "default" (*)
-pin-project-lite feature "default" (*)
-tokio feature "default" (*)
-tokio feature "sync" (*)
-tower-service feature "default" (*)
-sync_wrapper feature "default" (*)
-tower-layer feature "default"
-tower-layer v0.3.3
-tokio feature "time" (*)
-tower feature "pin-project-lite"
-tower v0.5.2 (*)
-tower feature "tokio"
-tower v0.5.2 (*)
-tower feature "util"
-tower v0.5.2 (*)
-tower feature "__common"
-tower v0.5.2 (*)
-tower feature "futures-core"
-tower v0.5.2 (*)
-tower feature "pin-project-lite" (*)
-tower feature "futures-util"
-tower v0.5.2 (*)
-tower feature "pin-project-lite" (*)
-tower feature "sync_wrapper"
-tower v0.5.2 (*)
-tower-http feature "follow-redirect"
-tower-http v0.6.6
-futures-util v0.3.31 (*)
-bytes feature "default" (*)
-bitflags feature "default" (*)
-pin-project-lite feature "default" (*)
-http feature "default" (*)
-http-body feature "default" (*)
-tower-service feature "default" (*)
-tower feature "default"
-tower v0.5.2 (*)
-tower-layer feature "default" (*)
-iri-string feature "default"
-iri-string v0.7.8
-iri-string feature "std"
-iri-string v0.7.8
-iri-string feature "alloc"
-iri-string v0.7.8
-tower feature "util" (*)
-tower-http feature "futures-util"
-tower-http v0.6.6 (*)
-tower-http feature "iri-string"
-tower-http v0.6.6 (*)
-tower-http feature "tower"
-tower-http v0.6.6 (*)
-url feature "default"
-url v2.5.4
-percent-encoding feature "alloc" (*)
-form_urlencoded feature "alloc" (*)
-idna feature "alloc"
-idna v1.0.3
-smallvec feature "const_generics" (*)
-smallvec feature "default" (*)
-idna_adapter feature "default"
-idna_adapter v1.2.1
-icu_normalizer v2.0.0
-displaydoc v0.2.5 (proc-macro)
-proc-macro2 feature "default" (*)
-quote feature "default" (*)
-syn feature "default" (*)
-icu_collections v2.0.0
-displaydoc v0.2.5 (proc-macro) (*)
-potential_utf feature "zerovec"
-potential_utf v0.1.2
-zerovec v0.11.2
-yoke v0.8.0
-stable_deref_trait v1.2.0
-yoke-derive v0.8.0 (proc-macro)
-proc-macro2 feature "default" (*)
-quote feature "default" (*)
-syn feature "default" (*)
-syn feature "fold"
-syn v2.0.103 (*)
-synstructure feature "default"
-synstructure v0.13.2
-proc-macro2 v1.0.95 (*)
-quote v1.0.40 (*)
-syn feature "clone-impls" (*)
-syn feature "derive" (*)
-syn feature "extra-traits" (*)
-syn feature "parsing" (*)
-syn feature "printing" (*)
-syn feature "visit" (*)
-synstructure feature "proc-macro"
-synstructure v0.13.2 (*)
-proc-macro2 feature "proc-macro" (*)
-quote feature "proc-macro" (*)
-syn feature "proc-macro" (*)
-zerofrom v0.1.6
-zerofrom-derive v0.1.6 (proc-macro)
-proc-macro2 feature "default" (*)
-quote feature "default" (*)
-syn feature "default" (*)
-syn feature "fold" (*)
-synstructure feature "default" (*)
-zerofrom v0.1.6 (*)
-zerovec-derive v0.11.1 (proc-macro)
-proc-macro2 feature "default" (*)
-quote feature "default" (*)
-syn feature "default" (*)
-syn feature "extra-traits" (*)
-zerovec feature "derive"
-zerovec v0.11.2 (*)
-zerovec feature "yoke"
-zerovec v0.11.2 (*)
-yoke feature "derive"
-yoke v0.8.0 (*)
-yoke feature "zerofrom"
-yoke v0.8.0 (*)
-zerofrom feature "derive"
-zerofrom v0.1.6 (*)
-zerofrom feature "derive" (*)
-icu_normalizer_data v2.0.0
-icu_provider v2.0.0
-displaydoc v0.2.5 (proc-macro) (*)
-icu_locale_core v2.0.0
-displaydoc v0.2.5 (proc-macro) (*)
-writeable v0.6.1
-zerovec v0.11.2 (*)
-litemap feature "alloc"
-litemap v0.8.0
-tinystr feature "alloc"
-tinystr v0.8.1
-displaydoc v0.2.5 (proc-macro) (*)
-zerovec v0.11.2 (*)
-zerovec feature "alloc"
-zerovec v0.11.2 (*)
-stable_deref_trait v1.2.0
-tinystr v0.8.1 (*)
-writeable v0.6.1
-zerotrie v0.2.2
-displaydoc v0.2.5 (proc-macro) (*)
-zerofrom v0.1.6 (*)
-yoke feature "derive" (*)
-zerovec feature "derive" (*)
-yoke feature "alloc"
-yoke v0.8.0 (*)
-yoke feature "zerofrom" (*)
-stable_deref_trait feature "alloc"
-stable_deref_trait v1.2.0
-zerofrom feature "alloc"
-zerofrom v0.1.6 (*)
-yoke feature "derive" (*)
-zerofrom feature "alloc" (*)
-zerofrom feature "derive" (*)
-smallvec v1.15.1
-zerovec v0.11.2 (*)
-icu_properties v2.0.1
-displaydoc v0.2.5 (proc-macro) (*)
-icu_collections v2.0.0 (*)
-icu_properties_data v2.0.1
-icu_provider v2.0.0 (*)
-potential_utf feature "zerovec" (*)
-zerovec feature "derive" (*)
-zerovec feature "yoke" (*)
-icu_locale_core feature "zerovec"
-icu_locale_core v2.0.0 (*)
-tinystr feature "zerovec"
-tinystr v0.8.1 (*)
-zerotrie feature "yoke"
-zerotrie v0.2.2 (*)
-zerotrie feature "zerofrom"
-zerotrie v0.2.2 (*)
-utf8_iter feature "default"
-utf8_iter v1.0.4
-idna feature "compiled_data"
-idna v1.0.3 (*)
-idna_adapter feature "compiled_data"
-idna_adapter v1.2.1 (*)
-icu_normalizer feature "compiled_data"
-icu_normalizer v2.0.0 (*)
-icu_provider feature "baked"
-icu_provider v2.0.0 (*)
-icu_provider feature "zerotrie"
-icu_provider v2.0.0 (*)
-icu_properties feature "compiled_data"
-icu_properties v2.0.1 (*)
-icu_provider feature "baked" (*)
-url feature "std"
-url v2.5.4 (*)
-percent-encoding feature "std" (*)
-form_urlencoded feature "std" (*)
-idna feature "std"
-idna v1.0.3 (*)
-idna feature "alloc" (*)
-reqwest feature "charset"
-reqwest v0.12.20 (*)
-reqwest feature "default-tls"
-reqwest v0.12.20 (*)
-reqwest feature "__tls"
-reqwest v0.12.20 (*)
-tokio feature "io-util" (*)
-reqwest feature "http2"
-reqwest v0.12.20 (*)
-hyper feature "http2"
-hyper v1.6.0 (*)
-hyper-util feature "http2"
-hyper-util v0.1.14 (*)
-hyper feature "http2" (*)
-reqwest feature "h2"
-reqwest v0.12.20 (*)
-hyper-rustls feature "http2"
-hyper-rustls v0.27.7 (*)
-hyper-util feature "http2" (*)
-reqwest feature "system-proxy"
-reqwest v0.12.20 (*)
-hyper-util feature "client-proxy-system"
-hyper-util v0.1.14 (*)
-reqwest feature "json"
-reqwest v0.12.20 (*)
-reqwest feature "rustls-tls"
-reqwest v0.12.20 (*)
-reqwest feature "rustls-tls-webpki-roots"
-reqwest v0.12.20 (*)
-reqwest feature "__rustls-ring"
-reqwest v0.12.20 (*)
-hyper-rustls feature "ring"
-hyper-rustls v0.27.7 (*)
-rustls feature "ring"
-rustls v0.23.28 (*)
-rustls-webpki feature "ring"
-rustls-webpki v0.103.3 (*)
-rustls feature "ring" (*)
-tokio-rustls feature "ring"
-tokio-rustls v0.26.2 (*)
-rustls feature "ring" (*)
-reqwest feature "rustls-tls-webpki-roots-no-provider"
-reqwest v0.12.20 (*)
-reqwest feature "__rustls"
-reqwest v0.12.20 (*)
-reqwest feature "__tls" (*)
-hyper-rustls feature "webpki-tokio"
-hyper-rustls v0.27.7 (*)
-hyper-rustls feature "webpki-roots"
-hyper-rustls v0.27.7 (*)
-url feature "default" (*)
-rsbinder feature "default"
-rsbinder v0.4.0
-tokio v1.45.1 (*)
-log feature "default" (*)
-async-trait feature "default" (*)
-downcast-rs feature "default"
-downcast-rs v2.0.1
-downcast-rs feature "std"
-downcast-rs v2.0.1
-downcast-rs feature "sync"
-downcast-rs v2.0.1
-pretty-hex feature "default"
-pretty-hex v0.4.1
-pretty-hex feature "alloc"
-pretty-hex v0.4.1
-rsproperties feature "default"
-rsproperties v0.2.1
-log feature "default" (*)
-zerocopy feature "default" (*)
-pretty-hex feature "default" (*)
-thiserror feature "default"
-thiserror v2.0.12
-thiserror-impl feature "default"
-thiserror-impl v2.0.12 (proc-macro)
-proc-macro2 feature "default" (*)
-quote feature "default" (*)
-syn feature "default" (*)
-thiserror feature "std"
-thiserror v2.0.12 (*)
-rustix feature "default"
-rustix v1.0.7
-bitflags v2.9.1
-linux-raw-sys feature "elf"
-linux-raw-sys v0.9.4
-linux-raw-sys feature "errno"
-linux-raw-sys v0.9.4
-linux-raw-sys feature "general"
-linux-raw-sys v0.9.4
-linux-raw-sys feature "ioctl"
-linux-raw-sys v0.9.4
-linux-raw-sys feature "no_std"
-linux-raw-sys v0.9.4
-rustix feature "std"
-rustix v1.0.7 (*)
-bitflags feature "std"
-bitflags v2.9.1
-rustix feature "alloc"
-rustix v1.0.7 (*)
-rustix feature "fs"
-rustix v1.0.7 (*)
-rustix feature "mm"
-rustix v1.0.7 (*)
-rustix feature "net"
-rustix v1.0.7 (*)
-linux-raw-sys feature "if_ether"
-linux-raw-sys v0.9.4
-linux-raw-sys feature "net"
-linux-raw-sys v0.9.4
-linux-raw-sys feature "netlink"
-linux-raw-sys v0.9.4
-linux-raw-sys feature "xdp"
-linux-raw-sys v0.9.4
-rustix feature "process"
-rustix v1.0.7 (*)
-linux-raw-sys feature "prctl"
-linux-raw-sys v0.9.4
-rustix feature "thread"
-rustix v1.0.7 (*)
-linux-raw-sys feature "prctl" (*)
-zerocopy-derive feature "default"
-zerocopy-derive v0.8.25 (proc-macro)
-proc-macro2 feature "default" (*)
-quote feature "default" (*)
-syn feature "default" (*)
-syn feature "full" (*)
-rustix feature "default" (*)
-rustix feature "mm" (*)
-rustix feature "param"
-rustix v1.0.7 (*)
-rustix feature "process" (*)
-rsbinder-aidl feature "default"
-rsbinder-aidl v0.4.0
-serde feature "default" (*)
-serde feature "derive" (*)
-convert_case feature "default"
-convert_case v0.8.0
-unicode-segmentation feature "default"
-unicode-segmentation v1.12.0
-pest feature "default"
-pest v2.8.1
-ucd-trie v0.1.7
-memchr feature "default" (*)
-thiserror feature "default" (*)
-pest feature "memchr"
-pest v2.8.1 (*)
-pest feature "std"
-pest v2.8.1 (*)
-ucd-trie feature "std"
-ucd-trie v0.1.7
-pest_derive feature "default"
-pest_derive v2.8.1 (proc-macro)
-pest v2.8.1 (*)
-pest_generator v2.8.1
-pest v2.8.1 (*)
-proc-macro2 feature "default" (*)
-quote feature "default" (*)
-syn feature "default" (*)
-pest_meta feature "default"
-pest_meta v2.8.1
-pest feature "default" (*)
-sha2 v0.10.9
-cfg-if feature "default" (*)
-cpufeatures feature "default"
-cpufeatures v0.2.17
-digest feature "default"
-digest v0.10.7
-block-buffer feature "default"
-block-buffer v0.10.4
-generic-array feature "default"
-generic-array v0.14.7
-typenum feature "default"
-typenum v1.18.0
-version_check feature "default"
-version_check v0.9.5
-crypto-common feature "default"
-crypto-common v0.1.6
-generic-array feature "default" (*)
-generic-array feature "more_lengths"
-generic-array v0.14.7 (*)
-typenum feature "default" (*)
-digest feature "core-api"
-digest v0.10.7 (*)
-digest feature "block-buffer"
-digest v0.10.7 (*)
-pest_derive feature "std"
-pest_derive v2.8.1 (proc-macro) (*)
-pest feature "std" (*)
-pest_generator feature "std"
-pest_generator v2.8.1 (*)
-pest feature "std" (*)
-tera feature "default"
-tera v1.20.0
-regex feature "default"
-regex v1.11.1 (*)
-regex feature "perf" (*)
-regex feature "std" (*)
-regex feature "unicode"
-regex v1.11.1 (*)
-regex feature "unicode-age"
-regex v1.11.1 (*)
-regex-automata feature "unicode-age"
-regex-automata v0.4.9 (*)
-regex-syntax feature "unicode-age"
-regex-syntax v0.8.5
-regex-syntax feature "unicode-age" (*)
-regex feature "unicode-bool"
-regex v1.11.1 (*)
-regex-automata feature "unicode-bool"
-regex-automata v0.4.9 (*)
-regex-syntax feature "unicode-bool"
-regex-syntax v0.8.5
-regex-syntax feature "unicode-bool" (*)
-regex feature "unicode-case"
-regex v1.11.1 (*)
-regex-automata feature "unicode-case"
-regex-automata v0.4.9 (*)
-regex-syntax feature "unicode-case"
-regex-syntax v0.8.5
-regex-syntax feature "unicode-case" (*)
-regex feature "unicode-gencat"
-regex v1.11.1 (*)
-regex-automata feature "unicode-gencat"
-regex-automata v0.4.9 (*)
-regex-syntax feature "unicode-gencat"
-regex-syntax v0.8.5
-regex-syntax feature "unicode-gencat" (*)
-regex feature "unicode-perl"
-regex v1.11.1 (*)
-regex-automata feature "unicode-perl"
-regex-automata v0.4.9 (*)
-regex-syntax feature "unicode-perl"
-regex-syntax v0.8.5
-regex-automata feature "unicode-word-boundary"
-regex-automata v0.4.9 (*)
-regex-syntax feature "unicode-perl" (*)
-regex feature "unicode-script"
-regex v1.11.1 (*)
-regex-automata feature "unicode-script"
-regex-automata v0.4.9 (*)
-regex-syntax feature "unicode-script"
-regex-syntax v0.8.5
-regex-syntax feature "unicode-script" (*)
-regex feature "unicode-segment"
-regex v1.11.1 (*)
-regex-automata feature "unicode-segment"
-regex-automata v0.4.9 (*)
-regex-syntax feature "unicode-segment"
-regex-syntax v0.8.5
-regex-syntax feature "unicode-segment" (*)
-regex-automata feature "unicode"
-regex-automata v0.4.9 (*)
-regex-automata feature "unicode-age" (*)
-regex-automata feature "unicode-bool" (*)
-regex-automata feature "unicode-case" (*)
-regex-automata feature "unicode-gencat" (*)
-regex-automata feature "unicode-perl" (*)
-regex-automata feature "unicode-script" (*)
-regex-automata feature "unicode-segment" (*)
-regex-automata feature "unicode-word-boundary" (*)
-regex-syntax feature "unicode"
-regex-syntax v0.8.5
-regex-syntax feature "unicode-age" (*)
-regex-syntax feature "unicode-bool" (*)
-regex-syntax feature "unicode-case" (*)
-regex-syntax feature "unicode-gencat" (*)
-regex-syntax feature "unicode-perl" (*)
-regex-syntax feature "unicode-script" (*)
-regex-syntax feature "unicode-segment" (*)
-regex-syntax feature "unicode" (*)
-regex-syntax feature "default"
-regex-syntax v0.8.5
-regex-syntax feature "std" (*)
-regex-syntax feature "unicode" (*)
-serde feature "default" (*)
-serde_json feature "default" (*)
-percent-encoding feature "default" (*)
-pest feature "default" (*)
-pest_derive feature "default" (*)
-chrono feature "clock"
-chrono v0.4.41
-num-traits v0.2.19
-autocfg feature "default" (*)
-iana-time-zone feature "default"
-iana-time-zone v0.1.63
-iana-time-zone feature "fallback"
-iana-time-zone v0.1.63
-chrono feature "android-tzdata"
-chrono v0.4.41 (*)
-chrono feature "iana-time-zone"
-chrono v0.4.41 (*)
-chrono feature "now"
-chrono v0.4.41 (*)
-chrono feature "std"
-chrono v0.4.41 (*)
-chrono feature "alloc"
-chrono v0.4.41 (*)
-chrono feature "winapi"
-chrono v0.4.41 (*)
-chrono feature "windows-link"
-chrono v0.4.41 (*)
-chrono feature "std" (*)
-chrono-tz feature "default"
-chrono-tz v0.9.0
-chrono v0.4.41 (*)
-phf v0.11.3
-phf_shared v0.11.3
-siphasher feature "default"
-siphasher v1.0.1
-siphasher feature "std"
-siphasher v1.0.1
-chrono-tz-build feature "default"
-chrono-tz-build v0.3.0
-phf v0.11.3 (*)
-phf_codegen v0.11.3
-phf_shared feature "default"
-phf_shared v0.11.3 (*)
-phf_shared feature "std"
-phf_shared v0.11.3 (*)
-phf_generator feature "default"
-phf_generator v0.11.3
-phf_shared v0.11.3 (*)
-rand feature "small_rng"
-rand v0.8.5
-libc v0.2.173
-rand_chacha v0.3.1 (*)
-rand_core feature "default" (*)
-parse-zoneinfo feature "default"
-parse-zoneinfo v0.3.1
-regex feature "std" (*)
-regex feature "unicode-perl" (*)
-chrono-tz feature "std"
-chrono-tz v0.9.0 (*)
-rand feature "default"
-rand v0.8.5 (*)
-rand feature "std"
-rand v0.8.5 (*)
-rand_chacha feature "std" (*)
-rand_core feature "std" (*)
-rand feature "alloc"
-rand v0.8.5 (*)
-rand_core feature "alloc" (*)
-rand feature "getrandom"
-rand v0.8.5 (*)
-rand_core feature "getrandom" (*)
-rand feature "libc"
-rand v0.8.5 (*)
-rand feature "rand_chacha"
-rand v0.8.5 (*)
-rand feature "std_rng"
-rand v0.8.5 (*)
-rand feature "rand_chacha" (*)
-globwalk feature "default"
-globwalk v0.9.1
-walkdir feature "default" (*)
-bitflags feature "default"
-bitflags v2.9.1
-ignore feature "default"
-ignore v0.4.23
-memchr feature "default" (*)
-walkdir feature "default" (*)
-same-file feature "default" (*)
-log feature "default" (*)
-crossbeam-deque feature "default"
-crossbeam-deque v0.8.6
-crossbeam-epoch v0.9.18 (*)
-crossbeam-utils v0.8.21
-crossbeam-deque feature "std"
-crossbeam-deque v0.8.6 (*)
-crossbeam-utils feature "std" (*)
-crossbeam-epoch feature "std" (*)
-globset feature "default"
-globset v0.4.16
-regex-syntax feature "std" (*)
-log feature "default" (*)
-aho-corasick feature "default"
-aho-corasick v1.1.3
-memchr v2.7.5
-aho-corasick feature "perf-literal"
-aho-corasick v1.1.3 (*)
-aho-corasick feature "std"
-aho-corasick v1.1.3 (*)
-memchr feature "std" (*)
-bstr feature "std"
-bstr v1.12.0
-memchr v2.7.5
-memchr feature "std" (*)
-bstr feature "alloc"
-bstr v1.12.0 (*)
-memchr feature "alloc" (*)
-regex-automata feature "hybrid"
-regex-automata v0.4.9
-aho-corasick v1.1.3 (*)
-memchr v2.7.5
-regex-syntax v0.8.5
-regex-automata feature "alloc"
-regex-automata v0.4.9 (*)
-regex-automata feature "nfa-thompson"
-regex-automata v0.4.9 (*)
-regex-automata feature "alloc" (*)
-regex-automata feature "meta"
-regex-automata v0.4.9 (*)
-regex-automata feature "nfa-pikevm"
-regex-automata v0.4.9 (*)
-regex-automata feature "nfa-thompson" (*)
-regex-automata feature "syntax"
-regex-automata v0.4.9 (*)
-regex-automata feature "alloc" (*)
-regex-automata feature "nfa"
-regex-automata v0.4.9 (*)
-regex-automata feature "nfa-backtrack"
-regex-automata v0.4.9 (*)
-regex-automata feature "nfa-thompson" (*)
-regex-automata feature "nfa-pikevm" (*)
-regex-automata feature "nfa-thompson" (*)
-regex-automata feature "perf"
-regex-automata v0.4.9 (*)
-regex-automata feature "perf-inline"
-regex-automata v0.4.9 (*)
-regex-automata feature "perf-literal"
-regex-automata v0.4.9 (*)
-regex-automata feature "perf-literal-multisubstring"
-regex-automata v0.4.9 (*)
-regex-automata feature "std"
-regex-automata v0.4.9 (*)
-memchr feature "std" (*)
-regex-syntax feature "std" (*)
-aho-corasick feature "std" (*)
-regex-automata feature "alloc" (*)
-regex-automata feature "perf-literal-substring"
-regex-automata v0.4.9 (*)
-aho-corasick feature "perf-literal" (*)
-regex-automata feature "std" (*)
-regex-automata feature "syntax" (*)
-globset feature "log"
-globset v0.4.16 (*)
-regex-automata feature "dfa-onepass"
-regex-automata v0.4.9 (*)
-regex-automata feature "nfa-thompson" (*)
-regex-automata feature "hybrid" (*)
-regex-automata feature "meta" (*)
-regex-automata feature "nfa" (*)
-regex-automata feature "perf" (*)
-regex-automata feature "std" (*)
-regex-automata feature "syntax" (*)
-humansize feature "default"
-humansize v2.1.3
-libm feature "default"
-libm v0.2.15
-libm feature "arch"
-libm v0.2.15
-lazy_static feature "default"
-lazy_static v1.5.0
-slug feature "default"
-slug v0.1.6
-deunicode feature "default"
-deunicode v1.6.2
-deunicode feature "alloc"
-deunicode v1.6.2
-unic-segment feature "default"
-unic-segment v0.9.0
-unic-ucd-segment feature "default"
-unic-ucd-segment v0.9.0
-unic-char-property feature "default"
-unic-char-property v0.9.0
-unic-char-range feature "default"
-unic-char-range v0.9.0
-unic-char-range feature "default" (*)
-unic-ucd-version feature "default"
-unic-ucd-version v0.9.0
-unic-common feature "default"
-unic-common v0.9.0
-tera feature "builtins"
-tera v1.20.0 (*)
-tera feature "chrono"
-tera v1.20.0 (*)
-tera feature "chrono-tz"
-tera v1.20.0 (*)
-tera feature "humansize"
-tera v1.20.0 (*)
-tera feature "rand"
-tera v1.20.0 (*)
-tera feature "slug"
-tera v1.20.0 (*)
-tera feature "urlencode"
-tera v1.20.0 (*)
-tera feature "percent-encoding"
-tera v1.20.0 (*)
-rsbinder-aidl feature "async"
-rsbinder-aidl v0.4.0 (*)
-rsbinder feature "tokio"
-rsbinder v0.4.0 (*)
-tokio feature "full" (*)
-rsbinder feature "async"
-rsbinder v0.4.0 (*)
-rsbinder feature "async-trait"
-rsbinder v0.4.0 (*)
-rsbinder-aidl feature "async" (*)
-rsbinder feature "tokio" (*)
-rustfft feature "default"
-rustfft v6.4.0
-num-traits feature "default" (*)
-num-complex feature "default"
-num-complex v0.4.6
-num-traits feature "i128"
-num-traits v0.2.19 (*)
-num-complex feature "std"
-num-complex v0.4.6 (*)
-num-traits feature "std" (*)
-num-integer feature "default"
-num-integer v0.1.46
-num-traits feature "i128" (*)
-num-integer feature "std"
-num-integer v0.1.46 (*)
-num-traits feature "std" (*)
-primal-check feature "default"
-primal-check v0.3.4
-num-integer feature "default" (*)
-strength_reduce feature "default"
-strength_reduce v0.2.4
-transpose feature "default"
-transpose v0.2.3
-num-integer v0.1.46 (*)
-strength_reduce feature "default" (*)
-rustfft feature "avx"
-rustfft v6.4.0 (*)
-rustfft feature "neon"
-rustfft v6.4.0 (*)
-rustfft feature "sse"
-rustfft v6.4.0 (*)
-tokio-tungstenite feature "connect"
-tokio-tungstenite v0.27.0
-tungstenite v0.27.0
-log feature "default" (*)
-bytes feature "default" (*)
-http feature "default" (*)
-httparse feature "default" (*)
-rand feature "default"
-rand v0.9.1
-rand_chacha v0.9.0
-ppv-lite86 feature "simd" (*)
-rand_core feature "default"
-rand_core v0.9.3
-getrandom feature "default"
-getrandom v0.3.3
-libc v0.2.173
-cfg-if feature "default" (*)
-rand_core v0.9.3 (*)
-rand feature "os_rng"
-rand v0.9.1 (*)
-rand_core feature "os_rng"
-rand_core v0.9.3 (*)
-rand feature "small_rng"
-rand v0.9.1 (*)
-rand feature "std"
-rand v0.9.1 (*)
-rand feature "alloc"
-rand v0.9.1 (*)
-rand_chacha feature "std"
-rand_chacha v0.9.0 (*)
-ppv-lite86 feature "std" (*)
-rand_core feature "std"
-rand_core v0.9.3 (*)
-getrandom feature "std"
-getrandom v0.3.3 (*)
-rand_core feature "std" (*)
-rand feature "std_rng"
-rand v0.9.1 (*)
-rand feature "thread_rng"
-rand v0.9.1 (*)
-rand feature "os_rng" (*)
-rand feature "std" (*)
-rand feature "std_rng" (*)
-thiserror feature "default" (*)
-data-encoding feature "default"
-data-encoding v2.9.0
-data-encoding feature "std"
-data-encoding v2.9.0
-data-encoding feature "alloc"
-data-encoding v2.9.0
-sha1 feature "default"
-sha1 v0.10.6
-cfg-if feature "default" (*)
-cpufeatures feature "default" (*)
-digest feature "default"
-digest v0.10.7
-subtle v2.6.1
-block-buffer feature "default" (*)
-const-oid feature "default"
-const-oid v0.9.6
-crypto-common feature "default"
-crypto-common v0.1.6
-rand_core feature "default" (*)
-typenum feature "default" (*)
-generic-array feature "default"
-generic-array v0.14.7
-zeroize v1.8.1 (*)
-typenum feature "default" (*)
-version_check feature "default" (*)
-generic-array feature "more_lengths"
-generic-array v0.14.7 (*)
-digest feature "core-api"
-digest v0.10.7 (*)
-digest feature "block-buffer"
-digest v0.10.7 (*)
-sha1 feature "std"
-sha1 v0.10.6 (*)
-digest feature "std"
-digest v0.10.7 (*)
-digest feature "alloc"
-digest v0.10.7 (*)
-crypto-common feature "std"
-crypto-common v0.1.6 (*)
-utf-8 feature "default"
-utf-8 v0.7.6
-log feature "default" (*)
-futures-util feature "sink"
-futures-util v0.3.31 (*)
-futures-util feature "futures-sink"
-futures-util v0.3.31 (*)
-futures-util feature "std" (*)
-tokio feature "io-util" (*)
-tokio feature "net" (*)
-tokio-tungstenite feature "handshake"
-tokio-tungstenite v0.27.0 (*)
-tungstenite feature "handshake"
-tungstenite v0.27.0 (*)
-tungstenite feature "data-encoding"
-tungstenite v0.27.0 (*)
-tungstenite feature "http"
-tungstenite v0.27.0 (*)
-tungstenite feature "httparse"
-tungstenite v0.27.0 (*)
-tungstenite feature "sha1"
-tungstenite v0.27.0 (*)
-tokio-tungstenite feature "stream"
-tokio-tungstenite v0.27.0 (*)
-tokio-tungstenite feature "default"
-tokio-tungstenite v0.27.0 (*)
-tokio-tungstenite feature "connect" (*)
-tokio-tungstenite feature "handshake" (*)
-toml feature "default"
-toml v0.8.23
-serde feature "default" (*)
-serde_spanned feature "default"
-serde_spanned v0.6.9
-serde feature "default" (*)
-serde_spanned feature "serde"
-serde_spanned v0.6.9 (*)
-toml_datetime feature "default"
-toml_datetime v0.6.11
-serde feature "default" (*)
-toml_datetime feature "serde"
-toml_datetime v0.6.11 (*)
-toml_edit feature "serde"
-toml_edit v0.22.27
-serde feature "default" (*)
-indexmap feature "default" (*)
-indexmap feature "std" (*)
-serde_spanned feature "default" (*)
-serde_spanned feature "serde" (*)
-toml_datetime feature "default" (*)
-toml_write feature "default"
-toml_write v0.1.2
-toml_write feature "std"
-toml_write v0.1.2
-toml_write feature "alloc"
-toml_write v0.1.2
-winnow feature "default"
-winnow v0.7.11
-winnow feature "std"
-winnow v0.7.11
-winnow feature "alloc"
-winnow v0.7.11
-toml_datetime feature "serde" (*)
-toml feature "display"
-toml v0.8.23 (*)
-toml_edit feature "display"
-toml_edit v0.22.27 (*)
-toml feature "parse"
-toml v0.8.23 (*)
-toml_edit feature "parse"
-toml_edit v0.22.27 (*)
-uuid feature "default"
-uuid v1.17.0
-getrandom feature "default" (*)
-uuid feature "std"
-uuid v1.17.0 (*)
-uuid feature "v4"
-uuid v1.17.0 (*)
-uuid feature "rng"
-uuid v1.17.0 (*)
-webrtc feature "default"
-webrtc v0.9.0
-log feature "default" (*)
-regex feature "default" (*)
-async-trait feature "default" (*)
-bytes feature "default" (*)
-cfg-if feature "default" (*)
-serde feature "default" (*)
-serde feature "derive" (*)
-serde_json feature "default" (*)
-thiserror feature "default" (*)
-tokio feature "default" (*)
-tokio feature "full" (*)
-rand feature "default" (*)
-url feature "default" (*)
-lazy_static feature "default" (*)
-arc-swap feature "default"
-arc-swap v1.7.1
-hex feature "default"
-hex v0.4.3
-hex feature "std"
-hex v0.4.3
-hex feature "alloc"
-hex v0.4.3
-interceptor feature "default"
-interceptor v0.10.0
-log feature "default" (*)
-async-trait feature "default" (*)
-bytes feature "default" (*)
-thiserror feature "default" (*)
-tokio feature "default" (*)
-tokio feature "sync" (*)
-tokio feature "time" (*)
-rand feature "default" (*)
-rtcp feature "default"
-rtcp v0.10.1
-bytes feature "default" (*)
-thiserror feature "default" (*)
-webrtc-util feature "marshal"
-webrtc-util v0.8.1
-log feature "default" (*)
-async-trait feature "default" (*)
-bytes feature "default" (*)
-libc feature "default" (*)
-thiserror feature "default" (*)
-tokio feature "default" (*)
-tokio feature "full" (*)
-ipnet feature "default" (*)
-rand feature "default" (*)
-lazy_static feature "default" (*)
-nix feature "default"
-nix v0.26.4
-libc feature "default" (*)
-libc feature "extra_traits" (*)
-cfg-if feature "default" (*)
-pin-utils feature "default" (*)
-bitflags feature "default" (*)
-memoffset feature "default"
-memoffset v0.7.1
-autocfg feature "default" (*)
-nix feature "acct"
-nix v0.26.4 (*)
-nix feature "aio"
-nix v0.26.4 (*)
-nix feature "pin-utils"
-nix v0.26.4 (*)
-nix feature "dir"
-nix v0.26.4 (*)
-nix feature "fs"
-nix v0.26.4 (*)
-nix feature "env"
-nix v0.26.4 (*)
-nix feature "event"
-nix v0.26.4 (*)
-nix feature "feature"
-nix v0.26.4 (*)
-nix feature "fs" (*)
-nix feature "hostname"
-nix v0.26.4 (*)
-nix feature "inotify"
-nix v0.26.4 (*)
-nix feature "ioctl"
-nix v0.26.4 (*)
-nix feature "kmod"
-nix v0.26.4 (*)
-nix feature "mman"
-nix v0.26.4 (*)
-nix feature "mount"
-nix v0.26.4 (*)
-nix feature "uio"
-nix v0.26.4 (*)
-nix feature "mqueue"
-nix v0.26.4 (*)
-nix feature "fs" (*)
-nix feature "net"
-nix v0.26.4 (*)
-nix feature "socket"
-nix v0.26.4 (*)
-nix feature "memoffset"
-nix v0.26.4 (*)
-nix feature "personality"
-nix v0.26.4 (*)
-nix feature "poll"
-nix v0.26.4 (*)
-nix feature "process"
-nix v0.26.4 (*)
-nix feature "pthread"
-nix v0.26.4 (*)
-nix feature "ptrace"
-nix v0.26.4 (*)
-nix feature "process" (*)
-nix feature "quota"
-nix v0.26.4 (*)
-nix feature "reboot"
-nix v0.26.4 (*)
-nix feature "resource"
-nix v0.26.4 (*)
-nix feature "sched"
-nix v0.26.4 (*)
-nix feature "process" (*)
-nix feature "signal"
-nix v0.26.4 (*)
-nix feature "process" (*)
-nix feature "socket" (*)
-nix feature "term"
-nix v0.26.4 (*)
-nix feature "time"
-nix v0.26.4 (*)
-nix feature "ucontext"
-nix v0.26.4 (*)
-nix feature "signal" (*)
-nix feature "uio" (*)
-nix feature "user"
-nix v0.26.4 (*)
-nix feature "feature" (*)
-nix feature "zerocopy"
-nix v0.26.4 (*)
-nix feature "fs" (*)
-nix feature "uio" (*)
-webrtc-util feature "marshal" (*)
-webrtc-util feature "sync"
-webrtc-util v0.8.1 (*)
-rtp feature "default"
-rtp v0.9.0
-bytes feature "default" (*)
-serde feature "default" (*)
-serde feature "derive" (*)
-thiserror feature "default" (*)
-rand feature "default" (*)
-webrtc-util feature "marshal" (*)
-waitgroup feature "default"
-waitgroup v0.1.2
-atomic-waker feature "default" (*)
-webrtc-srtp feature "default"
-webrtc-srtp v0.11.0
-log feature "default" (*)
-bytes feature "default" (*)
-thiserror feature "default" (*)
-tokio feature "default" (*)
-tokio feature "full" (*)
-subtle feature "default"
-subtle v2.6.1
-subtle feature "i128"
-subtle v2.6.1
-subtle feature "std"
-subtle v2.6.1
-sha1 feature "default" (*)
-rtcp feature "default" (*)
-webrtc-util feature "buffer"
-webrtc-util v0.8.1 (*)
-webrtc-util feature "conn"
-webrtc-util v0.8.1 (*)
-webrtc-util feature "buffer" (*)
-webrtc-util feature "sync" (*)
-webrtc-util feature "marshal" (*)
-rtp feature "default" (*)
-aead feature "default"
-aead v0.5.2
-generic-array v0.14.7 (*)
-crypto-common feature "default" (*)
-aead feature "rand_core"
-aead v0.5.2 (*)
-crypto-common feature "rand_core"
-crypto-common v0.1.6 (*)
-aead feature "std"
-aead v0.5.2 (*)
-crypto-common feature "std" (*)
-aead feature "alloc"
-aead v0.5.2 (*)
-aes feature "default"
-aes v0.8.4
-cfg-if feature "default" (*)
-cpufeatures feature "default" (*)
-cipher feature "default"
-cipher v0.4.4
-crypto-common feature "default" (*)
-inout feature "default"
-inout v0.1.4
-generic-array feature "default" (*)
-block-padding feature "default"
-block-padding v0.3.3
-generic-array feature "default" (*)
-aes-gcm feature "default"
-aes-gcm v0.10.3
-aead v0.5.2 (*)
-ghash v0.5.1
-opaque-debug feature "default"
-opaque-debug v0.3.1
-polyval feature "default"
-polyval v0.6.2
-universal-hash v0.5.1
-subtle v2.6.1
-crypto-common feature "default" (*)
-cfg-if feature "default" (*)
-cpufeatures feature "default" (*)
-opaque-debug feature "default" (*)
-subtle v2.6.1
-aes feature "default" (*)
-cipher feature "default" (*)
-ctr feature "default"
-ctr v0.9.2
-cipher feature "default" (*)
-aes-gcm feature "aes"
-aes-gcm v0.10.3 (*)
-aes-gcm feature "alloc"
-aes-gcm v0.10.3 (*)
-aead feature "alloc" (*)
-aes-gcm feature "getrandom"
-aes-gcm v0.10.3 (*)
-aead feature "getrandom"
-aead v0.5.2 (*)
-crypto-common feature "getrandom"
-crypto-common v0.1.6 (*)
-rand_core feature "getrandom" (*)
-crypto-common feature "rand_core" (*)
-aead feature "rand_core" (*)
-aes-gcm feature "rand_core"
-aes-gcm v0.10.3 (*)
-aead feature "rand_core" (*)
-aes-gcm feature "std"
-aes-gcm v0.10.3 (*)
-aead feature "std" (*)
-aes-gcm feature "alloc" (*)
-ctr feature "default" (*)
-byteorder feature "default"
-byteorder v1.5.0
-byteorder feature "std"
-byteorder v1.5.0
-hmac feature "default"
-hmac v0.12.1
-digest feature "default" (*)
-digest feature "mac"
-digest v0.10.7 (*)
-digest feature "subtle"
-digest v0.10.7 (*)
-hmac feature "std"
-hmac v0.12.1 (*)
-digest feature "std" (*)
-rtcp feature "default" (*)
-webrtc-util feature "default"
-webrtc-util v0.8.1 (*)
-webrtc-util feature "buffer" (*)
-webrtc-util feature "conn" (*)
-webrtc-util feature "ifaces"
-webrtc-util v0.8.1 (*)
-webrtc-util feature "marshal" (*)
-webrtc-util feature "sync" (*)
-webrtc-util feature "vnet"
-webrtc-util v0.8.1 (*)
-webrtc-util feature "ifaces" (*)
-rtp feature "default" (*)
-waitgroup feature "default" (*)
-webrtc-srtp feature "default" (*)
-rcgen feature "default"
-rcgen v0.11.3
-time v0.3.41
-powerfmt v0.2.0
-itoa feature "default" (*)
-deranged feature "powerfmt"
-deranged v0.4.0
-powerfmt v0.2.0
-num-conv feature "default"
-num-conv v0.1.0
-time-core feature "default"
-time-core v0.1.4
-time-macros feature "default"
-time-macros v0.2.22 (proc-macro)
-num-conv feature "default" (*)
-time-core feature "default" (*)
-pem feature "default"
-pem v3.0.5
-base64 feature "alloc" (*)
-pem feature "std"
-pem v3.0.5 (*)
-base64 feature "std" (*)
-ring feature "default"
-ring v0.16.20
-libc v0.2.173
-spin v0.5.2
-once_cell feature "std" (*)
-untrusted feature "default"
-untrusted v0.7.1
-cc v1.2.27 (*)
-ring feature "alloc"
-ring v0.16.20 (*)
-ring feature "dev_urandom_fallback"
-ring v0.16.20 (*)
-ring feature "once_cell"
-ring v0.16.20 (*)
-x509-parser feature "default"
-x509-parser v0.15.1
-thiserror feature "default" (*)
-lazy_static feature "default" (*)
-data-encoding feature "default" (*)
-ring feature "default" (*)
-time feature "default"
-time v0.3.41 (*)
-time feature "std"
-time v0.3.41 (*)
-time feature "alloc"
-time v0.3.41 (*)
-deranged feature "std"
-deranged v0.4.0 (*)
-deranged feature "alloc"
-deranged v0.4.0 (*)
-time feature "formatting"
-time v0.3.41 (*)
-time feature "std" (*)
-time-macros feature "formatting"
-time-macros v0.2.22 (proc-macro) (*)
-asn1-rs feature "datetime"
-asn1-rs v0.5.2
-thiserror feature "default" (*)
-num-traits feature "default" (*)
-displaydoc feature "default"
-displaydoc v0.2.5 (proc-macro) (*)
-displaydoc feature "std"
-displaydoc v0.2.5 (proc-macro) (*)
-time feature "default" (*)
-time feature "formatting" (*)
-time feature "macros"
-time v0.3.41 (*)
-time feature "parsing"
-time v0.3.41 (*)
-time-macros feature "parsing"
-time-macros v0.2.22 (proc-macro) (*)
-asn1-rs-derive feature "default"
-asn1-rs-derive v0.4.0 (proc-macro)
-proc-macro2 feature "default" (*)
-quote feature "default" (*)
-syn feature "default"
-syn v1.0.109
-proc-macro2 v1.0.95 (*)
-quote v1.0.40 (*)
-unicode-ident feature "default" (*)
-syn feature "clone-impls"
-syn v1.0.109 (*)
-syn feature "derive"
-syn v1.0.109 (*)
-syn feature "parsing"
-syn v1.0.109 (*)
-syn feature "printing"
-syn v1.0.109 (*)
-syn feature "quote"
-syn v1.0.109 (*)
-syn feature "proc-macro"
-syn v1.0.109 (*)
-proc-macro2 feature "proc-macro" (*)
-quote feature "proc-macro" (*)
-syn feature "quote" (*)
-syn feature "full"
-syn v1.0.109 (*)
-synstructure feature "default"
-synstructure v0.12.6
-proc-macro2 v1.0.95 (*)
-quote v1.0.40 (*)
-syn feature "clone-impls" (*)
-syn feature "derive" (*)
-syn feature "extra-traits"
-syn v1.0.109 (*)
-syn feature "parsing" (*)
-syn feature "printing" (*)
-syn feature "visit"
-syn v1.0.109 (*)
-unicode-xid feature "default"
-unicode-xid v0.2.6
-synstructure feature "proc-macro"
-synstructure v0.12.6 (*)
-proc-macro2 feature "proc-macro" (*)
-quote feature "proc-macro" (*)
-syn feature "proc-macro" (*)
-asn1-rs-impl feature "default"
-asn1-rs-impl v0.1.0 (proc-macro)
-proc-macro2 feature "default" (*)
-quote feature "default" (*)
-syn feature "default" (*)
-nom feature "std"
-nom v7.1.3
-memchr v2.7.5
-minimal-lexical v0.2.1
-memchr feature "std" (*)
-nom feature "alloc"
-nom v7.1.3 (*)
-minimal-lexical feature "std"
-minimal-lexical v0.2.1
-rusticata-macros feature "default"
-rusticata-macros v4.1.0
-nom feature "std" (*)
-asn1-rs feature "time"
-asn1-rs v0.5.2 (*)
-asn1-rs feature "default"
-asn1-rs v0.5.2 (*)
-asn1-rs feature "std"
-asn1-rs v0.5.2 (*)
-nom feature "default"
-nom v7.1.3 (*)
-nom feature "std" (*)
-rusticata-macros feature "default" (*)
-der-parser feature "bigint"
-der-parser v8.2.0
-displaydoc v0.2.5 (proc-macro) (*)
-num-traits feature "default" (*)
-asn1-rs feature "default" (*)
-nom feature "default" (*)
-rusticata-macros feature "default" (*)
-num-bigint feature "default"
-num-bigint v0.4.6
-num-traits feature "i128" (*)
-num-integer feature "i128"
-num-integer v0.1.46 (*)
-num-bigint feature "std"
-num-bigint v0.4.6 (*)
-num-traits feature "std" (*)
-num-integer feature "std" (*)
-der-parser feature "num-bigint"
-der-parser v8.2.0 (*)
-der-parser feature "default"
-der-parser v8.2.0 (*)
-der-parser feature "std"
-der-parser v8.2.0 (*)
-oid-registry feature "crypto"
-oid-registry v0.6.1
-asn1-rs feature "default" (*)
-oid-registry feature "kdf"
-oid-registry v0.6.1 (*)
-oid-registry feature "nist_algs"
-oid-registry v0.6.1 (*)
-oid-registry feature "pkcs1"
-oid-registry v0.6.1 (*)
-oid-registry feature "pkcs12"
-oid-registry v0.6.1 (*)
-oid-registry feature "pkcs7"
-oid-registry v0.6.1 (*)
-oid-registry feature "pkcs9"
-oid-registry v0.6.1 (*)
-oid-registry feature "x962"
-oid-registry v0.6.1 (*)
-oid-registry feature "default"
-oid-registry v0.6.1 (*)
-oid-registry feature "registry"
-oid-registry v0.6.1 (*)
-oid-registry feature "x509"
-oid-registry v0.6.1 (*)
-oid-registry feature "x962" (*)
-x509-parser feature "verify"
-x509-parser v0.15.1 (*)
-x509-parser feature "ring"
-x509-parser v0.15.1 (*)
-yasna feature "default"
-yasna v0.5.2
-time feature "std" (*)
-yasna feature "std"
-yasna v0.5.2 (*)
-yasna feature "time"
-yasna v0.5.2 (*)
-rcgen feature "pem"
-rcgen v0.11.3 (*)
-rcgen feature "pem" (*)
-rcgen feature "x509-parser"
-rcgen v0.11.3 (*)
-ring feature "default" (*)
-time feature "default" (*)
-rustls feature "dangerous_configuration"
-rustls v0.21.12
-log feature "default" (*)
-ring feature "default" (*)
-rustls-webpki feature "alloc"
-rustls-webpki v0.101.7
-ring v0.17.14 (*)
-untrusted feature "default" (*)
-ring feature "alloc" (*)
-rustls-webpki feature "default"
-rustls-webpki v0.101.7 (*)
-rustls-webpki feature "std"
-rustls-webpki v0.101.7 (*)
-rustls-webpki feature "alloc" (*)
-rustls-webpki feature "std" (*)
-sct feature "default"
-sct v0.7.1
-ring feature "default" (*)
-untrusted feature "default" (*)
-rustls feature "default"
-rustls v0.21.12 (*)
-rustls feature "logging"
-rustls v0.21.12 (*)
-rustls feature "log"
-rustls v0.21.12 (*)
-rustls feature "tls12"
-rustls v0.21.12 (*)
-sdp feature "default"
-sdp v0.6.2
-thiserror feature "default" (*)
-rand feature "default" (*)
-url feature "default" (*)
-substring feature "default"
-substring v1.4.5
-autocfg feature "default" (*)
-sha2 feature "default"
-sha2 v0.10.9
-cfg-if feature "default" (*)
-cpufeatures feature "default" (*)
-digest feature "default" (*)
-sha2 feature "std"
-sha2 v0.10.9 (*)
-digest feature "std" (*)
-smol_str feature "default"
-smol_str v0.2.2
-serde v1.0.219 (*)
-smol_str feature "std"
-smol_str v0.2.2 (*)
-serde feature "std" (*)
-smol_str feature "serde"
-smol_str v0.2.2 (*)
-stun feature "default"
-stun v0.5.1
-thiserror feature "default" (*)
-tokio feature "default" (*)
-tokio feature "full" (*)
-rand feature "default" (*)
-ring feature "default" (*)
-subtle feature "default" (*)
-url feature "default" (*)
-lazy_static feature "default" (*)
-webrtc-util feature "conn" (*)
-base64 feature "default"
-base64 v0.21.7
-base64 feature "std"
-base64 v0.21.7
-base64 feature "alloc"
-base64 v0.21.7
-crc feature "default"
-crc v3.3.0
-crc-catalog feature "default"
-crc-catalog v2.4.0
-md-5 feature "default"
-md-5 v0.10.6
-cfg-if feature "default" (*)
-digest feature "default" (*)
-md-5 feature "std"
-md-5 v0.10.6 (*)
-digest feature "std" (*)
-turn feature "default"
-turn v0.7.1
-log feature "default" (*)
-async-trait feature "default" (*)
-thiserror feature "default" (*)
-tokio feature "default" (*)
-tokio feature "full" (*)
-tokio-util feature "default" (*)
-rand feature "default" (*)
-ring feature "default" (*)
-webrtc-util feature "conn" (*)
-webrtc-util feature "vnet" (*)
-stun feature "default" (*)
-base64 feature "default" (*)
-md-5 feature "default" (*)
-futures feature "default"
-futures v0.3.31
-futures-core v0.3.31
-futures-executor v0.3.31
-futures-core v0.3.31
-futures-task v0.3.31
-futures-util v0.3.31 (*)
-futures-io v0.3.31
-futures-sink v0.3.31
-futures-task v0.3.31
-futures-util feature "sink" (*)
-futures-channel feature "sink"
-futures-channel v0.3.31 (*)
-futures-channel feature "futures-sink"
-futures-channel v0.3.31 (*)
-futures feature "async-await"
-futures v0.3.31 (*)
-futures-util feature "async-await" (*)
-futures-util feature "async-await-macro" (*)
-futures feature "executor"
-futures v0.3.31 (*)
-futures feature "futures-executor"
-futures v0.3.31 (*)
-futures feature "std"
-futures v0.3.31 (*)
-futures-util feature "channel"
-futures-util v0.3.31 (*)
-futures-util feature "futures-channel"
-futures-util v0.3.31 (*)
-futures-util feature "std" (*)
-futures-util feature "io"
-futures-util v0.3.31 (*)
-futures-util feature "futures-io"
-futures-util v0.3.31 (*)
-futures-util feature "memchr"
-futures-util v0.3.31 (*)
-futures-util feature "std" (*)
-futures-util feature "std" (*)
-futures-core feature "std" (*)
-futures-sink feature "std" (*)
-futures-io feature "std" (*)
-futures-task feature "std" (*)
-futures feature "alloc"
-futures v0.3.31 (*)
-futures-util feature "alloc" (*)
-futures-channel feature "alloc" (*)
-futures-core feature "alloc" (*)
-futures-sink feature "alloc" (*)
-futures-task feature "alloc" (*)
-futures-executor feature "std"
-futures-executor v0.3.31 (*)
-futures-util feature "std" (*)
-futures-core feature "std" (*)
-futures-task feature "std" (*)
-futures feature "std" (*)
-webrtc-data feature "default"
-webrtc-data v0.8.1
-log feature "default" (*)
-bytes feature "default" (*)
-thiserror feature "default" (*)
-tokio feature "default" (*)
-tokio feature "full" (*)
-webrtc-util feature "conn" (*)
-webrtc-util feature "marshal" (*)
-webrtc-sctp feature "default"
-webrtc-sctp v0.9.1
-log feature "default" (*)
-async-trait feature "default" (*)
-bytes feature "default" (*)
-thiserror feature "default" (*)
-tokio feature "default" (*)
-tokio feature "full" (*)
-rand feature "default" (*)
-arc-swap feature "default" (*)
-webrtc-util feature "conn" (*)
-crc feature "default" (*)
-webrtc-sctp feature "default" (*)
-webrtc-dtls feature "default"
-webrtc-dtls v0.8.0
-log feature "default" (*)
-async-trait feature "default" (*)
-serde feature "default" (*)
-serde feature "derive" (*)
-thiserror feature "default" (*)
-tokio feature "default" (*)
-tokio feature "full" (*)
-rand feature "default" (*)
-rand_core feature "default" (*)
-subtle feature "default" (*)
-sha1 feature "default" (*)
-webrtc-util feature "conn" (*)
-aes feature "default" (*)
-aes-gcm feature "default" (*)
-byteorder feature "default" (*)
-hmac feature "default" (*)
-rcgen feature "default" (*)
-ring feature "default" (*)
-x509-parser feature "default" (*)
-der-parser feature "default" (*)
-rustls feature "dangerous_configuration" (*)
-rustls feature "default" (*)
-sha2 feature "default" (*)
-bincode feature "default"
-bincode v1.3.3
-serde feature "default" (*)
-cbc feature "alloc"
-cbc v0.1.2
-cipher feature "default" (*)
-cipher feature "alloc"
-cipher v0.4.4 (*)
-cbc feature "block-padding"
-cbc v0.1.2 (*)
-cipher feature "block-padding"
-cipher v0.4.4 (*)
-inout feature "block-padding"
-inout v0.1.4 (*)
-cbc feature "default"
-cbc v0.1.2 (*)
-cbc feature "block-padding" (*)
-ccm feature "default"
-ccm v0.5.0
-aead v0.5.2 (*)
-cipher v0.4.4 (*)
-ctr v0.9.2 (*)
-subtle v2.6.1
-ccm feature "alloc"
-ccm v0.5.0 (*)
-aead feature "alloc" (*)
-ccm feature "getrandom"
-ccm v0.5.0 (*)
-aead feature "getrandom" (*)
-hkdf feature "default"
-hkdf v0.12.4
-hmac feature "default" (*)
-p256 feature "default"
-p256 v0.13.2
-sha2 v0.10.9 (*)
-ecdsa feature "der"
-ecdsa v0.16.9
-spki v0.7.3
-der feature "default"
-der v0.7.10
-zeroize v1.8.1 (*)
-const-oid feature "default" (*)
-pem-rfc7468 feature "alloc"
-pem-rfc7468 v0.7.0
-base64ct feature "default"
-base64ct v1.8.0
-base64ct feature "alloc"
-base64ct v1.8.0
-pem-rfc7468 feature "default"
-pem-rfc7468 v0.7.0 (*)
-der feature "oid"
-der v0.7.10 (*)
-digest feature "oid"
-digest v0.10.7 (*)
-digest feature "const-oid"
-digest v0.10.7 (*)
-der feature "default" (*)
-elliptic-curve feature "digest"
-elliptic-curve v0.13.8
-ff v0.13.1
-rand_core v0.6.4 (*)
-subtle feature "i128" (*)
-group v0.13.0
-ff v0.13.1 (*)
-rand_core v0.6.4 (*)
-subtle v2.6.1
-hkdf v0.12.4 (*)
-pkcs8 v0.10.2
-der feature "default" (*)
-der feature "oid" (*)
-spki feature "default"
-spki v0.7.3 (*)
-rand_core v0.6.4 (*)
-subtle v2.6.1
-zeroize v1.8.1 (*)
-digest feature "default" (*)
-generic-array feature "zeroize"
-generic-array v0.14.7 (*)
-pem-rfc7468 feature "alloc" (*)
-pem-rfc7468 feature "default" (*)
-base16ct feature "default"
-base16ct v0.2.0
-crypto-bigint feature "generic-array"
-crypto-bigint v0.5.5
-subtle v2.6.1
-zeroize v1.8.1 (*)
-rand_core feature "default" (*)
-generic-array feature "default" (*)
-crypto-bigint feature "rand_core"
-crypto-bigint v0.5.5 (*)
-crypto-bigint feature "zeroize"
-crypto-bigint v0.5.5 (*)
-sec1 feature "default"
-sec1 v0.7.3
-base16ct v0.2.0
-generic-array v0.14.7 (*)
-pkcs8 v0.10.2 (*)
-subtle v2.6.1
-zeroize v1.8.1 (*)
-der feature "default" (*)
-der feature "oid" (*)
-sec1 feature "der"
-sec1 v0.7.3 (*)
-sec1 feature "zeroize"
-sec1 v0.7.3 (*)
-der feature "zeroize"
-der v0.7.10 (*)
-sec1 feature "point"
-sec1 v0.7.3 (*)
-sec1 feature "subtle"
-sec1 v0.7.3 (*)
-sec1 feature "zeroize" (*)
-elliptic-curve feature "sec1"
-elliptic-curve v0.13.8 (*)
-rfc6979 feature "default"
-rfc6979 v0.4.0
-subtle v2.6.1
-hmac feature "reset"
-hmac v0.12.1 (*)
-signature feature "rand_core"
-signature v2.2.0
-digest v0.10.7 (*)
-rand_core v0.6.4 (*)
-elliptic-curve feature "hazmat"
-elliptic-curve v0.13.8 (*)
-elliptic-curve feature "sec1" (*)
-primeorder feature "default"
-primeorder v0.13.6
-elliptic-curve feature "arithmetic"
-elliptic-curve v0.13.8 (*)
-elliptic-curve feature "group"
-elliptic-curve v0.13.8 (*)
-elliptic-curve feature "ff"
-elliptic-curve v0.13.8 (*)
-elliptic-curve feature "sec1" (*)
-p256 feature "arithmetic"
-p256 v0.13.2 (*)
-elliptic-curve feature "arithmetic" (*)
-p256 feature "ecdsa"
-p256 v0.13.2 (*)
-p256 feature "arithmetic" (*)
-p256 feature "ecdsa-core"
-p256 v0.13.2 (*)
-p256 feature "sha256"
-p256 v0.13.2 (*)
-p256 feature "digest"
-p256 v0.13.2 (*)
-p256 feature "ecdsa-core" (*)
-ecdsa feature "digest"
-ecdsa v0.16.9 (*)
-signature feature "digest"
-signature v2.2.0 (*)
-ecdsa feature "hazmat"
-ecdsa v0.16.9 (*)
-p256 feature "sha2"
-p256 v0.13.2 (*)
-ecdsa feature "signing"
-ecdsa v0.16.9 (*)
-ecdsa feature "arithmetic"
-ecdsa v0.16.9 (*)
-elliptic-curve feature "arithmetic" (*)
-ecdsa feature "digest" (*)
-ecdsa feature "hazmat" (*)
-ecdsa feature "rfc6979"
-ecdsa v0.16.9 (*)
-ecdsa feature "verifying"
-ecdsa v0.16.9 (*)
-ecdsa feature "arithmetic" (*)
-ecdsa feature "digest" (*)
-ecdsa feature "hazmat" (*)
-p256 feature "pem"
-p256 v0.13.2 (*)
-p256 feature "ecdsa-core" (*)
-p256 feature "pkcs8"
-p256 v0.13.2 (*)
-ecdsa feature "pkcs8"
-ecdsa v0.16.9 (*)
-ecdsa feature "der" (*)
-ecdsa feature "digest" (*)
-elliptic-curve feature "pkcs8"
-elliptic-curve v0.13.8 (*)
-elliptic-curve feature "sec1" (*)
-elliptic-curve feature "pkcs8" (*)
-ecdsa feature "pem"
-ecdsa v0.16.9 (*)
-ecdsa feature "pkcs8" (*)
-elliptic-curve feature "pem"
-elliptic-curve v0.13.8 (*)
-elliptic-curve feature "alloc"
-elliptic-curve v0.13.8 (*)
-zeroize feature "alloc" (*)
-base16ct feature "alloc"
-base16ct v0.2.0
-ff feature "alloc"
-ff v0.13.1 (*)
-group feature "alloc"
-group v0.13.0 (*)
-pkcs8 feature "alloc"
-pkcs8 v0.10.2 (*)
-der feature "alloc"
-der v0.7.10 (*)
-zeroize feature "alloc" (*)
-der feature "zeroize" (*)
-spki feature "alloc"
-spki v0.7.3 (*)
-der feature "alloc" (*)
-sec1 feature "alloc"
-sec1 v0.7.3 (*)
-zeroize feature "alloc" (*)
-der feature "alloc" (*)
-pkcs8 feature "alloc" (*)
-elliptic-curve feature "arithmetic" (*)
-elliptic-curve feature "pkcs8" (*)
-elliptic-curve feature "sec1" (*)
-sec1 feature "pem"
-sec1 v0.7.3 (*)
-der feature "pem"
-der v0.7.10 (*)
-der feature "alloc" (*)
-der feature "zeroize" (*)
-pkcs8 feature "pem"
-pkcs8 v0.10.2 (*)
-der feature "pem" (*)
-pkcs8 feature "alloc" (*)
-spki feature "pem"
-spki v0.7.3 (*)
-der feature "pem" (*)
-spki feature "alloc" (*)
-sec1 feature "alloc" (*)
-sec1 feature "der" (*)
-sec1 feature "pkcs8"
-sec1 v0.7.3 (*)
-elliptic-curve feature "pem" (*)
-p256 feature "std"
-p256 v0.13.2 (*)
-p256 feature "alloc"
-p256 v0.13.2 (*)
-ecdsa feature "alloc"
-ecdsa v0.16.9 (*)
-ecdsa feature "spki"
-ecdsa v0.16.9 (*)
-elliptic-curve feature "alloc" (*)
-spki feature "alloc" (*)
-signature feature "alloc"
-signature v2.2.0 (*)
-elliptic-curve feature "alloc" (*)
-ecdsa feature "std"
-ecdsa v0.16.9 (*)
-ecdsa feature "alloc" (*)
-elliptic-curve feature "std"
-elliptic-curve v0.13.8 (*)
-rand_core feature "std" (*)
-elliptic-curve feature "alloc" (*)
-pkcs8 feature "std"
-pkcs8 v0.10.2 (*)
-der feature "std"
-der v0.7.10 (*)
-der feature "alloc" (*)
-pkcs8 feature "alloc" (*)
-spki feature "std"
-spki v0.7.3 (*)
-der feature "std" (*)
-spki feature "alloc" (*)
-sec1 feature "std"
-sec1 v0.7.3 (*)
-der feature "std" (*)
-sec1 feature "alloc" (*)
-signature feature "std"
-signature v2.2.0 (*)
-rand_core feature "std" (*)
-signature feature "alloc" (*)
-elliptic-curve feature "std" (*)
-p256 feature "ecdh"
-p256 v0.13.2 (*)
-p256 feature "arithmetic" (*)
-elliptic-curve feature "ecdh"
-elliptic-curve v0.13.8 (*)
-elliptic-curve feature "arithmetic" (*)
-elliptic-curve feature "digest" (*)
-p256 feature "ecdsa" (*)
-sec1 feature "default" (*)
-sec1 feature "std" (*)
-p384 feature "default"
-p384 v0.13.1
-sha2 v0.10.9 (*)
-ecdsa feature "der" (*)
-elliptic-curve feature "hazmat" (*)
-elliptic-curve feature "sec1" (*)
-primeorder feature "default" (*)
-p384 feature "arithmetic"
-p384 v0.13.1 (*)
-elliptic-curve feature "arithmetic" (*)
-elliptic-curve feature "digest" (*)
-p384 feature "ecdh"
-p384 v0.13.1 (*)
-elliptic-curve feature "ecdh" (*)
-p384 feature "arithmetic" (*)
-p384 feature "ecdsa"
-p384 v0.13.1 (*)
-ecdsa feature "signing" (*)
-ecdsa feature "verifying" (*)
-p384 feature "arithmetic" (*)
-p384 feature "ecdsa-core"
-p384 v0.13.1 (*)
-p384 feature "sha384"
-p384 v0.13.1 (*)
-p384 feature "digest"
-p384 v0.13.1 (*)
-ecdsa feature "digest" (*)
-ecdsa feature "hazmat" (*)
-p384 feature "ecdsa-core" (*)
-p384 feature "sha2"
-p384 v0.13.1 (*)
-p384 feature "pem"
-p384 v0.13.1 (*)
-ecdsa feature "pem" (*)
-elliptic-curve feature "pem" (*)
-p384 feature "ecdsa-core" (*)
-p384 feature "pkcs8"
-p384 v0.13.1 (*)
-ecdsa feature "pkcs8" (*)
-elliptic-curve feature "pkcs8" (*)
-p384 feature "ecdsa-core" (*)
-p384 feature "std"
-p384 v0.13.1 (*)
-ecdsa feature "std" (*)
-elliptic-curve feature "std" (*)
-p384 feature "alloc"
-p384 v0.13.1 (*)
-ecdsa feature "alloc" (*)
-elliptic-curve feature "alloc" (*)
-x25519-dalek feature "default"
-x25519-dalek v2.0.1
-curve25519-dalek v4.1.3
-subtle v2.6.1
-zeroize v1.8.1 (*)
-cfg-if feature "default" (*)
-cpufeatures feature "default" (*)
-curve25519-dalek-derive feature "default"
-curve25519-dalek-derive v0.1.1 (proc-macro)
-proc-macro2 feature "default" (*)
-quote feature "default" (*)
-syn feature "default" (*)
-syn feature "full" (*)
-rustc_version feature "default"
-rustc_version v0.4.1
-semver feature "default"
-semver v1.0.26
-semver feature "std"
-semver v1.0.26
-rand_core v0.6.4 (*)
-zeroize feature "zeroize_derive"
-zeroize v1.8.1 (*)
-x25519-dalek feature "alloc"
-x25519-dalek v2.0.1 (*)
-zeroize feature "alloc" (*)
-curve25519-dalek feature "alloc"
-curve25519-dalek v4.1.3 (*)
-zeroize feature "alloc" (*)
-x25519-dalek feature "precomputed-tables"
-x25519-dalek v2.0.1 (*)
-curve25519-dalek feature "precomputed-tables"
-curve25519-dalek v4.1.3 (*)
-x25519-dalek feature "zeroize"
-x25519-dalek v2.0.1 (*)
-curve25519-dalek feature "zeroize"
-curve25519-dalek v4.1.3 (*)
-x25519-dalek feature "static_secrets"
-x25519-dalek v2.0.1 (*)
-webrtc-ice feature "default"
-webrtc-ice v0.10.1
-log feature "default" (*)
-async-trait feature "default" (*)
-serde feature "default" (*)
-serde feature "derive" (*)
-serde_json feature "default" (*)
-thiserror feature "default" (*)
-tokio feature "default" (*)
-tokio feature "full" (*)
-rand feature "default" (*)
-url feature "default" (*)
-uuid feature "default" (*)
-uuid feature "v4" (*)
-arc-swap feature "default" (*)
-webrtc-util feature "conn" (*)
-webrtc-util feature "sync" (*)
-webrtc-util feature "vnet" (*)
-waitgroup feature "default" (*)
-stun feature "default" (*)
-crc feature "default" (*)
-turn feature "default" (*)
-webrtc-mdns feature "default"
-webrtc-mdns v0.6.1
-log feature "default" (*)
-thiserror feature "default" (*)
-tokio feature "default" (*)
-tokio feature "full" (*)
-socket2 feature "all" (*)
-socket2 feature "default" (*)
-webrtc-util feature "ifaces" (*)
-webrtc-mdns feature "reuse_port"
-webrtc-mdns v0.6.1 (*)
-webrtc-mdns feature "default" (*)
-webrtc-media feature "default"
-webrtc-media v0.7.1
-bytes feature "default" (*)
-thiserror feature "default" (*)
-rand feature "default" (*)
-byteorder feature "default" (*)
-rtp feature "default"
-rtp v0.10.0
-bytes feature "default" (*)
-serde feature "default" (*)
-serde feature "derive" (*)
-thiserror feature "default" (*)
-rand feature "default" (*)
-webrtc-util feature "marshal" (*)
-rsbinder-aidl feature "default" (*)
-rtp-midi feature "default" (command-line)
-rtp-midi v0.1.0 (/home/sparrow/projects/rust/rtp-midi) (*)
-mockito feature "default"
-mockito v1.7.0
-futures-util v0.3.31 (*)
-log feature "default" (*)
-regex feature "default" (*)
-bytes feature "default" (*)
-serde_json feature "default" (*)
-assert-json-diff feature "default"
-assert-json-diff v2.0.2
-serde feature "default" (*)
-serde_json feature "default" (*)
-colored feature "default"
-colored v3.0.0
-http feature "default" (*)
-http-body feature "default" (*)
-http-body-util feature "default" (*)
-hyper feature "default" (*)
-tokio feature "default" (*)
-tokio feature "net" (*)
-tokio feature "rt" (*)
-tokio feature "sync" (*)
-hyper-util feature "default" (*)
-hyper-util feature "server-auto"
-hyper-util v0.1.14 (*)
-hyper-util feature "http1" (*)
-hyper-util feature "http2" (*)
-hyper-util feature "server"
-hyper-util v0.1.14 (*)
-hyper feature "server"
-hyper v1.6.0 (*)
-hyper-util feature "tokio" (*)
-rand feature "default" (*)
-serde_urlencoded feature "default" (*)
-similar feature "default"
-similar v2.7.0
-similar feature "text"
-similar v2.7.0
-mockito feature "color"
-mockito v1.7.0 (*)
-mockito feature "colored"
-mockito v1.7.0 (*)
-mockito feature "parking_lot"
-mockito v1.7.0 (*)
-tokio feature "parking_lot" (*)
-tempfile feature "default"
-tempfile v3.20.0
-getrandom v0.3.3 (*)
-once_cell feature "std" (*)
-rustix feature "default" (*)
-rustix feature "fs" (*)
-fastrand feature "default"
-fastrand v2.3.0
-fastrand feature "std"
-fastrand v2.3.0
-fastrand feature "alloc"
-fastrand v2.3.0
-tempfile feature "getrandom"
-tempfile v3.20.0 (*)
+audio_server v0.1.0 (/home/sparrow/projects/rust/rtp-midi/audio_server)
+├── anyhow v1.0.98
+├── bytes v1.10.1
+├── env_logger v0.11.8
+│   ├── anstream v0.6.19
+│   │   ├── anstyle v1.0.11
+│   │   ├── anstyle-parse v0.2.7
+│   │   │   └── utf8parse v0.2.2
+│   │   ├── anstyle-query v1.1.3
+│   │   ├── colorchoice v1.0.4
+│   │   ├── is_terminal_polyfill v1.70.1
+│   │   └── utf8parse v0.2.2
+│   ├── anstyle v1.0.11
+│   ├── env_filter v0.1.3
+│   │   ├── log v0.4.27
+│   │   └── regex v1.11.1
+│   │       ├── aho-corasick v1.1.3
+│   │       │   └── memchr v2.7.5
+│   │       ├── memchr v2.7.5
+│   │       ├── regex-automata v0.4.9
+│   │       │   ├── aho-corasick v1.1.3 (*)
+│   │       │   ├── memchr v2.7.5
+│   │       │   └── regex-syntax v0.8.5
+│   │       └── regex-syntax v0.8.5
+│   ├── jiff v0.2.15
+│   └── log v0.4.27
+├── futures-util v0.3.31
+│   ├── futures-channel v0.3.31
+│   │   ├── futures-core v0.3.31
+│   │   └── futures-sink v0.3.31
+│   ├── futures-core v0.3.31
+│   ├── futures-io v0.3.31
+│   ├── futures-macro v0.3.31 (proc-macro)
+│   │   ├── proc-macro2 v1.0.95
+│   │   │   └── unicode-ident v1.0.18
+│   │   ├── quote v1.0.40
+│   │   │   └── proc-macro2 v1.0.95 (*)
+│   │   └── syn v2.0.103
+│   │       ├── proc-macro2 v1.0.95 (*)
+│   │       ├── quote v1.0.40 (*)
+│   │       └── unicode-ident v1.0.18
+│   ├── futures-sink v0.3.31
+│   ├── futures-task v0.3.31
+│   ├── memchr v2.7.5
+│   ├── pin-project-lite v0.2.16
+│   ├── pin-utils v0.1.0
+│   └── slab v0.4.10
+├── log v0.4.27
+├── rtp_midi_lib v0.1.0 (/home/sparrow/projects/rust/rtp-midi/rtp_midi_lib)
+│   ├── android_logger v0.11.3
+│   │   ├── android_log-sys v0.2.0
+│   │   ├── env_logger v0.10.2
+│   │   │   ├── log v0.4.27
+│   │   │   └── regex v1.11.1 (*)
+│   │   ├── log v0.4.27
+│   │   └── once_cell v1.21.3
+│   ├── anyhow v1.0.98
+│   ├── async-trait v0.1.88 (proc-macro)
+│   │   ├── proc-macro2 v1.0.95 (*)
+│   │   ├── quote v1.0.40 (*)
+│   │   └── syn v2.0.103 (*)
+│   ├── bytes v1.10.1
+│   ├── cpal v0.16.0
+│   │   ├── alsa v0.9.1
+│   │   │   ├── alsa-sys v0.3.1
+│   │   │   │   └── libc v0.2.173
+│   │   │   │   [build-dependencies]
+│   │   │   │   └── pkg-config v0.3.32
+│   │   │   ├── bitflags v2.9.1
+│   │   │   ├── cfg-if v1.0.1
+│   │   │   └── libc v0.2.173
+│   │   ├── dasp_sample v0.11.0
+│   │   └── libc v0.2.173
+│   ├── crossbeam-channel v0.5.15
+│   │   └── crossbeam-utils v0.8.21
+│   ├── ddp-rs v1.0.0
+│   │   ├── crossbeam v0.8.4
+│   │   │   ├── crossbeam-channel v0.5.15 (*)
+│   │   │   ├── crossbeam-deque v0.8.6
+│   │   │   │   ├── crossbeam-epoch v0.9.18
+│   │   │   │   │   └── crossbeam-utils v0.8.21
+│   │   │   │   └── crossbeam-utils v0.8.21
+│   │   │   ├── crossbeam-epoch v0.9.18 (*)
+│   │   │   ├── crossbeam-queue v0.3.12
+│   │   │   │   └── crossbeam-utils v0.8.21
+│   │   │   └── crossbeam-utils v0.8.21
+│   │   ├── dashmap v5.5.3
+│   │   │   ├── cfg-if v1.0.1
+│   │   │   ├── hashbrown v0.14.5
+│   │   │   ├── lock_api v0.4.13
+│   │   │   │   └── scopeguard v1.2.0
+│   │   │   │   [build-dependencies]
+│   │   │   │   └── autocfg v1.4.0
+│   │   │   ├── once_cell v1.21.3
+│   │   │   └── parking_lot_core v0.9.11
+│   │   │       ├── cfg-if v1.0.1
+│   │   │       ├── libc v0.2.173
+│   │   │       └── smallvec v1.15.1
+│   │   ├── log v0.4.27
+│   │   ├── serde v1.0.219
+│   │   │   └── serde_derive v1.0.219 (proc-macro)
+│   │   │       ├── proc-macro2 v1.0.95 (*)
+│   │   │       ├── quote v1.0.40 (*)
+│   │   │       └── syn v2.0.103 (*)
+│   │   ├── serde_json v1.0.140
+│   │   │   ├── itoa v1.0.15
+│   │   │   ├── memchr v2.7.5
+│   │   │   ├── ryu v1.0.20
+│   │   │   └── serde v1.0.219 (*)
+│   │   └── thiserror v1.0.69
+│   │       └── thiserror-impl v1.0.69 (proc-macro)
+│   │           ├── proc-macro2 v1.0.95 (*)
+│   │           ├── quote v1.0.40 (*)
+│   │           └── syn v2.0.103 (*)
+│   ├── jni v0.21.1
+│   │   ├── cesu8 v1.1.0
+│   │   ├── cfg-if v1.0.1
+│   │   ├── combine v4.6.7
+│   │   │   ├── bytes v1.10.1
+│   │   │   └── memchr v2.7.5
+│   │   ├── jni-sys v0.3.0
+│   │   ├── log v0.4.27
+│   │   └── thiserror v1.0.69 (*)
+│   │   [build-dependencies]
+│   │   └── walkdir v2.5.0
+│   │       └── same-file v1.0.6
+│   ├── libc v0.2.173
+│   ├── log v0.4.27
+│   ├── midi-types v0.2.1
+│   ├── midir v0.10.1
+│   │   ├── alsa v0.9.1 (*)
+│   │   ├── bitflags v1.3.2
+│   │   └── libc v0.2.173
+│   ├── once_cell v1.21.3
+│   ├── rand v0.8.5
+│   │   ├── libc v0.2.173
+│   │   ├── rand_chacha v0.3.1
+│   │   │   ├── ppv-lite86 v0.2.21
+│   │   │   │   └── zerocopy v0.8.25
+│   │   │   └── rand_core v0.6.4
+│   │   │       └── getrandom v0.2.16
+│   │   │           ├── cfg-if v1.0.1
+│   │   │           └── libc v0.2.173
+│   │   └── rand_core v0.6.4 (*)
+│   ├── reqwest v0.12.20
+│   │   ├── base64 v0.22.1
+│   │   ├── bytes v1.10.1
+│   │   ├── encoding_rs v0.8.35
+│   │   │   └── cfg-if v1.0.1
+│   │   ├── futures-core v0.3.31
+│   │   ├── h2 v0.4.10
+│   │   │   ├── atomic-waker v1.1.2
+│   │   │   ├── bytes v1.10.1
+│   │   │   ├── fnv v1.0.7
+│   │   │   ├── futures-core v0.3.31
+│   │   │   ├── futures-sink v0.3.31
+│   │   │   ├── http v1.3.1
+│   │   │   │   ├── bytes v1.10.1
+│   │   │   │   ├── fnv v1.0.7
+│   │   │   │   └── itoa v1.0.15
+│   │   │   ├── indexmap v2.9.0
+│   │   │   │   ├── equivalent v1.0.2
+│   │   │   │   └── hashbrown v0.15.4
+│   │   │   ├── slab v0.4.10
+│   │   │   ├── tokio v1.45.1
+│   │   │   │   ├── bytes v1.10.1
+│   │   │   │   ├── libc v0.2.173
+│   │   │   │   ├── mio v1.0.4
+│   │   │   │   │   └── libc v0.2.173
+│   │   │   │   ├── parking_lot v0.12.4
+│   │   │   │   │   ├── lock_api v0.4.13 (*)
+│   │   │   │   │   └── parking_lot_core v0.9.11 (*)
+│   │   │   │   ├── pin-project-lite v0.2.16
+│   │   │   │   ├── signal-hook-registry v1.4.5
+│   │   │   │   │   └── libc v0.2.173
+│   │   │   │   ├── socket2 v0.5.10
+│   │   │   │   │   └── libc v0.2.173
+│   │   │   │   └── tokio-macros v2.5.0 (proc-macro)
+│   │   │   │       ├── proc-macro2 v1.0.95 (*)
+│   │   │   │       ├── quote v1.0.40 (*)
+│   │   │   │       └── syn v2.0.103 (*)
+│   │   │   ├── tokio-util v0.7.15
+│   │   │   │   ├── bytes v1.10.1
+│   │   │   │   ├── futures-core v0.3.31
+│   │   │   │   ├── futures-sink v0.3.31
+│   │   │   │   ├── pin-project-lite v0.2.16
+│   │   │   │   └── tokio v1.45.1 (*)
+│   │   │   └── tracing v0.1.41
+│   │   │       ├── pin-project-lite v0.2.16
+│   │   │       └── tracing-core v0.1.34
+│   │   │           └── once_cell v1.21.3
+│   │   ├── http v1.3.1 (*)
+│   │   ├── http-body v1.0.1
+│   │   │   ├── bytes v1.10.1
+│   │   │   └── http v1.3.1 (*)
+│   │   ├── http-body-util v0.1.3
+│   │   │   ├── bytes v1.10.1
+│   │   │   ├── futures-core v0.3.31
+│   │   │   ├── http v1.3.1 (*)
+│   │   │   ├── http-body v1.0.1 (*)
+│   │   │   └── pin-project-lite v0.2.16
+│   │   ├── hyper v1.6.0
+│   │   │   ├── bytes v1.10.1
+│   │   │   ├── futures-channel v0.3.31 (*)
+│   │   │   ├── futures-util v0.3.31 (*)
+│   │   │   ├── h2 v0.4.10 (*)
+│   │   │   ├── http v1.3.1 (*)
+│   │   │   ├── http-body v1.0.1 (*)
+│   │   │   ├── httparse v1.10.1
+│   │   │   ├── httpdate v1.0.3
+│   │   │   ├── itoa v1.0.15
+│   │   │   ├── pin-project-lite v0.2.16
+│   │   │   ├── smallvec v1.15.1
+│   │   │   ├── tokio v1.45.1 (*)
+│   │   │   └── want v0.3.1
+│   │   │       └── try-lock v0.2.5
+│   │   ├── hyper-rustls v0.27.7
+│   │   │   ├── http v1.3.1 (*)
+│   │   │   ├── hyper v1.6.0 (*)
+│   │   │   ├── hyper-util v0.1.14
+│   │   │   │   ├── base64 v0.22.1
+│   │   │   │   ├── bytes v1.10.1
+│   │   │   │   ├── futures-channel v0.3.31 (*)
+│   │   │   │   ├── futures-core v0.3.31
+│   │   │   │   ├── futures-util v0.3.31 (*)
+│   │   │   │   ├── http v1.3.1 (*)
+│   │   │   │   ├── http-body v1.0.1 (*)
+│   │   │   │   ├── hyper v1.6.0 (*)
+│   │   │   │   ├── ipnet v2.11.0
+│   │   │   │   ├── libc v0.2.173
+│   │   │   │   ├── percent-encoding v2.3.1
+│   │   │   │   ├── pin-project-lite v0.2.16
+│   │   │   │   ├── socket2 v0.5.10 (*)
+│   │   │   │   ├── tokio v1.45.1 (*)
+│   │   │   │   ├── tower-service v0.3.3
+│   │   │   │   └── tracing v0.1.41 (*)
+│   │   │   ├── rustls v0.23.28
+│   │   │   │   ├── once_cell v1.21.3
+│   │   │   │   ├── ring v0.17.14
+│   │   │   │   │   ├── cfg-if v1.0.1
+│   │   │   │   │   ├── getrandom v0.2.16 (*)
+│   │   │   │   │   └── untrusted v0.9.0
+│   │   │   │   │   [build-dependencies]
+│   │   │   │   │   └── cc v1.2.27
+│   │   │   │   │       └── shlex v1.3.0
+│   │   │   │   ├── rustls-pki-types v1.12.0
+│   │   │   │   │   └── zeroize v1.8.1
+│   │   │   │   │       └── zeroize_derive v1.4.2 (proc-macro)
+│   │   │   │   │           ├── proc-macro2 v1.0.95 (*)
+│   │   │   │   │           ├── quote v1.0.40 (*)
+│   │   │   │   │           └── syn v2.0.103 (*)
+│   │   │   │   ├── rustls-webpki v0.103.3
+│   │   │   │   │   ├── ring v0.17.14 (*)
+│   │   │   │   │   ├── rustls-pki-types v1.12.0 (*)
+│   │   │   │   │   └── untrusted v0.9.0
+│   │   │   │   ├── subtle v2.6.1
+│   │   │   │   └── zeroize v1.8.1 (*)
+│   │   │   ├── rustls-pki-types v1.12.0 (*)
+│   │   │   ├── tokio v1.45.1 (*)
+│   │   │   ├── tokio-rustls v0.26.2
+│   │   │   │   ├── rustls v0.23.28 (*)
+│   │   │   │   └── tokio v1.45.1 (*)
+│   │   │   ├── tower-service v0.3.3
+│   │   │   └── webpki-roots v1.0.0
+│   │   │       └── rustls-pki-types v1.12.0 (*)
+│   │   ├── hyper-tls v0.6.0
+│   │   │   ├── bytes v1.10.1
+│   │   │   ├── http-body-util v0.1.3 (*)
+│   │   │   ├── hyper v1.6.0 (*)
+│   │   │   ├── hyper-util v0.1.14 (*)
+│   │   │   ├── native-tls v0.2.14
+│   │   │   │   ├── log v0.4.27
+│   │   │   │   ├── openssl v0.10.73
+│   │   │   │   │   ├── bitflags v2.9.1
+│   │   │   │   │   ├── cfg-if v1.0.1
+│   │   │   │   │   ├── foreign-types v0.3.2
+│   │   │   │   │   │   └── foreign-types-shared v0.1.1
+│   │   │   │   │   ├── libc v0.2.173
+│   │   │   │   │   ├── once_cell v1.21.3
+│   │   │   │   │   ├── openssl-macros v0.1.1 (proc-macro)
+│   │   │   │   │   │   ├── proc-macro2 v1.0.95 (*)
+│   │   │   │   │   │   ├── quote v1.0.40 (*)
+│   │   │   │   │   │   └── syn v2.0.103 (*)
+│   │   │   │   │   └── openssl-sys v0.9.109
+│   │   │   │   │       └── libc v0.2.173
+│   │   │   │   │       [build-dependencies]
+│   │   │   │   │       ├── cc v1.2.27 (*)
+│   │   │   │   │       ├── pkg-config v0.3.32
+│   │   │   │   │       └── vcpkg v0.2.15
+│   │   │   │   ├── openssl-probe v0.1.6
+│   │   │   │   └── openssl-sys v0.9.109 (*)
+│   │   │   ├── tokio v1.45.1 (*)
+│   │   │   ├── tokio-native-tls v0.3.1
+│   │   │   │   ├── native-tls v0.2.14 (*)
+│   │   │   │   └── tokio v1.45.1 (*)
+│   │   │   └── tower-service v0.3.3
+│   │   ├── hyper-util v0.1.14 (*)
+│   │   ├── log v0.4.27
+│   │   ├── mime v0.3.17
+│   │   ├── native-tls v0.2.14 (*)
+│   │   ├── percent-encoding v2.3.1
+│   │   ├── pin-project-lite v0.2.16
+│   │   ├── rustls v0.23.28 (*)
+│   │   ├── rustls-pki-types v1.12.0 (*)
+│   │   ├── serde v1.0.219 (*)
+│   │   ├── serde_json v1.0.140 (*)
+│   │   ├── serde_urlencoded v0.7.1
+│   │   │   ├── form_urlencoded v1.2.1
+│   │   │   │   └── percent-encoding v2.3.1
+│   │   │   ├── itoa v1.0.15
+│   │   │   ├── ryu v1.0.20
+│   │   │   └── serde v1.0.219 (*)
+│   │   ├── sync_wrapper v1.0.2
+│   │   │   └── futures-core v0.3.31
+│   │   ├── tokio v1.45.1 (*)
+│   │   ├── tokio-native-tls v0.3.1 (*)
+│   │   ├── tokio-rustls v0.26.2 (*)
+│   │   ├── tower v0.5.2
+│   │   │   ├── futures-core v0.3.31
+│   │   │   ├── futures-util v0.3.31 (*)
+│   │   │   ├── pin-project-lite v0.2.16
+│   │   │   ├── sync_wrapper v1.0.2 (*)
+│   │   │   ├── tokio v1.45.1 (*)
+│   │   │   ├── tower-layer v0.3.3
+│   │   │   └── tower-service v0.3.3
+│   │   ├── tower-http v0.6.6
+│   │   │   ├── bitflags v2.9.1
+│   │   │   ├── bytes v1.10.1
+│   │   │   ├── futures-util v0.3.31 (*)
+│   │   │   ├── http v1.3.1 (*)
+│   │   │   ├── http-body v1.0.1 (*)
+│   │   │   ├── iri-string v0.7.8
+│   │   │   ├── pin-project-lite v0.2.16
+│   │   │   ├── tower v0.5.2 (*)
+│   │   │   ├── tower-layer v0.3.3
+│   │   │   └── tower-service v0.3.3
+│   │   ├── tower-service v0.3.3
+│   │   ├── url v2.5.4
+│   │   │   ├── form_urlencoded v1.2.1 (*)
+│   │   │   ├── idna v1.0.3
+│   │   │   │   ├── idna_adapter v1.2.1
+│   │   │   │   │   ├── icu_normalizer v2.0.0
+│   │   │   │   │   │   ├── displaydoc v0.2.5 (proc-macro)
+│   │   │   │   │   │   │   ├── proc-macro2 v1.0.95 (*)
+│   │   │   │   │   │   │   ├── quote v1.0.40 (*)
+│   │   │   │   │   │   │   └── syn v2.0.103 (*)
+│   │   │   │   │   │   ├── icu_collections v2.0.0
+│   │   │   │   │   │   │   ├── displaydoc v0.2.5 (proc-macro) (*)
+│   │   │   │   │   │   │   ├── potential_utf v0.1.2
+│   │   │   │   │   │   │   │   └── zerovec v0.11.2
+│   │   │   │   │   │   │   │       ├── yoke v0.8.0
+│   │   │   │   │   │   │   │       │   ├── stable_deref_trait v1.2.0
+│   │   │   │   │   │   │   │       │   ├── yoke-derive v0.8.0 (proc-macro)
+│   │   │   │   │   │   │   │       │   │   ├── proc-macro2 v1.0.95 (*)
+│   │   │   │   │   │   │   │       │   │   ├── quote v1.0.40 (*)
+│   │   │   │   │   │   │   │       │   │   ├── syn v2.0.103 (*)
+│   │   │   │   │   │   │   │       │   │   └── synstructure v0.13.2
+│   │   │   │   │   │   │   │       │   │       ├── proc-macro2 v1.0.95 (*)
+│   │   │   │   │   │   │   │       │   │       ├── quote v1.0.40 (*)
+│   │   │   │   │   │   │   │       │   │       └── syn v2.0.103 (*)
+│   │   │   │   │   │   │   │       │   └── zerofrom v0.1.6
+│   │   │   │   │   │   │   │       │       └── zerofrom-derive v0.1.6 (proc-macro)
+│   │   │   │   │   │   │   │       │           ├── proc-macro2 v1.0.95 (*)
+│   │   │   │   │   │   │   │       │           ├── quote v1.0.40 (*)
+│   │   │   │   │   │   │   │       │           ├── syn v2.0.103 (*)
+│   │   │   │   │   │   │   │       │           └── synstructure v0.13.2 (*)
+│   │   │   │   │   │   │   │       ├── zerofrom v0.1.6 (*)
+│   │   │   │   │   │   │   │       └── zerovec-derive v0.11.1 (proc-macro)
+│   │   │   │   │   │   │   │           ├── proc-macro2 v1.0.95 (*)
+│   │   │   │   │   │   │   │           ├── quote v1.0.40 (*)
+│   │   │   │   │   │   │   │           └── syn v2.0.103 (*)
+│   │   │   │   │   │   │   ├── yoke v0.8.0 (*)
+│   │   │   │   │   │   │   ├── zerofrom v0.1.6 (*)
+│   │   │   │   │   │   │   └── zerovec v0.11.2 (*)
+│   │   │   │   │   │   ├── icu_normalizer_data v2.0.0
+│   │   │   │   │   │   ├── icu_provider v2.0.0
+│   │   │   │   │   │   │   ├── displaydoc v0.2.5 (proc-macro) (*)
+│   │   │   │   │   │   │   ├── icu_locale_core v2.0.0
+│   │   │   │   │   │   │   │   ├── displaydoc v0.2.5 (proc-macro) (*)
+│   │   │   │   │   │   │   │   ├── litemap v0.8.0
+│   │   │   │   │   │   │   │   ├── tinystr v0.8.1
+│   │   │   │   │   │   │   │   │   ├── displaydoc v0.2.5 (proc-macro) (*)
+│   │   │   │   │   │   │   │   │   └── zerovec v0.11.2 (*)
+│   │   │   │   │   │   │   │   ├── writeable v0.6.1
+│   │   │   │   │   │   │   │   └── zerovec v0.11.2 (*)
+│   │   │   │   │   │   │   ├── stable_deref_trait v1.2.0
+│   │   │   │   │   │   │   ├── tinystr v0.8.1 (*)
+│   │   │   │   │   │   │   ├── writeable v0.6.1
+│   │   │   │   │   │   │   ├── yoke v0.8.0 (*)
+│   │   │   │   │   │   │   ├── zerofrom v0.1.6 (*)
+│   │   │   │   │   │   │   ├── zerotrie v0.2.2
+│   │   │   │   │   │   │   │   ├── displaydoc v0.2.5 (proc-macro) (*)
+│   │   │   │   │   │   │   │   ├── yoke v0.8.0 (*)
+│   │   │   │   │   │   │   │   └── zerofrom v0.1.6 (*)
+│   │   │   │   │   │   │   └── zerovec v0.11.2 (*)
+│   │   │   │   │   │   ├── smallvec v1.15.1
+│   │   │   │   │   │   └── zerovec v0.11.2 (*)
+│   │   │   │   │   └── icu_properties v2.0.1
+│   │   │   │   │       ├── displaydoc v0.2.5 (proc-macro) (*)
+│   │   │   │   │       ├── icu_collections v2.0.0 (*)
+│   │   │   │   │       ├── icu_locale_core v2.0.0 (*)
+│   │   │   │   │       ├── icu_properties_data v2.0.1
+│   │   │   │   │       ├── icu_provider v2.0.0 (*)
+│   │   │   │   │       ├── potential_utf v0.1.2 (*)
+│   │   │   │   │       ├── zerotrie v0.2.2 (*)
+│   │   │   │   │       └── zerovec v0.11.2 (*)
+│   │   │   │   ├── smallvec v1.15.1
+│   │   │   │   └── utf8_iter v1.0.4
+│   │   │   └── percent-encoding v2.3.1
+│   │   └── webpki-roots v1.0.0 (*)
+│   ├── rsbinder v0.4.0
+│   │   ├── async-trait v0.1.88 (proc-macro) (*)
+│   │   ├── downcast-rs v2.0.1
+│   │   ├── log v0.4.27
+│   │   ├── pretty-hex v0.4.1
+│   │   ├── rsproperties v0.2.1
+│   │   │   ├── log v0.4.27
+│   │   │   ├── pretty-hex v0.4.1
+│   │   │   ├── rustix v1.0.7
+│   │   │   │   ├── bitflags v2.9.1
+│   │   │   │   └── linux-raw-sys v0.9.4
+│   │   │   ├── thiserror v2.0.12
+│   │   │   │   └── thiserror-impl v2.0.12 (proc-macro)
+│   │   │   │       ├── proc-macro2 v1.0.95 (*)
+│   │   │   │       ├── quote v1.0.40 (*)
+│   │   │   │       └── syn v2.0.103 (*)
+│   │   │   ├── zerocopy v0.8.25
+│   │   │   └── zerocopy-derive v0.8.25 (proc-macro)
+│   │   │       ├── proc-macro2 v1.0.95 (*)
+│   │   │       ├── quote v1.0.40 (*)
+│   │   │       └── syn v2.0.103 (*)
+│   │   ├── rustix v1.0.7 (*)
+│   │   └── tokio v1.45.1 (*)
+│   │   [build-dependencies]
+│   │   └── rsbinder-aidl v0.4.0
+│   │       ├── convert_case v0.8.0
+│   │       │   └── unicode-segmentation v1.12.0
+│   │       ├── pest v2.8.1
+│   │       │   ├── memchr v2.7.5
+│   │       │   ├── thiserror v2.0.12 (*)
+│   │       │   └── ucd-trie v0.1.7
+│   │       ├── pest_derive v2.8.1 (proc-macro)
+│   │       │   ├── pest v2.8.1 (*)
+│   │       │   └── pest_generator v2.8.1
+│   │       │       ├── pest v2.8.1 (*)
+│   │       │       ├── pest_meta v2.8.1
+│   │       │       │   └── pest v2.8.1 (*)
+│   │       │       │   [build-dependencies]
+│   │       │       │   └── sha2 v0.10.9
+│   │       │       │       ├── cfg-if v1.0.1
+│   │       │       │       ├── cpufeatures v0.2.17
+│   │       │       │       └── digest v0.10.7
+│   │       │       │           ├── block-buffer v0.10.4
+│   │       │       │           │   └── generic-array v0.14.7
+│   │       │       │           │       └── typenum v1.18.0
+│   │       │       │           │       [build-dependencies]
+│   │       │       │           │       └── version_check v0.9.5
+│   │       │       │           └── crypto-common v0.1.6
+│   │       │       │               ├── generic-array v0.14.7 (*)
+│   │       │       │               └── typenum v1.18.0
+│   │       │       ├── proc-macro2 v1.0.95 (*)
+│   │       │       ├── quote v1.0.40 (*)
+│   │       │       └── syn v2.0.103 (*)
+│   │       ├── serde v1.0.219 (*)
+│   │       └── tera v1.20.0
+│   │           ├── chrono v0.4.41
+│   │           │   ├── iana-time-zone v0.1.63
+│   │           │   └── num-traits v0.2.19
+│   │           │       [build-dependencies]
+│   │           │       └── autocfg v1.4.0
+│   │           ├── chrono-tz v0.9.0
+│   │           │   ├── chrono v0.4.41 (*)
+│   │           │   └── phf v0.11.3
+│   │           │       └── phf_shared v0.11.3
+│   │           │           └── siphasher v1.0.1
+│   │           │   [build-dependencies]
+│   │           │   └── chrono-tz-build v0.3.0
+│   │           │       ├── parse-zoneinfo v0.3.1
+│   │           │       │   └── regex v1.11.1 (*)
+│   │           │       ├── phf v0.11.3 (*)
+│   │           │       └── phf_codegen v0.11.3
+│   │           │           ├── phf_generator v0.11.3
+│   │           │           │   ├── phf_shared v0.11.3 (*)
+│   │           │           │   └── rand v0.8.5
+│   │           │           │       ├── libc v0.2.173
+│   │           │           │       ├── rand_chacha v0.3.1 (*)
+│   │           │           │       └── rand_core v0.6.4 (*)
+│   │           │           └── phf_shared v0.11.3 (*)
+│   │           ├── globwalk v0.9.1
+│   │           │   ├── bitflags v2.9.1
+│   │           │   ├── ignore v0.4.23
+│   │           │   │   ├── crossbeam-deque v0.8.6
+│   │           │   │   │   ├── crossbeam-epoch v0.9.18 (*)
+│   │           │   │   │   └── crossbeam-utils v0.8.21
+│   │           │   │   ├── globset v0.4.16
+│   │           │   │   │   ├── aho-corasick v1.1.3
+│   │           │   │   │   │   └── memchr v2.7.5
+│   │           │   │   │   ├── bstr v1.12.0
+│   │           │   │   │   │   └── memchr v2.7.5
+│   │           │   │   │   ├── log v0.4.27
+│   │           │   │   │   ├── regex-automata v0.4.9
+│   │           │   │   │   │   ├── aho-corasick v1.1.3 (*)
+│   │           │   │   │   │   ├── memchr v2.7.5
+│   │           │   │   │   │   └── regex-syntax v0.8.5
+│   │           │   │   │   └── regex-syntax v0.8.5
+│   │           │   │   ├── log v0.4.27
+│   │           │   │   ├── memchr v2.7.5
+│   │           │   │   ├── regex-automata v0.4.9 (*)
+│   │           │   │   ├── same-file v1.0.6
+│   │           │   │   └── walkdir v2.5.0 (*)
+│   │           │   └── walkdir v2.5.0 (*)
+│   │           ├── humansize v2.1.3
+│   │           │   └── libm v0.2.15
+│   │           ├── lazy_static v1.5.0
+│   │           ├── percent-encoding v2.3.1
+│   │           ├── pest v2.8.1 (*)
+│   │           ├── pest_derive v2.8.1 (proc-macro) (*)
+│   │           ├── rand v0.8.5 (*)
+│   │           ├── regex v1.11.1 (*)
+│   │           ├── serde v1.0.219 (*)
+│   │           ├── serde_json v1.0.140 (*)
+│   │           ├── slug v0.1.6
+│   │           │   └── deunicode v1.6.2
+│   │           └── unic-segment v0.9.0
+│   │               └── unic-ucd-segment v0.9.0
+│   │                   ├── unic-char-property v0.9.0
+│   │                   │   └── unic-char-range v0.9.0
+│   │                   ├── unic-char-range v0.9.0
+│   │                   └── unic-ucd-version v0.9.0
+│   │                       └── unic-common v0.9.0
+│   ├── rustfft v6.4.0
+│   │   ├── num-complex v0.4.6
+│   │   │   └── num-traits v0.2.19
+│   │   │       [build-dependencies]
+│   │   │       └── autocfg v1.4.0
+│   │   ├── num-integer v0.1.46
+│   │   │   └── num-traits v0.2.19 (*)
+│   │   ├── num-traits v0.2.19 (*)
+│   │   ├── primal-check v0.3.4
+│   │   │   └── num-integer v0.1.46 (*)
+│   │   ├── strength_reduce v0.2.4
+│   │   └── transpose v0.2.3
+│   │       ├── num-integer v0.1.46 (*)
+│   │       └── strength_reduce v0.2.4
+│   ├── serde v1.0.219 (*)
+│   ├── serde_json v1.0.140 (*)
+│   ├── tokio v1.45.1 (*)
+│   ├── toml v0.8.23
+│   │   ├── serde v1.0.219 (*)
+│   │   ├── serde_spanned v0.6.9
+│   │   │   └── serde v1.0.219 (*)
+│   │   ├── toml_datetime v0.6.11
+│   │   │   └── serde v1.0.219 (*)
+│   │   └── toml_edit v0.22.27
+│   │       ├── indexmap v2.9.0 (*)
+│   │       ├── serde v1.0.219 (*)
+│   │       ├── serde_spanned v0.6.9 (*)
+│   │       ├── toml_datetime v0.6.11 (*)
+│   │       ├── toml_write v0.1.2
+│   │       └── winnow v0.7.11
+│   └── url v2.5.4 (*)
+│   [build-dependencies]
+│   └── rsbinder-aidl v0.4.0 (*)
+├── serde v1.0.219 (*)
+├── serde_json v1.0.140 (*)
+├── tokio v1.45.1 (*)
+├── tokio-tungstenite v0.27.0
+│   ├── futures-util v0.3.31 (*)
+│   ├── log v0.4.27
+│   ├── tokio v1.45.1 (*)
+│   └── tungstenite v0.27.0
+│       ├── bytes v1.10.1
+│       ├── data-encoding v2.9.0
+│       ├── http v1.3.1 (*)
+│       ├── httparse v1.10.1
+│       ├── log v0.4.27
+│       ├── rand v0.9.1
+│       │   ├── rand_chacha v0.9.0
+│       │   │   ├── ppv-lite86 v0.2.21 (*)
+│       │   │   └── rand_core v0.9.3
+│       │   │       └── getrandom v0.3.3
+│       │   │           ├── cfg-if v1.0.1
+│       │   │           └── libc v0.2.173
+│       │   └── rand_core v0.9.3 (*)
+│       ├── sha1 v0.10.6
+│       │   ├── cfg-if v1.0.1
+│       │   ├── cpufeatures v0.2.17
+│       │   └── digest v0.10.7
+│       │       ├── block-buffer v0.10.4 (*)
+│       │       ├── const-oid v0.9.6
+│       │       ├── crypto-common v0.1.6
+│       │       │   ├── generic-array v0.14.7
+│       │       │   │   ├── typenum v1.18.0
+│       │       │   │   └── zeroize v1.8.1 (*)
+│       │       │   │   [build-dependencies]
+│       │       │   │   └── version_check v0.9.5
+│       │       │   ├── rand_core v0.6.4 (*)
+│       │       │   └── typenum v1.18.0
+│       │       └── subtle v2.6.1
+│       ├── thiserror v2.0.12 (*)
+│       └── utf-8 v0.7.6
+├── url v2.5.4 (*)
+├── uuid v1.17.0
+│   └── getrandom v0.3.3 (*)
+└── webrtc v0.9.0
+    ├── arc-swap v1.7.1
+    ├── async-trait v0.1.88 (proc-macro) (*)
+    ├── bytes v1.10.1
+    ├── cfg-if v1.0.1
+    ├── hex v0.4.3
+    ├── interceptor v0.10.0
+    │   ├── async-trait v0.1.88 (proc-macro) (*)
+    │   ├── bytes v1.10.1
+    │   ├── log v0.4.27
+    │   ├── rand v0.8.5 (*)
+    │   ├── rtcp v0.10.1
+    │   │   ├── bytes v1.10.1
+    │   │   ├── thiserror v1.0.69 (*)
+    │   │   └── webrtc-util v0.8.1
+    │   │       ├── async-trait v0.1.88 (proc-macro) (*)
+    │   │       ├── bytes v1.10.1
+    │   │       ├── ipnet v2.11.0
+    │   │       ├── lazy_static v1.5.0
+    │   │       ├── libc v0.2.173
+    │   │       ├── log v0.4.27
+    │   │       ├── nix v0.26.4
+    │   │       │   ├── bitflags v1.3.2
+    │   │       │   ├── cfg-if v1.0.1
+    │   │       │   ├── libc v0.2.173
+    │   │       │   ├── memoffset v0.7.1
+    │   │       │   │   [build-dependencies]
+    │   │       │   │   └── autocfg v1.4.0
+    │   │       │   └── pin-utils v0.1.0
+    │   │       ├── rand v0.8.5 (*)
+    │   │       ├── thiserror v1.0.69 (*)
+    │   │       └── tokio v1.45.1 (*)
+    │   ├── rtp v0.9.0
+    │   │   ├── bytes v1.10.1
+    │   │   ├── rand v0.8.5 (*)
+    │   │   ├── serde v1.0.219 (*)
+    │   │   ├── thiserror v1.0.69 (*)
+    │   │   └── webrtc-util v0.8.1 (*)
+    │   ├── thiserror v1.0.69 (*)
+    │   ├── tokio v1.45.1 (*)
+    │   ├── waitgroup v0.1.2
+    │   │   └── atomic-waker v1.1.2
+    │   ├── webrtc-srtp v0.11.0
+    │   │   ├── aead v0.5.2
+    │   │   │   ├── crypto-common v0.1.6 (*)
+    │   │   │   └── generic-array v0.14.7 (*)
+    │   │   ├── aes v0.8.4
+    │   │   │   ├── cfg-if v1.0.1
+    │   │   │   ├── cipher v0.4.4
+    │   │   │   │   ├── crypto-common v0.1.6 (*)
+    │   │   │   │   └── inout v0.1.4
+    │   │   │   │       ├── block-padding v0.3.3
+    │   │   │   │       │   └── generic-array v0.14.7 (*)
+    │   │   │   │       └── generic-array v0.14.7 (*)
+    │   │   │   └── cpufeatures v0.2.17
+    │   │   ├── aes-gcm v0.10.3
+    │   │   │   ├── aead v0.5.2 (*)
+    │   │   │   ├── aes v0.8.4 (*)
+    │   │   │   ├── cipher v0.4.4 (*)
+    │   │   │   ├── ctr v0.9.2
+    │   │   │   │   └── cipher v0.4.4 (*)
+    │   │   │   ├── ghash v0.5.1
+    │   │   │   │   ├── opaque-debug v0.3.1
+    │   │   │   │   └── polyval v0.6.2
+    │   │   │   │       ├── cfg-if v1.0.1
+    │   │   │   │       ├── cpufeatures v0.2.17
+    │   │   │   │       ├── opaque-debug v0.3.1
+    │   │   │   │       └── universal-hash v0.5.1
+    │   │   │   │           ├── crypto-common v0.1.6 (*)
+    │   │   │   │           └── subtle v2.6.1
+    │   │   │   └── subtle v2.6.1
+    │   │   ├── byteorder v1.5.0
+    │   │   ├── bytes v1.10.1
+    │   │   ├── ctr v0.9.2 (*)
+    │   │   ├── hmac v0.12.1
+    │   │   │   └── digest v0.10.7 (*)
+    │   │   ├── log v0.4.27
+    │   │   ├── rtcp v0.10.1 (*)
+    │   │   ├── rtp v0.9.0 (*)
+    │   │   ├── sha1 v0.10.6 (*)
+    │   │   ├── subtle v2.6.1
+    │   │   ├── thiserror v1.0.69 (*)
+    │   │   ├── tokio v1.45.1 (*)
+    │   │   └── webrtc-util v0.8.1 (*)
+    │   └── webrtc-util v0.8.1 (*)
+    ├── lazy_static v1.5.0
+    ├── log v0.4.27
+    ├── rand v0.8.5 (*)
+    ├── rcgen v0.11.3
+    │   ├── pem v3.0.5
+    │   │   └── base64 v0.22.1
+    │   ├── ring v0.16.20
+    │   │   ├── libc v0.2.173
+    │   │   ├── once_cell v1.21.3
+    │   │   ├── spin v0.5.2
+    │   │   └── untrusted v0.7.1
+    │   │   [build-dependencies]
+    │   │   └── cc v1.2.27 (*)
+    │   ├── time v0.3.41
+    │   │   ├── deranged v0.4.0
+    │   │   │   └── powerfmt v0.2.0
+    │   │   ├── itoa v1.0.15
+    │   │   ├── num-conv v0.1.0
+    │   │   ├── powerfmt v0.2.0
+    │   │   ├── time-core v0.1.4
+    │   │   └── time-macros v0.2.22 (proc-macro)
+    │   │       ├── num-conv v0.1.0
+    │   │       └── time-core v0.1.4
+    │   ├── x509-parser v0.15.1
+    │   │   ├── asn1-rs v0.5.2
+    │   │   │   ├── asn1-rs-derive v0.4.0 (proc-macro)
+    │   │   │   │   ├── proc-macro2 v1.0.95 (*)
+    │   │   │   │   ├── quote v1.0.40 (*)
+    │   │   │   │   ├── syn v1.0.109
+    │   │   │   │   │   ├── proc-macro2 v1.0.95 (*)
+    │   │   │   │   │   ├── quote v1.0.40 (*)
+    │   │   │   │   │   └── unicode-ident v1.0.18
+    │   │   │   │   └── synstructure v0.12.6
+    │   │   │   │       ├── proc-macro2 v1.0.95 (*)
+    │   │   │   │       ├── quote v1.0.40 (*)
+    │   │   │   │       ├── syn v1.0.109 (*)
+    │   │   │   │       └── unicode-xid v0.2.6
+    │   │   │   ├── asn1-rs-impl v0.1.0 (proc-macro)
+    │   │   │   │   ├── proc-macro2 v1.0.95 (*)
+    │   │   │   │   ├── quote v1.0.40 (*)
+    │   │   │   │   └── syn v1.0.109 (*)
+    │   │   │   ├── displaydoc v0.2.5 (proc-macro) (*)
+    │   │   │   ├── nom v7.1.3
+    │   │   │   │   ├── memchr v2.7.5
+    │   │   │   │   └── minimal-lexical v0.2.1
+    │   │   │   ├── num-traits v0.2.19 (*)
+    │   │   │   ├── rusticata-macros v4.1.0
+    │   │   │   │   └── nom v7.1.3 (*)
+    │   │   │   ├── thiserror v1.0.69 (*)
+    │   │   │   └── time v0.3.41 (*)
+    │   │   ├── data-encoding v2.9.0
+    │   │   ├── der-parser v8.2.0
+    │   │   │   ├── asn1-rs v0.5.2 (*)
+    │   │   │   ├── displaydoc v0.2.5 (proc-macro) (*)
+    │   │   │   ├── nom v7.1.3 (*)
+    │   │   │   ├── num-bigint v0.4.6
+    │   │   │   │   ├── num-integer v0.1.46 (*)
+    │   │   │   │   └── num-traits v0.2.19 (*)
+    │   │   │   ├── num-traits v0.2.19 (*)
+    │   │   │   └── rusticata-macros v4.1.0 (*)
+    │   │   ├── lazy_static v1.5.0
+    │   │   ├── nom v7.1.3 (*)
+    │   │   ├── oid-registry v0.6.1
+    │   │   │   └── asn1-rs v0.5.2 (*)
+    │   │   ├── ring v0.16.20 (*)
+    │   │   ├── rusticata-macros v4.1.0 (*)
+    │   │   ├── thiserror v1.0.69 (*)
+    │   │   └── time v0.3.41 (*)
+    │   └── yasna v0.5.2
+    │       └── time v0.3.41 (*)
+    ├── regex v1.11.1 (*)
+    ├── ring v0.16.20 (*)
+    ├── rtcp v0.10.1 (*)
+    ├── rtp v0.9.0 (*)
+    ├── rustls v0.21.12
+    │   ├── log v0.4.27
+    │   ├── ring v0.17.14 (*)
+    │   ├── rustls-webpki v0.101.7
+    │   │   ├── ring v0.17.14 (*)
+    │   │   └── untrusted v0.9.0
+    │   └── sct v0.7.1
+    │       ├── ring v0.17.14 (*)
+    │       └── untrusted v0.9.0
+    ├── sdp v0.6.2
+    │   ├── rand v0.8.5 (*)
+    │   ├── substring v1.4.5
+    │   │   [build-dependencies]
+    │   │   └── autocfg v1.4.0
+    │   ├── thiserror v1.0.69 (*)
+    │   └── url v2.5.4 (*)
+    ├── serde v1.0.219 (*)
+    ├── serde_json v1.0.140 (*)
+    ├── sha2 v0.10.9
+    │   ├── cfg-if v1.0.1
+    │   ├── cpufeatures v0.2.17
+    │   └── digest v0.10.7 (*)
+    ├── smol_str v0.2.2
+    │   └── serde v1.0.219 (*)
+    ├── stun v0.5.1
+    │   ├── base64 v0.21.7
+    │   ├── crc v3.3.0
+    │   │   └── crc-catalog v2.4.0
+    │   ├── lazy_static v1.5.0
+    │   ├── md-5 v0.10.6
+    │   │   ├── cfg-if v1.0.1
+    │   │   └── digest v0.10.7 (*)
+    │   ├── rand v0.8.5 (*)
+    │   ├── ring v0.17.14 (*)
+    │   ├── subtle v2.6.1
+    │   ├── thiserror v1.0.69 (*)
+    │   ├── tokio v1.45.1 (*)
+    │   ├── url v2.5.4 (*)
+    │   └── webrtc-util v0.8.1 (*)
+    ├── thiserror v1.0.69 (*)
+    ├── time v0.3.41 (*)
+    ├── tokio v1.45.1 (*)
+    ├── turn v0.7.1
+    │   ├── async-trait v0.1.88 (proc-macro) (*)
+    │   ├── base64 v0.21.7
+    │   ├── futures v0.3.31
+    │   │   ├── futures-channel v0.3.31 (*)
+    │   │   ├── futures-core v0.3.31
+    │   │   ├── futures-executor v0.3.31
+    │   │   │   ├── futures-core v0.3.31
+    │   │   │   ├── futures-task v0.3.31
+    │   │   │   └── futures-util v0.3.31 (*)
+    │   │   ├── futures-io v0.3.31
+    │   │   ├── futures-sink v0.3.31
+    │   │   ├── futures-task v0.3.31
+    │   │   └── futures-util v0.3.31 (*)
+    │   ├── log v0.4.27
+    │   ├── md-5 v0.10.6 (*)
+    │   ├── rand v0.8.5 (*)
+    │   ├── ring v0.17.14 (*)
+    │   ├── stun v0.5.1 (*)
+    │   ├── thiserror v1.0.69 (*)
+    │   ├── tokio v1.45.1 (*)
+    │   ├── tokio-util v0.7.15 (*)
+    │   └── webrtc-util v0.8.1 (*)
+    ├── url v2.5.4 (*)
+    ├── waitgroup v0.1.2 (*)
+    ├── webrtc-data v0.8.1
+    │   ├── bytes v1.10.1
+    │   ├── log v0.4.27
+    │   ├── thiserror v1.0.69 (*)
+    │   ├── tokio v1.45.1 (*)
+    │   ├── webrtc-sctp v0.9.1
+    │   │   ├── arc-swap v1.7.1
+    │   │   ├── async-trait v0.1.88 (proc-macro) (*)
+    │   │   ├── bytes v1.10.1
+    │   │   ├── crc v3.3.0 (*)
+    │   │   ├── log v0.4.27
+    │   │   ├── rand v0.8.5 (*)
+    │   │   ├── thiserror v1.0.69 (*)
+    │   │   ├── tokio v1.45.1 (*)
+    │   │   └── webrtc-util v0.8.1 (*)
+    │   └── webrtc-util v0.8.1 (*)
+    ├── webrtc-dtls v0.8.0
+    │   ├── aes v0.8.4 (*)
+    │   ├── aes-gcm v0.10.3 (*)
+    │   ├── async-trait v0.1.88 (proc-macro) (*)
+    │   ├── bincode v1.3.3
+    │   │   └── serde v1.0.219 (*)
+    │   ├── byteorder v1.5.0
+    │   ├── cbc v0.1.2
+    │   │   └── cipher v0.4.4 (*)
+    │   ├── ccm v0.5.0
+    │   │   ├── aead v0.5.2 (*)
+    │   │   ├── cipher v0.4.4 (*)
+    │   │   ├── ctr v0.9.2 (*)
+    │   │   └── subtle v2.6.1
+    │   ├── der-parser v8.2.0 (*)
+    │   ├── hkdf v0.12.4
+    │   │   └── hmac v0.12.1 (*)
+    │   ├── hmac v0.12.1 (*)
+    │   ├── log v0.4.27
+    │   ├── p256 v0.13.2
+    │   │   ├── ecdsa v0.16.9
+    │   │   │   ├── der v0.7.10
+    │   │   │   │   ├── const-oid v0.9.6
+    │   │   │   │   ├── pem-rfc7468 v0.7.0
+    │   │   │   │   │   └── base64ct v1.8.0
+    │   │   │   │   └── zeroize v1.8.1 (*)
+    │   │   │   ├── digest v0.10.7 (*)
+    │   │   │   ├── elliptic-curve v0.13.8
+    │   │   │   │   ├── base16ct v0.2.0
+    │   │   │   │   ├── crypto-bigint v0.5.5
+    │   │   │   │   │   ├── generic-array v0.14.7 (*)
+    │   │   │   │   │   ├── rand_core v0.6.4 (*)
+    │   │   │   │   │   ├── subtle v2.6.1
+    │   │   │   │   │   └── zeroize v1.8.1 (*)
+    │   │   │   │   ├── digest v0.10.7 (*)
+    │   │   │   │   ├── ff v0.13.1
+    │   │   │   │   │   ├── rand_core v0.6.4 (*)
+    │   │   │   │   │   └── subtle v2.6.1
+    │   │   │   │   ├── generic-array v0.14.7 (*)
+    │   │   │   │   ├── group v0.13.0
+    │   │   │   │   │   ├── ff v0.13.1 (*)
+    │   │   │   │   │   ├── rand_core v0.6.4 (*)
+    │   │   │   │   │   └── subtle v2.6.1
+    │   │   │   │   ├── hkdf v0.12.4 (*)
+    │   │   │   │   ├── pem-rfc7468 v0.7.0 (*)
+    │   │   │   │   ├── pkcs8 v0.10.2
+    │   │   │   │   │   ├── der v0.7.10 (*)
+    │   │   │   │   │   └── spki v0.7.3
+    │   │   │   │   │       └── der v0.7.10 (*)
+    │   │   │   │   ├── rand_core v0.6.4 (*)
+    │   │   │   │   ├── sec1 v0.7.3
+    │   │   │   │   │   ├── base16ct v0.2.0
+    │   │   │   │   │   ├── der v0.7.10 (*)
+    │   │   │   │   │   ├── generic-array v0.14.7 (*)
+    │   │   │   │   │   ├── pkcs8 v0.10.2 (*)
+    │   │   │   │   │   ├── subtle v2.6.1
+    │   │   │   │   │   └── zeroize v1.8.1 (*)
+    │   │   │   │   ├── subtle v2.6.1
+    │   │   │   │   └── zeroize v1.8.1 (*)
+    │   │   │   ├── rfc6979 v0.4.0
+    │   │   │   │   ├── hmac v0.12.1 (*)
+    │   │   │   │   └── subtle v2.6.1
+    │   │   │   ├── signature v2.2.0
+    │   │   │   │   ├── digest v0.10.7 (*)
+    │   │   │   │   └── rand_core v0.6.4 (*)
+    │   │   │   └── spki v0.7.3 (*)
+    │   │   ├── elliptic-curve v0.13.8 (*)
+    │   │   ├── primeorder v0.13.6
+    │   │   │   └── elliptic-curve v0.13.8 (*)
+    │   │   └── sha2 v0.10.9 (*)
+    │   ├── p384 v0.13.1
+    │   │   ├── ecdsa v0.16.9 (*)
+    │   │   ├── elliptic-curve v0.13.8 (*)
+    │   │   ├── primeorder v0.13.6 (*)
+    │   │   └── sha2 v0.10.9 (*)
+    │   ├── rand v0.8.5 (*)
+    │   ├── rand_core v0.6.4 (*)
+    │   ├── rcgen v0.11.3 (*)
+    │   ├── ring v0.16.20 (*)
+    │   ├── rustls v0.21.12 (*)
+    │   ├── sec1 v0.7.3 (*)
+    │   ├── serde v1.0.219 (*)
+    │   ├── sha1 v0.10.6 (*)
+    │   ├── sha2 v0.10.9 (*)
+    │   ├── subtle v2.6.1
+    │   ├── thiserror v1.0.69 (*)
+    │   ├── tokio v1.45.1 (*)
+    │   ├── webrtc-util v0.8.1 (*)
+    │   ├── x25519-dalek v2.0.1
+    │   │   ├── curve25519-dalek v4.1.3
+    │   │   │   ├── cfg-if v1.0.1
+    │   │   │   ├── cpufeatures v0.2.17
+    │   │   │   ├── curve25519-dalek-derive v0.1.1 (proc-macro)
+    │   │   │   │   ├── proc-macro2 v1.0.95 (*)
+    │   │   │   │   ├── quote v1.0.40 (*)
+    │   │   │   │   └── syn v2.0.103 (*)
+    │   │   │   ├── subtle v2.6.1
+    │   │   │   └── zeroize v1.8.1 (*)
+    │   │   │   [build-dependencies]
+    │   │   │   └── rustc_version v0.4.1
+    │   │   │       └── semver v1.0.26
+    │   │   ├── rand_core v0.6.4 (*)
+    │   │   └── zeroize v1.8.1 (*)
+    │   └── x509-parser v0.15.1 (*)
+    ├── webrtc-ice v0.10.1
+    │   ├── arc-swap v1.7.1
+    │   ├── async-trait v0.1.88 (proc-macro) (*)
+    │   ├── crc v3.3.0 (*)
+    │   ├── log v0.4.27
+    │   ├── rand v0.8.5 (*)
+    │   ├── serde v1.0.219 (*)
+    │   ├── serde_json v1.0.140 (*)
+    │   ├── stun v0.5.1 (*)
+    │   ├── thiserror v1.0.69 (*)
+    │   ├── tokio v1.45.1 (*)
+    │   ├── turn v0.7.1 (*)
+    │   ├── url v2.5.4 (*)
+    │   ├── uuid v1.17.0 (*)
+    │   ├── waitgroup v0.1.2 (*)
+    │   ├── webrtc-mdns v0.6.1
+    │   │   ├── log v0.4.27
+    │   │   ├── socket2 v0.5.10 (*)
+    │   │   ├── thiserror v1.0.69 (*)
+    │   │   ├── tokio v1.45.1 (*)
+    │   │   └── webrtc-util v0.8.1 (*)
+    │   └── webrtc-util v0.8.1 (*)
+    ├── webrtc-mdns v0.6.1 (*)
+    ├── webrtc-media v0.7.1
+    │   ├── byteorder v1.5.0
+    │   ├── bytes v1.10.1
+    │   ├── rand v0.8.5 (*)
+    │   ├── rtp v0.10.0
+    │   │   ├── bytes v1.10.1
+    │   │   ├── rand v0.8.5 (*)
+    │   │   ├── serde v1.0.219 (*)
+    │   │   ├── thiserror v1.0.69 (*)
+    │   │   └── webrtc-util v0.8.1 (*)
+    │   └── thiserror v1.0.69 (*)
+    ├── webrtc-sctp v0.9.1 (*)
+    ├── webrtc-srtp v0.11.0 (*)
+    └── webrtc-util v0.8.1 (*)
+
+client_app v0.1.0 (/home/sparrow/projects/rust/rtp-midi/client_app)
+├── anyhow v1.0.98
+├── clap v4.5.40
+│   ├── clap_builder v4.5.40
+│   │   ├── anstream v0.6.19 (*)
+│   │   ├── anstyle v1.0.11
+│   │   ├── clap_lex v0.7.5
+│   │   └── strsim v0.11.1
+│   └── clap_derive v4.5.40 (proc-macro)
+│       ├── heck v0.5.0
+│       ├── proc-macro2 v1.0.95 (*)
+│       ├── quote v1.0.40 (*)
+│       └── syn v2.0.103 (*)
+├── env_logger v0.11.8 (*)
+├── futures-util v0.3.31 (*)
+├── log v0.4.27
+├── rtp_midi_lib v0.1.0 (/home/sparrow/projects/rust/rtp-midi/rtp_midi_lib) (*)
+├── serde v1.0.219 (*)
+├── serde_json v1.0.140 (*)
+├── tokio v1.45.1 (*)
+├── tokio-tungstenite v0.27.0 (*)
+├── url v2.5.4 (*)
+├── uuid v1.17.0 (*)
+└── webrtc v0.9.0 (*)
+
+integration_tests v0.1.0 (/home/sparrow/projects/rust/rtp-midi/integration_tests)
+[dev-dependencies]
+├── anyhow v1.0.98
+├── audio_server v0.1.0 (/home/sparrow/projects/rust/rtp-midi/audio_server) (*)
+├── client_app v0.1.0 (/home/sparrow/projects/rust/rtp-midi/client_app) (*)
+├── env_logger v0.11.8 (*)
+├── log v0.4.27
+├── mockito v1.7.0
+│   ├── assert-json-diff v2.0.2
+│   │   ├── serde v1.0.219 (*)
+│   │   └── serde_json v1.0.140 (*)
+│   ├── bytes v1.10.1
+│   ├── colored v3.0.0
+│   ├── futures-util v0.3.31 (*)
+│   ├── http v1.3.1 (*)
+│   ├── http-body v1.0.1 (*)
+│   ├── http-body-util v0.1.3 (*)
+│   ├── hyper v1.6.0 (*)
+│   ├── hyper-util v0.1.14 (*)
+│   ├── log v0.4.27
+│   ├── rand v0.9.1 (*)
+│   ├── regex v1.11.1 (*)
+│   ├── serde_json v1.0.140 (*)
+│   ├── serde_urlencoded v0.7.1 (*)
+│   ├── similar v2.7.0
+│   └── tokio v1.45.1 (*)
+├── rtp_midi_lib v0.1.0 (/home/sparrow/projects/rust/rtp-midi/rtp_midi_lib) (*)
+├── signaling_server v0.1.0 (/home/sparrow/projects/rust/rtp-midi/signaling_server)
+│   ├── anyhow v1.0.98
+│   ├── crossbeam-channel v0.5.15 (*)
+│   ├── env_logger v0.11.8 (*)
+│   ├── futures-util v0.3.31 (*)
+│   ├── log v0.4.27
+│   ├── rtp_midi_lib v0.1.0 (/home/sparrow/projects/rust/rtp-midi/rtp_midi_lib) (*)
+│   ├── serde v1.0.219 (*)
+│   ├── serde_json v1.0.140 (*)
+│   ├── tokio v1.45.1 (*)
+│   ├── tokio-tungstenite v0.27.0 (*)
+│   ├── url v2.5.4 (*)
+│   └── uuid v1.17.0 (*)
+├── tempfile v3.20.0
+│   ├── fastrand v2.3.0
+│   ├── getrandom v0.3.3 (*)
+│   ├── once_cell v1.21.3
+│   └── rustix v1.0.7 (*)
+└── tokio v1.45.1 (*)
+
+rtp_midi_lib v0.1.0 (/home/sparrow/projects/rust/rtp-midi/rtp_midi_lib) (*)
+
+rtp_midi_utils v0.1.0 (/home/sparrow/projects/rust/rtp-midi/rtp_midi_utils)
+
+signaling_server v0.1.0 (/home/sparrow/projects/rust/rtp-midi/signaling_server) (*)
