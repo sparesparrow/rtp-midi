@@ -6,6 +6,9 @@ use std::collections::{BTreeSet, VecDeque};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use core::DataStreamNetSender;
+use core::DataStreamNetReceiver;
+use core::StreamError;
 
 use super::message::{JournalEntry, MidiMessage, RtpMidiPacket, JournalData};
 use utils::ParsedPacket;
@@ -202,5 +205,33 @@ impl RtpMidiSession {
         for entry in entries {
             history.insert(entry.sequence_nr);
         }
+    }
+}
+
+#[async_trait::async_trait]
+impl DataStreamNetSender for RtpMidiSession {
+    fn init(&mut self) -> Result<(), StreamError> {
+        // Zde lze inicializovat síťové zdroje, pokud je potřeba
+        Ok(())
+    }
+    fn send(&mut self, ts: u64, payload: &[u8]) -> Result<(), StreamError> {
+        // Odeslání raw MIDI packetu (payload) s timestampem ts
+        // Zde by bylo potřeba převést payload na MidiMessage a zavolat send_midi
+        // Pro jednoduchost předpokládáme, že payload je již správně připravený
+        // (v praxi by zde byla serializace/deserializace)
+        // TODO: Implementace podle konkrétního formátu
+        Ok(())
+    }
+}
+
+#[async_trait::async_trait]
+impl DataStreamNetReceiver for RtpMidiSession {
+    fn init(&mut self) -> Result<(), StreamError> {
+        Ok(())
+    }
+    fn poll(&mut self, buf: &mut [u8]) -> Result<Option<(u64, usize)>, StreamError> {
+        // Zde by se zpracovával příchozí packet a naplnil buf
+        // Prozatím pouze stub
+        Ok(None)
     }
 }
