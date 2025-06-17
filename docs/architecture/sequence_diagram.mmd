@@ -1,0 +1,22 @@
+---
+title: RTP-MIDI Sequence Diagram - MIDI Event to WLED
+---
+
+sequenceDiagram
+    participant User as User
+    participant QtUI as Qt Desktop UI
+    participant FFI as FFI Boundary
+    participant RustCore as Rust Core
+    participant MIDI as MIDI Stack
+    participant PacketProcessor as Packet Processor
+    participant WLED as WLED Control
+    participant WLEDDevice as WLED/ESP32
+
+    User->>QtUI: Triggers MIDI event
+    QtUI->>FFI: Calls Rust FFI function
+    FFI->>RustCore: Passes event
+    RustCore->>MIDI: Processes MIDI event
+    MIDI->>PacketProcessor: Generates packet
+    PacketProcessor->>WLED: Prepares DDP/JSON
+    WLED->>WLEDDevice: Sends update
+    WLEDDevice-->>User: LEDs update in real time 
