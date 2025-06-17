@@ -18,6 +18,16 @@ use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::runtime::Runtime;
 use tokio::sync::mpsc;
 use tokio_tungstenite::{accept_async, tungstenite::Message};
+use uuid::Uuid;
+use webrtc::api::media_engine::{MediaEngine, MIME_TYPE_OPUS};
+use webrtc::api::APIBuilder;
+use webrtc::data_channel::RTCDataChannel;
+use webrtc::ice_transport::ice_candidate::RTCIceCandidateInit;
+use webrtc::ice_transport::ice_server::RTCIceServer;
+use webrtc::peer_connection::configuration::RTCConfiguration;
+use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
+use webrtc::peer_connection::RTCPeerConnection;
+use webrtc::track::track_remote::TrackRemote;
 
 pub mod android;
 pub mod ffi;
@@ -27,7 +37,7 @@ pub mod ddp_output;
 pub mod midi;
 pub mod mapping;
 
-pub use midi::rtp::message::{MidiMessage, RtpMidiPacket};
+pub use midi::rtp::message::{MidiMessage, RtpMidiPacket, MidiCommand};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum PeerType {
@@ -284,8 +294,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
 
     let wled_ip = config.wled_ip.clone();
     let audio_device_name = config.audio_device.clone();
-    let midi_port = config.midi_port.unwrap_or(5004);
-    let mappings = config.mappings.clone(); // Clone mappings for use in the loop
+    let mappings = config.mappings.clone();
 
     let (audio_tx, audio_rx) = crossbeam_channel::unbounded();
     let (midi_tx, midi_rx) = crossbeam_channel::unbounded();
@@ -297,34 +306,210 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
             .expect("Failed to start audio input stream");
     });
 
-    // RTP-MIDI Receiver Task (Async)
-    let signaling_server_clients = signaling_server_module::Clients::new();
-    let signaling_server_clients_clone = signaling_server_clients.clone();
-    let midi_tx_clone = midi_tx.clone();
-    tokio::spawn(async move {
-        let session = RtpMidiSession::new(
-            "Rust WLED Hub".to_string(),
-            midi_port,
-        ).await.expect("Failed to create RTP-MIDI session");
+    // --- WebRTC/Signaling Setup ---
+    let my_client_id = format!("rtp-midi-service-{}", Uuid::new_v4());
+    let signaling_url = "ws://127.0.0.1:8080/signaling".to_string(); // Assuming signaling server runs on localhost:8080
 
-        session.add_listener(RtpMidiEventType::MidiPacket, move |data| {
-            for command in data.commands() {
-                // Filter out clock and active sensing messages
-                match command {
-                    MidiCommand::TimingClock | MidiCommand::ActiveSensing => { /* ignore */ },
-                    _ => {
-                        info!("MIDI Command Received: {:?}", command);
-                        if let Err(e) = midi_tx_clone.send(command) {
-                            error!("Failed to send MIDI command to channel: {}", e);
+    let (ws_stream, _) = connect_async(signaling_url)
+        .await
+        .expect("Failed to connect to signaling server");
+    let (mut ws_write, mut ws_read) = ws_stream.split();
+
+    let ws_write_arc = Arc::new(tokio::sync::Mutex::new(ws_write));
+
+    // Register with signaling server
+    let register_msg = SignalingMessage {
+        message_type: "register".to_string(),
+        sender_id: my_client_id.clone(),
+        receiver_id: Some("server".to_string()),
+        payload: serde_json::json!({
+            "peer_type": PeerType::AudioServer,
+            "client_id": my_client_id.clone(),
+        }),
+    };
+    ws_write_arc.lock().await.send(Message::Text(serde_json::to_string(&register_msg).unwrap())).await.expect("Failed to send register message");
+    info!("Registered with signaling server as {}", my_client_id);
+
+    // WebRTC Peer Connection setup
+    let mut media_engine = MediaEngine::default();
+    media_engine.register_default_codecs().unwrap();
+    let api = APIBuilder::new().with_media_engine(media_engine).build();
+    let mut rtc_config = RTCConfiguration::default();
+    rtc_config.ice_servers = vec![
+        RTCIceServer {
+            urls: vec!["stun:stun.l.google.com:19302".to_string()],
+            ..Default::default()
+        },
+    ];
+    let peer_connection = Arc::new(api.new_peer_connection(rtc_config).await.unwrap());
+
+    let peer_connection_clone = Arc::clone(&peer_connection);
+    let my_client_id_clone = my_client_id.clone();
+    let midi_tx_clone_for_dc = midi_tx.clone();
+
+    // Handle incoming data channels (for MIDI)
+    peer_connection.on_data_channel(Box::new(move |data_channel: Arc<RTCDataChannel>| {
+        let dc_clone = Arc::clone(&data_channel);
+        let midi_tx_clone_inner = midi_tx_clone_for_dc.clone();
+        Box::pin(async move {
+            info!("Received data channel: {}", data_channel.label());
+            if data_channel.label() == "midi" {
+                data_channel.on_message(Box::new(move |msg: Bytes| {
+                    let midi_tx = midi_tx_clone_inner.clone();
+                    Box::pin(async move {
+                        if msg.is_empty() {
+                            return;
                         }
+                        info!("MIDI data received over WebRTC data channel: {:?}", msg);
+                        // Parse raw MIDI bytes using the new parser
+                        let mut cursor = 0;
+                        while cursor < msg.len() {
+                            match midi::parser::parse_midi_message(&msg[cursor..]) {
+                                Ok((command, bytes_read)) => {
+                                    info!("Parsed MIDI command: {:?}", command);
+                                    if let Err(e) = midi_tx.send(command) {
+                                        error!("Failed to send MIDI command to channel: {}", e);
+                                    }
+                                    cursor += bytes_read;
+                                },
+                                Err(e) => {
+                                    error!("Failed to parse MIDI message from data channel at {}: {}", cursor, e);
+                                    break; // Stop parsing if an error occurs
+                                }
+                            }
+                        }
+                    })
+                }));
+            }
+        })
+    })).await;
+
+    // Handle ICE candidates
+    let ws_write_ice_clone = Arc::clone(&ws_write_arc);
+    let my_client_id_ice_clone = my_client_id.clone();
+    peer_connection.on_ice_candidate(Box::new(move |candidate| {
+        let ws_write = ws_write_ice_clone.clone();
+        let my_client_id = my_client_id_ice_clone.clone();
+        Box::pin(async move {
+            if let Some(candidate) = candidate {
+                let candidate_msg = SignalingMessage {
+                    message_type: "ice_candidate".to_string(),
+                    sender_id: my_client_id,
+                    receiver_id: None,
+                    payload: serde_json::json!({
+                        "candidate": candidate.to_json().unwrap(),
+                        "sdpMid": candidate.sdp_mid,
+                        "sdpMLineIndex": candidate.sdp_mline_index,
+                    }),
+                };
+                if let Ok(msg_str) = serde_json::to_string(&candidate_msg) {
+                    if let Err(e) = ws_write.lock().await.send(Message::text(msg_str)).await {
+                        error!("Failed to send ICE candidate: {}", e);
+                    } else {
+                        info!("Sent ICE candidate to signaling server.");
                     }
                 }
             }
-        }).await;
+        })
+    })).await;
 
-        info!("RTP-MIDI Server started on port {}. Waiting for connections...", midi_port);
-        // Start the server, accepting all incoming session invitations
-        let _ = session.start(RtpMidiSession::accept_all_invitations).await;
+    // Handle peer connection state changes
+    peer_connection.on_peer_connection_state_change(Box::new(move |state: RTCPeerConnectionState| {
+        Box::pin(async move {
+            info!("WebRTC connection state changed: {:?}", state);
+            if state == RTCPeerConnectionState::Failed ||
+               state == RTCPeerConnectionState::Closed ||
+               state == RTCPeerConnectionState::Disconnected {
+                error!("WebRTC connection terminated. Attempting to restart or handle gracefully.");
+                // TODO: Implement reconnection logic or graceful shutdown
+            }
+        })
+    })).await;
+
+    // Task to read messages from signaling server
+    let peer_connection_signaling_clone = Arc::clone(&peer_connection);
+    let my_client_id_signaling_clone = my_client_id.clone();
+    let ws_write_signaling_clone = Arc::clone(&ws_write_arc);
+
+    tokio::spawn(async move {
+        while let Some(msg_res) = ws_read.next().await {
+            let msg = match msg_res {
+                Ok(m) => m,
+                Err(e) => {
+                    error!("Error receiving message from signaling server: {}", e);
+                    break;
+                }
+            };
+
+            if msg.is_text() {
+                let text = msg.to_text().unwrap();
+                let signaling_msg: SignalingMessage = match serde_json::from_str(text) {
+                    Ok(msg) => msg,
+                    Err(e) => {
+                        error!("Failed to parse signaling message: {}. Message: {}", e, text);
+                        continue;
+                    }
+                };
+                info!("Received signaling message: {:?}", signaling_msg);
+
+                match signaling_msg.message_type.as_str() {
+                    "offer" => {
+                        let offer_sdp = signaling_msg.payload.get("sdp").and_then(|v| v.as_str()).unwrap_or("");
+                        let offer = webrtc::peer_connection::sdp::session_description::RTCSessionDescription::offer(offer_sdp.to_string()).unwrap();
+                        if let Err(e) = peer_connection_signaling_clone.set_remote_description(offer).await {
+                            error!("Failed to set remote description (offer): {}", e);
+                            continue;
+                        }
+
+                        let answer = peer_connection_signaling_clone.create_answer(None).await.unwrap();
+                        if let Err(e) = peer_connection_signaling_clone.set_local_description(answer.clone()).await {
+                            error!("Failed to set local description (answer): {}", e);
+                            continue;
+                        }
+
+                        let answer_msg = SignalingMessage {
+                            message_type: "answer".to_string(),
+                            sender_id: my_client_id_signaling_clone.clone(),
+                            receiver_id: Some(signaling_msg.sender_id.clone()),
+                            payload: serde_json::json!({
+                                "sdp": peer_connection_signaling_clone.local_description().await.unwrap().sdp,
+                                "type": "answer"
+                            }),
+                        };
+                        let msg_str = serde_json::to_string(&answer_msg).unwrap();
+                        if let Err(e) = ws_write_signaling_clone.lock().await.send(Message::text(msg_str)).await {
+                            error!("Failed to send answer: {}", e);
+                        }
+                        info!("Sent answer to {}.", signaling_msg.sender_id);
+                    },
+                    "answer" => {
+                        let answer_sdp = signaling_msg.payload.get("sdp").and_then(|v| v.as_str()).unwrap_or("");
+                        let answer = webrtc::peer_connection::sdp::session_description::RTCSessionDescription::answer(answer_sdp.to_string()).unwrap();
+                        if let Err(e) = peer_connection_signaling_clone.set_remote_description(answer).await {
+                            error!("Failed to set remote description (answer): {}", e);
+                        }
+                        info!("Received answer from {}.", signaling_msg.sender_id);
+                    },
+                    "ice_candidate" => {
+                        let candidate_payload = signaling_msg.payload.get("candidate").unwrap();
+                        if let Ok(candidate_init) = serde_json::from_value::<RTCIceCandidateInit>(candidate_payload.clone()) {
+                            if let Err(e) = peer_connection_signaling_clone.add_ice_candidate(candidate_init).await {
+                                eprintln!("[ServiceLoop] Chyba při přidávání ICE kandidáta: {}", e);
+                            } else {
+                                info!("Added ICE candidate from {}.", signaling_msg.sender_id);
+                            }
+                        } else {
+                            eprintln!("[ServiceLoop] Nepodařilo se deserializovat ICE kandidáta z payloadu.");
+                        }
+                    },
+                    "new_client_list" | "peer_list" | "register_success" => {
+                        info!("Received client list or register success: {:?}", signaling_msg.payload);
+                        // Optionally handle peer list updates here if needed for direct connection management
+                    }
+                    _ => info!("Unhandled signaling message type: {}", signaling_msg.message_type),
+                }
+            }
+        }
     });
 
     // Main service loop for audio processing and DDP output
@@ -352,7 +537,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
             // Example: set WLED preset based on MIDI Note On
             if let MidiCommand::NoteOn { key, .. } = midi_command {
                 // Map MIDI key to a WLED preset (e.g., C3=48 -> Preset 1)
-                let preset_id = (key as i32 - 47).max(1); 
+                let preset_id = (key as i32 - 47).max(1);
                 // Ensure preset_id is at least 1
                 info!("Attempting to set WLED preset {} from MIDI note {}", preset_id, key);
                 if let Err(e) = wled_control::set_wled_preset(&wled_ip, preset_id).await {

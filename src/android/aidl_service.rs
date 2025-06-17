@@ -11,9 +11,48 @@ use rsbinder::{Interface, Result as BinderResult, Strong, StatusCode};
 
 use crate::{Config, run_service_loop, wled_control};
 
-// Zahrnutí vygenerovaného kódu z AIDL.
-// Cargo automaticky najde tento soubor v `OUT_DIR`.
+#[cfg(target_os = "android")]
 include!(concat!(env!("OUT_DIR"), "/com/example/rtpmidi/IMidiWledService.rs"));
+
+// Dummy trait for non-Android targets to prevent compilation errors
+#[cfg(not(target_os = "android"))]
+pub trait IMidiWledService {
+    // Define a minimal set of methods or an empty trait if no common interface is needed.
+    // Or, simply make the code that depends on IMidiWledService conditional as well.
+    fn startListener(&self) -> BinderResult<bool> {
+        // Dummy implementation for non-Android
+        info!("Dummy FFI: startListener called (non-Android)");
+        Ok(false)
+    }
+    fn stopListener(&self) -> BinderResult<()> {
+        // Dummy implementation for non-Android
+        info!("Dummy FFI: stopListener called (non-Android)");
+        Ok(())
+    }
+    fn setWledPreset(&self, preset_id: i32) -> BinderResult<()> {
+        // Dummy implementation for non-Android
+        info!("Dummy FFI: setWledPreset called (non-Android) with id {}", preset_id);
+        Ok(())
+    }
+    fn getStatus(&self) -> BinderResult<String> {
+        // Dummy implementation for non-Android
+        info!("Dummy FFI: getStatus called (non-Android)");
+        Ok("Not Running (Non-Android)".to_string())
+    }
+    fn isRunning(&self) -> BinderResult<bool> {
+        // Dummy implementation for non-Android
+        info!("Dummy FFI: isRunning called (non-Android)");
+        Ok(false)
+    }
+}
+
+#[cfg(target_os = "android")]
+pub mod aidl_impl;
+
+#[cfg(not(target_os = "android"))]
+pub mod aidl_impl {
+    // Dummy module for non-Android targets
+}
 
 // Název služby, pod kterým bude registrována v Android Service Manageru.
 pub const SERVICE_NAME: &str = "com.example.rtpmidi.MidiWledService";
@@ -80,7 +119,7 @@ impl IMidiWledService for MidiWledService {
 
         let thread_handle = thread::spawn(move || {
             // Tato funkce je z `lib.rs` a obsahuje hlavní logiku.
-            run_service_loop(config_clone, running_clone, rt_handle_clone);
+            run_service_loop(config_clone, running_clone);
         });
 
         state.worker_thread = Some(thread_handle);

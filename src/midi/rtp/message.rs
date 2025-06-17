@@ -212,31 +212,5 @@ fn encode_variable_length_quantity(value: u32, buf: &mut [u8; 4]) -> Result<usiz
 }
 
 // Helper to determine MIDI command length
-fn midi_command_length(status_byte: u8) -> usize {
-    match status_byte & 0xF0 {
-        0x80 => 3, // Note Off
-        0x90 => 3, // Note On
-        0xA0 => 3, // Polyphonic Key Pressure
-        0xB0 => 3, // Control Change
-        0xC0 => 2, // Program Change
-        0xD0 => 2, // Channel Pressure
-        0xE0 => 3, // Pitch Bend Change
-        0xF0 => {
-            match status_byte {
-                0xF0 => 1, // SysEx Start (length is variable, handled by subsequent bytes)
-                0xF1 => 2, // MIDI Time Code Quarter Frame
-                0xF2 => 3, // Song Position Pointer
-                0xF3 => 2, // Song Select
-                0xF6 => 1, // Tune Request
-                0xF8 => 1, // Timing Clock
-                0xFA => 1, // Start
-                0xFB => 1, // Continue
-                0xFC => 1, // Stop
-                0xFE => 1, // Active Sensing
-                0xFF => 1, // Reset
-                _ => 1, // Unknown system common/real-time message, assume 1 byte
-            }
-        }
-        _ => 1, // Data byte or running status. This should not happen if status byte is correctly identified.
-    }
-} 
+// The midi_command_length function has been moved to src/midi/parser.rs
+// so it is removed from here to avoid duplication. 

@@ -18,7 +18,7 @@ static TOKIO_RUNTIME: Lazy<Runtime> = Lazy::new(|| {
 pub struct ServiceHandle {
     config: Arc<Mutex<Option<Config>>>,
     running: Arc<AtomicBool>,
-    worker_thread: Mutex<Option<JoinHandle<()>>>,
+    worker_thread: Mutex<Option<tokio::task::JoinHandle<()>>>,
     tokio_rt_handle: tokio::runtime::Handle,
 }
 
@@ -84,11 +84,9 @@ pub unsafe extern "C" fn start_service(handle: *mut ServiceHandle) {
     let running_clone = handle_ref.running.clone();
     let rt_handle_clone = handle_ref.tokio_rt_handle.clone(); // Use stored handle
 
-    let thread = thread::spawn(move || {
-        // run_service_loop is now async, needs to be run on a Tokio runtime
-        rt_handle_clone.block_on(async {
-            run_service_loop(config, running_clone).await;
-        });
+    // Spawn the async run_service_loop directly onto the Tokio runtime
+    let thread = rt_handle_clone.spawn(async move {
+        run_service_loop(config, running_clone).await;
     });
 
     *worker_guard = Some(thread);
@@ -113,9 +111,10 @@ pub unsafe extern "C" fn stop_service(handle: *mut ServiceHandle) {
     handle_ref.running.store(false, Ordering::SeqCst);
 
     let mut worker_guard = handle_ref.worker_thread.lock().unwrap();
-    if let Some(thread) = worker_guard.take() {
-        thread.join().expect("Failed to join service thread");
-        info!("Service thread joined.");
+    if let Some(thread_handle) = worker_guard.take() {
+        // Abort the spawned Tokio task
+        thread_handle.abort();
+        info!("Service task signaled to stop and handle cleared.");
     }
 }
 
@@ -127,11 +126,12 @@ pub unsafe extern "C" fn stop_service(handle: *mut ServiceHandle) {
 pub unsafe extern "C" fn destroy_service(handle: *mut ServiceHandle) {
     if handle.is_null() { return; }
     // Stop the service first to ensure the thread is cleaned up.
+    // This will signal the spawned task to stop.
     stop_service(handle);
 
-    // Take ownership of the Runtime and drop it.
-    let handle_box = Box::from_raw(handle);
-    // The `tokio_rt_handle` is merely a handle, no need to drop the runtime here.
+    // The ServiceHandle is owned by the Box, which will be dropped when it goes out of scope.
+    // This will correctly clean up the Arc and other resources.
+    let _ = Box::from_raw(handle);
     info!("Service handle destroyed.");
 }
 

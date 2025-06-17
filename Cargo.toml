@@ -4,51 +4,65 @@
 name = "rtp-midi"
 version = "0.1.0"
 edition = "2021"
-# Přidání build skriptu
-build = "build.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0"
+log = "0.4"
+env_logger = "0.11.1"
+cpal = "0.15.2"
+rustfft = "6.1.0"
+ddp-rs = { git = "https://github.com/elpatron666/ddp-rs.git" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8.10"
+wled-json-client = { git = "https://github.com/elpatron666/wled-json-client-rs.git" }
+tokio = { version = "1.35.1", features = ["full"] }
+tokio-tungstenite = { version = "0.21.0", features = ["native-tls"] }
+futures-util = "0.3.30"
+crossbeam-channel = "0.5.11"
+once_cell = "1.19.0"
+midir = "0.10.0"
+uuid = { version = "1.7.0", features = ["v4"] }
+webrtc = { version = "0.8.0", features = ["default"] }
+bytes = { version = "1.6.0", features = ["serde"] }
+rand = "0.8.5"
+libc = "0.2.149"
+url = "2.5.0"
+
+[target.'cfg(target_os = "android")'.dependencies]
+rsbinder = "0.4.0"
+rsbinder-aidl = "0.4.0"
+jni = { version = "0.21.1", features = ["invocation"] }
 
 [lib]
 name = "rtp_midi_lib"
-# cdylib je nezbytná pro JNI
+path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
 
-[dependencies]
-clap = { version = "4.0", features = ["derive"] }
-tokio = { version = "1", features = ["full"] }
-tokio-tungstenite = { version = "0.27.0", features = ["connect"] }
-futures-util = "0.3"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-uuid = { version = "1.0", features = ["v4"] }
-log = "0.4"
-env_logger = "0.11"
-crossbeam-channel = "0.5"
-cpal = "0.16.0"
-rustfft = "6.1"
-anyhow = "1.0"
-ddp-rs = "1.0.0"
-toml = "0.8"
-tempfile = "3.10"
-ctrlc = "3.4"
-reqwest = { version = "0.12.20", features = ["json", "rustls-tls"] }
-num-traits = "0.2"
-url = "2.5.0"
-bytes = "1.0"
-libc = "0.2"
-rsbinder = "0.4.0"
-rsbinder-aidl = "0.4.0"
-android_logger = "0.11.0"
-jni = "0.21.1"
-async-trait = "0.1"
+[[bin]]
+name = "rtp-midi-service"
+path = "src/main.rs"
 
-[target.aarch64-linux-android.dependencies]
-openssl = { version = "0.10.64", features = ["vendored"] }
+[[bin]]
+name = "audio-server"
+path = "src/audio_server/main.rs"
 
-[build-dependencies]
-rsbinder-aidl = "0.4.0"
+[[bin]]
+name = "client-app"
+path = "src/client_app/main.rs"
 
-[dev-dependencies]
-mockito = "1.2.0"
-url = "2.5.0"
-rtp-midi = { path = "." }
+# For Android, we define the target specific binary for the AIDL service
+[target.'aarch64-linux-android'.profile.release]
+# Optimize for size
+opt-level = "s"
+lto = true
+codegen-units = 1
+
+[target.'armv7-linux-androideabi'.profile.release]
+# Optimize for size
+opt-level = "s"
+lto = true
+codegen-units = 1
 

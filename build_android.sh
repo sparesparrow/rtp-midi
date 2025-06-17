@@ -82,13 +82,19 @@ export CC_armv7_linux_androideabi="${TOOLCHAIN_PATH}/armv7a-linux-androideabi${M
 export CC_i686_linux_android="${TOOLCHAIN_PATH}/i686-linux-android${MIN_API_LEVEL}-clang"
 export CC_x86_64_linux_android="${TOOLCHAIN_PATH}/x86_64-linux-android${MIN_API_LEVEL}-clang"
 
-# Archivers (New fix)
+# Archivers
 export AR_aarch64_linux_android="${TOOLCHAIN_PATH}/llvm-ar"
 export AR_armv7_linux_androideabi="${TOOLCHAIN_PATH}/llvm-ar"
 export AR_i686_linux_android="${TOOLCHAIN_PATH}/llvm-ar"
 export AR_x86_64_linux_android="${TOOLCHAIN_PATH}/llvm-ar"
 
-echo "--- Set C compilers and Archivers in environment variables ---"
+# Ranlib (THE FIX)
+export RANLIB_aarch64_linux_android="${TOOLCHAIN_PATH}/llvm-ranlib"
+export RANLIB_armv7_linux_androideabi="${TOOLCHAIN_PATH}/llvm-ranlib"
+export RANLIB_i686_linux_android="${TOOLCHAIN_PATH}/llvm-ranlib"
+export RANLIB_x86_64_linux_android="${TOOLCHAIN_PATH}/llvm-ranlib"
+
+echo "--- Set C compilers, Archivers, and Ranlib in environment variables ---"
 
 # --- Build Function ---
 # This function builds for a specific target and copies the output.
