@@ -1,11 +1,16 @@
+# Cargo.toml
+
 [package]
 name = "rtp-midi"
 version = "0.1.0"
 edition = "2021"
+# Přidání build skriptu
+build = "build.rs"
 
 [lib]
 name = "rtp_midi_lib"
-crate-type = ["cdylib", "rlib"] # cdylib pro FFI, rlib pro Rust testy/binárky
+# cdylib je nezbytná pro JNI
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 clap = { version = "4.0", features = ["derive"] }
@@ -29,10 +34,14 @@ reqwest = { version = "0.11", features = ["json", "blocking", "rustls-tls"] }
 num-traits = "0.2"
 url = "2.5.0"
 bytes = "1.0"
-libc = "0.2" # Přidáno pro FFI
+libc = "0.2"
+
+# Nové závislosti pro Android a JNI
+jni = "0.21.1"
+binder_ndk = "0.2.0"
 
 [dev-dependencies]
 mockito = "1.2.0"
 url = "2.5.0"
-
 rtp-midi = { path = "." }
+

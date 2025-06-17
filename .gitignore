@@ -1,1 +1,11 @@
+# .gitignore
+
 /target
+
+# Ignorovat adresář s AIDL definicemi, pokud je spravován odděleně
+# nebo pokud ho nechceme v gitu. Prozatím ponecháme, je součástí projektu.
+# aidl/
+
+# Ignorovat soubory generované build skriptem v adresáři projektu
+# (i když by měly být v `target/`, pro jistotu)
+/com_example_rtpmidi_IMidiWledService.rs

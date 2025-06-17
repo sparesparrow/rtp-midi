@@ -19,6 +19,9 @@ use tokio::runtime::Runtime;
 use tokio::sync::mpsc;
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 
+pub mod android;
+pub mod ffi;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum PeerType {
     AudioServer,
@@ -872,5 +875,3 @@ fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
         ((b_prime + m) * 255.0) as u8,
     )
 }
-
-pub mod ffi;
