@@ -10,5 +10,4 @@ serde = { version = "1.0", features = ["derive"] }
 bytes = "1.0"
 tokio = { version = "1", features = ["full"] }
 audio = { path = "../audio" }
-output = { path = "../output" }
 utils = { path = "../utils" }

@@ -2,7 +2,7 @@ use anyhow::Result;
 use reqwest::Client;
 use serde_json::json;
 use log::{error, info};
-use core::event_bus::Event;
+use utils::Event;
 use network::network_interface::NetworkInterface;
 use utils::WledOutputAction;
 use std::sync::Arc;
