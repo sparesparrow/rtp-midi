@@ -42,9 +42,15 @@ pub enum WledOutputAction {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum MappingOutput {
+    Wled(WledOutputAction),
+    // Ddp(DdpOutputAction), // Připravte pro další typy výstupů
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Mapping {
     pub input: InputEvent,
-    pub output: Vec<WledOutputAction>,
+    pub output: Vec<MappingOutput>,
 }
 
 #[derive(Debug, Clone)]

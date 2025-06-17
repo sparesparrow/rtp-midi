@@ -154,9 +154,15 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
                                 if bass_level >= trigger_threshold && !bass_preset_triggered {
                                     info!("Bass peak detected! Level: {:.2}. Triggering actions.", bass_level);
                                     for action in &mapping.output {
-                                        // --- Směrování pouze na WLED výstup ---
-                                        if let Ok(payload) = serde_json::to_vec(action) {
-                                            let _ = wled_sender.send(0, &payload);
+                                        match action {
+                                            utils::MappingOutput::Wled(wled_action) => {
+                                                if let Ok(payload) = serde_json::to_vec(wled_action) {
+                                                    let _ = wled_sender.send(0, &payload);
+                                                }
+                                            }
+                                            // utils::MappingOutput::Ddp(ddp_action) => {
+                                            //     // Přidejte logiku pro DDP výstup
+                                            // }
                                         }
                                     }
                                     bass_preset_triggered = true;
@@ -183,8 +189,15 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
                                     _ => ()
                                 }
                                 for action in &mapping.output {
-                                    if let Ok(payload) = serde_json::to_vec(action) {
-                                        let _ = wled_sender.send(0, &payload);
+                                    match action {
+                                        utils::MappingOutput::Wled(wled_action) => {
+                                            if let Ok(payload) = serde_json::to_vec(wled_action) {
+                                                let _ = wled_sender.send(0, &payload);
+                                            }
+                                        }
+                                        // utils::MappingOutput::Ddp(ddp_action) => {
+                                        //     // Přidejte logiku pro DDP výstup
+                                        // }
                                     }
                                 }
                             }
