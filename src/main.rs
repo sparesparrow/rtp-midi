@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use log::{info, error};
 use ctrlc;
-use rtp_midi::{Config, run_service_loop};
+use rtp_midi_lib::{Config, run_service_loop};
 
 /// Main entry point for the desktop application.
 /// This loads the configuration and runs the service loop until interrupted.
