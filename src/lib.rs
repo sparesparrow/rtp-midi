@@ -8,11 +8,14 @@ use log::{error, info, warn};
 use num_traits;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
-use std::time::{SystemTime, UNIX_EPOCH};
-use tokio::net::{TcpListener, TcpStream};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use tokio::net::{TcpListener, TcpStream, UdpSocket};
+use tokio::runtime::Runtime;
 use tokio::sync::mpsc;
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 
@@ -134,9 +137,6 @@ mod tests {
     }
 }
 
-use std::fs;
-use std::path::Path;
-
 /// Application configuration loaded from config.toml
 #[derive(Debug, Deserialize, Clone, PartialEq)]
 pub struct Config {
@@ -166,7 +166,7 @@ impl Config {
 }
 
 #[cfg(test)]
-mod tests {
+mod config_tests {
     use super::*;
     use std::io::Write;
     use tempfile::NamedTempFile;
@@ -193,7 +193,6 @@ mod tests {
 }
 
 /// Maps FFT magnitudes to LED RGB values.
-/// Returns a Vec<u8> of length led_count * 3 (RGB for each LED).
 pub fn map_audio_to_leds(magnitudes: &[f32], led_count: usize) -> Vec<u8> {
     let mut leds = vec![0u8; led_count * 3];
     let band_size = magnitudes.len() / 3;
@@ -209,7 +208,7 @@ pub fn map_audio_to_leds(magnitudes: &[f32], led_count: usize) -> Vec<u8> {
 }
 
 #[cfg(test)]
-mod tests {
+mod mapping_tests {
     use super::*;
 
     #[test]
@@ -235,25 +234,12 @@ mod tests {
 }
 
 /// Sends a frame of LED data to the DDP receiver (WLED).
-pub fn send_ddp_frame(
-    sender: &mut ddp_rs::connection::DDPConnection,
-    data: &[u8],
-) -> Result<()> {
+pub fn send_ddp_frame(sender: &mut ddp_rs::connection::DDPConnection, data: &[u8]) -> Result<()> {
     sender.write(data)?;
     Ok(())
 }
 
-/// Creates a DDPConnection for the given target IP, port, and pixel config.
-/// Note: ddp-rs 0.3 only supports RGB (3 channels per pixel) via PixelConfig::default().
-/// RGBW is not directly supported in this version of the crate.
-pub fn create_ddp_sender(
-    ip: &str,
-    port: u16,
-    _led_count: usize,
-    _rgbw: bool,
-) -> Result<ddp_rs::connection::DDPConnection> {
-    // ddp-rs 0.3 does not support RGBW configuration. Only RGB is supported.
-    // If you need RGBW, you must use a different crate or fork ddp-rs.
+pub fn create_ddp_sender(ip: &str, port: u16, _led_count: usize, _rgbw: bool) -> Result<ddp_rs::connection::DDPConnection> {
     let pixel_config = ddp_rs::protocol::PixelConfig::default(); // Always RGB
     let addr = format!("{}:{}", ip, port);
     let socket = std::net::UdpSocket::bind("0.0.0.0:0")?;
@@ -262,7 +248,7 @@ pub fn create_ddp_sender(
 }
 
 #[cfg(test)]
-mod tests {
+mod ddp_tests {
     use super::*;
 
     #[test]
@@ -270,8 +256,6 @@ mod tests {
         let res = create_ddp_sender("256.256.256.256", 4048, 10, false);
         assert!(res.is_err(), "Should fail for invalid IP");
     }
-
-    // Note: For a real integration test, bind a UDP socket and check for received data.
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -285,7 +269,6 @@ impl MidiMessage {
         Self { delta_time, command }
     }
 }
-
 
 pub mod midi_rtp_packet {
     use super::{Bytes, BytesMut, MidiMessage, Result, Serialize, Deserialize, SystemTime, UNIX_EPOCH}; 
@@ -322,7 +305,7 @@ pub mod midi_rtp_packet {
                 padding: false,
                 extension: false,
                 csrc_count: 0,
-                marker: false, // RFC 6295: Marker bit should be 1 for the last packet of a MIDI event
+                marker: false,
                 payload_type: MIDI_PAYLOAD_TYPE,
                 sequence_number: 0, 
                 timestamp,
@@ -353,7 +336,6 @@ pub mod midi_rtp_packet {
             
             let header_size = 12 + (csrc_count as usize) * 4;
             if extension {
-                 // Simplified: skipping extension header parsing
                  return Err(anyhow::anyhow!("RTP extension headers not supported"));
             }
             
@@ -364,8 +346,8 @@ pub mod midi_rtp_packet {
             let midi_payload = &data[header_size..];
             let midi_header = midi_payload[0];
             let journal_present = (midi_header >> 7) & 1 != 0;
-            let _b_bit = (midi_header >> 6) & 1 != 0; // B-bit for command section structure, not used here
-            let _midi_list_len = (midi_header & 0x0F) as usize; // Length of the MIDI command section
+            let _b_bit = (midi_header >> 6) & 1 != 0;
+            let _midi_list_len = (midi_header & 0x0F) as usize;
 
             let mut midi_commands = Vec::new();
             let mut offset = 1;
@@ -373,32 +355,29 @@ pub mod midi_rtp_packet {
             let mut running_status: Option<u8> = None;
 
             while offset < midi_payload.len() {
-                // --- Parse Delta Time ---
                 let (delta_time, bytes_read) = parse_variable_length_quantity(&midi_payload[offset..])?;
                 offset += bytes_read;
 
-                // --- Parse MIDI Command ---
                 if offset >= midi_payload.len() {
-                    return Err(anyhow::anyhow!("Incomplete MIDI message: missing command"));
+                    break;
                 }
                 
                 let first_byte = midi_payload[offset];
                 let command_byte;
                 let mut command_data = Vec::new();
 
-                if first_byte >= 0x80 { // New status byte
+                if first_byte >= 0x80 {
                     command_byte = first_byte;
                     command_data.push(command_byte);
                     offset += 1;
-                    if command_byte < 0xF0 { // Channel messages
+                    if command_byte < 0xF0 {
                        running_status = Some(command_byte);
-                    } else { // System messages
+                    } else {
                        running_status = None;
                     }
-                } else { // Running status
+                } else {
                     command_byte = running_status.ok_or_else(|| anyhow::anyhow!("Missing running status"))?;
                     command_data.push(command_byte);
-                    // Do not increment offset, first_byte is data
                 }
 
                 let data_len = midi_command_length(command_byte);
@@ -407,7 +386,6 @@ pub mod midi_rtp_packet {
                     return Err(anyhow::anyhow!("Incomplete MIDI command data"));
                 }
                 
-                // Add data bytes
                 for _ in 0..data_len {
                     command_data.push(midi_payload[offset]);
                     offset += 1;
@@ -427,7 +405,6 @@ pub mod midi_rtp_packet {
         pub fn serialize(&self) -> Result<Bytes> {
             let mut buffer = BytesMut::with_capacity(1024);
             
-            // RTP header
             let b0 = (self.version << 6) | ((self.padding as u8) << 5) | ((self.extension as u8) << 4) | (self.csrc_count & 0x0F);
             let b1 = ((self.marker as u8) << 7) | (self.payload_type & 0x7F);
             buffer.extend_from_slice(&[b0, b1]);
@@ -435,67 +412,38 @@ pub mod midi_rtp_packet {
             buffer.extend_from_slice(&self.timestamp.to_be_bytes());
             buffer.extend_from_slice(&self.ssrc.to_be_bytes());
             
-            // --- MIDI Payload ---
-            // B-bit (bit 6) is 1, indicating each command is preceded by delta time
             let midi_header = ((self.journal_present as u8) << 7) | (1 << 6); 
-            buffer.extend_from_slice(&[midi_header]); // Placeholder for length, will update later
+            buffer.extend_from_slice(&[midi_header]);
 
             let mut midi_payload = BytesMut::new();
             for msg in &self.midi_commands {
-                // Encode and write delta time
                 let mut delta_time_buf = [0u8; 4];
                 let dt_len = encode_variable_length_quantity(msg.delta_time, &mut delta_time_buf)?;
                 midi_payload.extend_from_slice(&delta_time_buf[..dt_len]);
-
-                // Write MIDI command data
                 midi_payload.extend_from_slice(&msg.command);
             }
             
-            // Update the length in the MIDI header
-            let len_byte_index = buffer.len() - 1;
+            let len_byte_index = 12;
             let midi_list_len = self.midi_commands.len();
             if midi_list_len > 15 {
                 return Err(anyhow::anyhow!("Too many MIDI commands in one packet (max 15)"));
             }
             buffer[len_byte_index] |= midi_list_len as u8;
 
-            // Append the actual MIDI payload
             buffer.extend_from_slice(&midi_payload);
             
             Ok(buffer.freeze())
         }
         
-        pub fn midi_commands(&self) -> &Vec<MidiMessage> {
-            &self.midi_commands
-        }
-        
-        pub fn set_sequence_number(&mut self, seq: u16) {
-            self.sequence_number = seq;
-        }
-        
-        pub fn set_ssrc(&mut self, ssrc: u32) {
-            self.ssrc = ssrc;
-        }
-        
-        pub fn set_journal_present(&mut self, present: bool) {
-            self.journal_present = present;
-        }
-
-        pub fn sequence_number(&self) -> u16 {
-            self.sequence_number
-        }
-
-        pub fn ssrc(&self) -> u32 {
-            self.ssrc
-        }
-
-        pub fn journal_present(&self) -> bool {
-            self.journal_present
-        }
+        pub fn midi_commands(&self) -> &Vec<MidiMessage> { &self.midi_commands }
+        pub fn set_sequence_number(&mut self, seq: u16) { self.sequence_number = seq; }
+        pub fn set_ssrc(&mut self, ssrc: u32) { self.ssrc = ssrc; }
+        pub fn set_journal_present(&mut self, present: bool) { self.journal_present = present; }
+        pub fn sequence_number(&self) -> u16 { self.sequence_number }
+        pub fn ssrc(&self) -> u32 { self.ssrc }
+        pub fn journal_present(&self) -> bool { self.journal_present }
     }
 
-    /// Parses a variable-length quantity (VLQ) from a byte slice.
-    /// Returns the parsed value and the number of bytes read.
     fn parse_variable_length_quantity(data: &[u8]) -> Result<(u32, usize)> {
         let mut value: u32 = 0;
         let mut bytes_read = 0;
@@ -503,23 +451,16 @@ pub mod midi_rtp_packet {
             if i >= 4 { return Err(anyhow::anyhow!("VLQ too long")); }
             value = (value << 7) | (byte & 0x7F) as u32;
             bytes_read += 1;
-            if byte & 0x80 == 0 { // End of VLQ
-                return Ok((value, bytes_read));
-            }
+            if byte & 0x80 == 0 { return Ok((value, bytes_read)); }
         }
         Err(anyhow::anyhow!("Incomplete VLQ data"))
     }
 
-    /// Encodes a u32 value into a variable-length quantity (VLQ).
-    /// Returns the number of bytes written to the buffer.
     fn encode_variable_length_quantity(value: u32, buf: &mut [u8; 4]) -> Result<usize> {
-        if value > 0x0FFFFFFF {
-            return Err(anyhow::anyhow!("Value too large for VLQ encoding"));
-        }
+        if value > 0x0FFFFFFF { return Err(anyhow::anyhow!("Value too large for VLQ encoding")); }
         let mut temp = value;
         let mut bytes = [0u8; 4];
         let mut i = 3;
-
         loop {
             bytes[i] = (temp & 0x7F) as u8;
             temp >>= 7;
@@ -528,27 +469,16 @@ pub mod midi_rtp_packet {
             if i == 0 { return Err(anyhow::anyhow!("VLQ encoding error")); }
             i -= 1;
         }
-
         let len = 4 - i;
         buf[..len].copy_from_slice(&bytes[i..]);
         Ok(len)
     }
     
-    /// Returns the expected number of data bytes for a given MIDI command status byte.
     fn midi_command_length(status_byte: u8) -> usize {
         match status_byte & 0xF0 {
-            0x80 | 0x90 | 0xA0 | 0xB0 | 0xE0 => 2, // Note Off, Note On, Aftertouch, CC, Pitch Bend
-            0xC0 | 0xD0 => 1, // Program Change, Channel Pressure
-            0xF0 => { // System messages
-                match status_byte {
-                    0xF1 | 0xF3 => 1, // MTC Quarter Frame, Song Select
-                    0xF2 => 2, // Song Position Pointer
-                    0xF6 => 0, // Tune Request
-                    // F0 (SysEx) and F7 (SysEx End) are handled differently (variable length).
-                    // This simple implementation does not support multi-packet SysEx.
-                    _ => 0,
-                }
-            }
+            0x80 | 0x90 | 0xA0 | 0xB0 | 0xE0 => 2,
+            0xC0 | 0xD0 => 1,
+            0xF0 => match status_byte { 0xF1 | 0xF3 => 1, 0xF2 => 2, _ => 0, },
             _ => 0,
         }
     }
@@ -585,162 +515,99 @@ pub mod signaling_server_module {
     }
 
     impl Clients {
-        pub fn new() -> Self {
-            Self {
-                peers: Arc::new(Mutex::new(HashMap::new())),
-            }
-        }
-
-        pub fn register(&self, client_id: String, peer_type: super::PeerType, tx: mpsc::Sender<Result<Message, tokio_tungstenite::tungstenite::Error>>) {
-            let mut peers = self.peers.lock().unwrap();
-            peers.insert(client_id, (peer_type, tx));
-        }
-
-        pub fn unregister(&self, client_id: &str) {
-            let mut peers = self.peers.lock().unwrap();
-            peers.remove(client_id);
-        }
-
+        pub fn new() -> Self { Self { peers: Arc::new(Mutex::new(HashMap::new())), } }
+        pub fn register(&self, client_id: String, peer_type: super::PeerType, tx: mpsc::Sender<Result<Message, tokio_tungstenite::tungstenite::Error>>) { self.peers.lock().unwrap().insert(client_id, (peer_type, tx)); }
+        pub fn unregister(&self, client_id: &str) { self.peers.lock().unwrap().remove(client_id); }
         pub fn get_audio_server(&self) -> Option<(String, mpsc::Sender<Result<Message, tokio_tungstenite::tungstenite::Error>>)> {
             let peers = self.peers.lock().unwrap();
             for (id, (peer_type, tx)) in peers.iter() {
-                if let super::PeerType::AudioServer = peer_type {
-                    return Some((id.clone(), tx.clone()));
-                }
+                if let super::PeerType::AudioServer = peer_type { return Some((id.clone(), tx.clone())); }
             }
             None
         }
-
-        pub fn get_peer(&self, client_id: &str) -> Option<mpsc::Sender<Result<Message, tokio_tungstenite::tungstenite::Error>>> {
-            let peers = self.peers.lock().unwrap();
-            peers.get(client_id).map(|(_, tx)| tx.clone())
-        }
-
-        pub fn get_all_clients(&self) -> Vec<(String, super::PeerType)> {
-            let peers = self.peers.lock().unwrap();
-            peers.iter().map(|(id, (peer_type, _))| (id.clone(), peer_type.clone())).collect()
-        }
+        pub fn get_peer(&self, client_id: &str) -> Option<mpsc::Sender<Result<Message, tokio_tungstenite::tungstenite::Error>>> { self.peers.lock().unwrap().get(client_id).map(|(_, tx)| tx.clone()) }
+        pub fn get_all_clients(&self) -> Vec<(String, super::PeerType)> { self.peers.lock().unwrap().iter().map(|(id, (peer_type, _))| (id.clone(), peer_type.clone())).collect() }
     }
 
     pub async fn handle_connection(clients: Clients, stream: TcpStream) {
         info!("New connection from {}", stream.peer_addr().unwrap());
-        
-        let ws_stream = match accept_async(stream).await {
-            Ok(ws) => ws,
-            Err(e) => {
-                error!("Error during WebSocket handshake: {}", e);
-                return;
-            }
-        };
-        
+        let ws_stream = match accept_async(stream).await { Ok(ws) => ws, Err(e) => { error!("Error during WebSocket handshake: {}", e); return; } };
         let (mut ws_write, mut ws_read) = ws_stream.split();
-        
         let (tx, mut rx) = mpsc::channel::<Result<Message, tokio_tungstenite::tungstenite::Error>>(64);
-        
         let mut client_id = String::new();
         let mut _peer_type = None;
-        
-        // Listen for incoming messages
-        tokio::spawn(async move {
-            while let Some(msg) = rx.recv().await {
-                if let Err(e) = ws_write.send(msg.unwrap()).await {
-                    error!("Error sending message over WebSocket: {}", e);
-                    break;
-                }
-            }
-        });
-        
+        tokio::spawn(async move { while let Some(msg) = rx.recv().await { if let Err(e) = ws_write.send(msg.unwrap()).await { error!("Error sending message over WebSocket: {}", e); break; } } });
         while let Some(msg) = ws_read.next().await {
-            let msg = match msg {
-                Ok(msg) => msg,
-                Err(e) => {
-                    error!("Error reading message from WebSocket: {}", e);
-                    break;
-                }
-            };
-            
-            if msg.is_close() {
-                info!("WebSocket connection closed by peer");
-                break;
-            }
-            
+            let msg = match msg { Ok(msg) => msg, Err(e) => { error!("Error reading message from WebSocket: {}", e); break; } };
+            if msg.is_close() { info!("WebSocket connection closed by peer"); break; }
             if let Message::Text(text) = msg {
                 match serde_json::from_str::<SignalingMessage>(&text) {
-                    Ok(signaling_msg) => {
-                        match signaling_msg.message_type.as_str() {
-                            "register" => {
-                                if let Ok(register_payload) = serde_json::from_value::<RegisterPayload>(signaling_msg.payload) {
-                                    client_id = register_payload.client_id.clone();
-                                    _peer_type = Some(register_payload.peer_type.clone());
-                                    
-                                    clients.register(client_id.clone(), register_payload.peer_type, tx.clone());
-                                    info!("Registered client: {} (type: {:?})", client_id, _peer_type);
-                                    
-                                    // Inform client of successful registration
-                                    let response = SignalingMessage {
-                                        message_type: "register_success".to_string(),
-                                        sender_id: "server".to_string(),
-                                        receiver_id: Some(client_id.clone()),
-                                        payload: json!({
-                                            "message": "Successfully registered",
-                                            "registered_id": client_id,
-                                            "clients": clients.get_all_clients()
-                                        }),
-                                    };
-                                    
-                                    if let Ok(response_str) = serde_json::to_string(&response) {
-                                        let _ = tx.send(Ok(Message::text(response_str))).await;
-                                    } else {
-                                        error!("Failed to serialize register_success response");
-                                    }
-                                    
-                                    // Inform audio server about the new client
-                                    if let Some(super::PeerType::ClientApp) = _peer_type {
-                                        notify_audio_server_of_new_client(&clients, &client_id).await;
-                                    }
-                                } else {
-                                    warn!("Failed to parse register payload from client {}", client_id);
-                                }
-                            },
-                            "list_peers" => {
-                                let current_clients = clients.get_all_clients();
+                    Ok(signaling_msg) => match signaling_msg.message_type.as_str() {
+                        "register" => {
+                            if let Ok(register_payload) = serde_json::from_value::<RegisterPayload>(signaling_msg.payload) {
+                                client_id = register_payload.client_id.clone();
+                                _peer_type = Some(register_payload.peer_type.clone());
+                                clients.register(client_id.clone(), register_payload.peer_type, tx.clone());
+                                info!("Registered client: {} (type: {:?})", client_id, _peer_type);
                                 let response = SignalingMessage {
-                                    message_type: "peer_list".to_string(),
+                                    message_type: "register_success".to_string(),
                                     sender_id: "server".to_string(),
                                     receiver_id: Some(client_id.clone()),
                                     payload: json!({
-                                        "peers": current_clients
+                                        "message": "Successfully registered",
+                                        "registered_id": client_id,
+                                        "clients": clients.get_all_clients()
                                     }),
                                 };
-                                 
                                 if let Ok(response_str) = serde_json::to_string(&response) {
-                                    if tx.send(Ok(Message::text(response_str))).await.is_err() {
-                                        error!("Failed to send peer_list to client {}", client_id);
-                                    }
+                                    let _ = tx.send(Ok(Message::text(response_str))).await;
                                 } else {
-                                    error!("Failed to serialize peer_list response for client {}", client_id);
+                                    error!("Failed to serialize register_success response");
                                 }
-                            },
-                            "offer" | "answer" | "ice_candidate" => {
-                                if let Some(receiver_id) = &signaling_msg.receiver_id {
-                                    if let Some(peer_tx) = clients.get_peer(receiver_id) {
-                                        if let Ok(msg_str) = serde_json::to_string(&signaling_msg) {
-                                            if let Err(e) = peer_tx.send(Ok(Message::text(msg_str))).await {
-                                                error!("Error forwarding message to {}: {}", receiver_id, e);
-                                            }
-                                        } else {
-                                            error!("Failed to serialize signaling message for forwarding to {}", receiver_id);
+                                if let Some(super::PeerType::ClientApp) = _peer_type {
+                                    notify_audio_server_of_new_client(&clients, &client_id).await;
+                                }
+                            } else {
+                                warn!("Failed to parse register payload from client {}", client_id);
+                            }
+                        },
+                        "list_peers" => {
+                            let response = SignalingMessage {
+                                message_type: "peer_list".to_string(),
+                                sender_id: "server".to_string(),
+                                receiver_id: Some(client_id.clone()),
+                                payload: json!({
+                                    "peers": clients.get_all_clients()
+                                }),
+                            };
+                             
+                            if let Ok(response_str) = serde_json::to_string(&response) {
+                                if tx.send(Ok(Message::text(response_str))).await.is_err() {
+                                    error!("Failed to send peer_list to client {}", client_id);
+                                }
+                            } else {
+                                error!("Failed to serialize peer_list response for client {}", client_id);
+                            }
+                        },
+                        "offer" | "answer" | "ice_candidate" => {
+                            if let Some(receiver_id) = &signaling_msg.receiver_id {
+                                if let Some(peer_tx) = clients.get_peer(receiver_id) {
+                                    if let Ok(msg_str) = serde_json::to_string(&signaling_msg) {
+                                        if let Err(e) = peer_tx.send(Ok(Message::text(msg_str))).await {
+                                            error!("Error forwarding message to {}: {}", receiver_id, e);
                                         }
                                     } else {
-                                        warn!("Target peer {} not found for message type {}", receiver_id, signaling_msg.message_type);
+                                        error!("Failed to serialize signaling message for forwarding to {}", receiver_id);
                                     }
                                 } else {
-                                    warn!("Receiver ID missing for message type {}", signaling_msg.message_type);
+                                    warn!("Target peer {} not found for message type {}", receiver_id, signaling_msg.message_type);
                                 }
-                            },
-                            _ => {
-                                warn!("Unknown message type received: {}", signaling_msg.message_type);
+                            } else {
+                                warn!("Receiver ID missing for message type {}", signaling_msg.message_type);
                             }
+                        },
+                        _ => {
+                            warn!("Unknown message type received: {}", signaling_msg.message_type);
                         }
                     },
                     Err(e) => {
@@ -751,13 +618,8 @@ pub mod signaling_server_module {
                 warn!("Received binary message, expected text");
             }
         }
-        
-        if !client_id.is_empty() {
-            info!("Client {} disconnected", client_id);
-            clients.unregister(&client_id);
-        }
+        if !client_id.is_empty() { info!("Client {} disconnected", client_id); clients.unregister(&client_id); }
     }
-
     async fn notify_audio_server_of_new_client(clients: &Clients, client_id: &str) {
         if let Some((server_id, server_tx)) = clients.get_audio_server() {
             let notification_payload = SignalingMessage {
@@ -780,27 +642,17 @@ pub mod signaling_server_module {
             info!("No audio server registered to notify about new client {}", client_id);
         }
     }
-
     pub async fn run_server(listener: TcpListener) -> anyhow::Result<()> {
         info!("Signaling server running on {}", listener.local_addr()?);
-
         let clients = Clients::new();
-
         while let Ok((stream, _)) = listener.accept().await {
-            let peer_addr = stream.peer_addr()?;
-            info!("Accepted connection from: {}", peer_addr);
-            
             let clients_clone = clients.clone();
-            tokio::spawn(async move {
-                handle_connection(clients_clone, stream).await;
-            });
+            tokio::spawn(async move { handle_connection(clients_clone, stream).await; });
         }
-
         Ok(())
     }
 }
 
-// Re-export modules as rtp_midi::midi and rtp_midi::signaling_server
 pub mod midi {
     pub mod rtp {
         pub use super::super::midi_rtp_packet::*;
@@ -819,83 +671,73 @@ pub mod wled_control;
 /// This function is shared between the desktop main.rs and the Android AIDL service.
 pub fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
     info!("Core service loop started.");
+    let mut handles = vec![];
 
-    // Setup channels for inter-thread communication
+    // --- Channels for inter-thread communication ---
     let (audio_tx, audio_rx) = crossbeam_channel::bounded(8);
     let (fft_tx, fft_rx) = crossbeam_channel::bounded(8);
     let (led_tx, led_rx) = crossbeam_channel::bounded(8);
+    let (midi_tx, midi_rx) = crossbeam_channel::bounded::<MidiMessage>(32);
 
-    // --- Audio Input Thread ---
+    // --- Audio-to-DDP Pipeline ---
     let audio_config = config.clone();
     let running_audio = running.clone();
     let audio_handle = thread::spawn(move || {
         match start_audio_input(audio_config.audio_device.as_deref(), audio_tx) {
             Ok(stream) => {
-                // stream.play() is essential to start capturing audio
                 if let Err(e) = stream.play() {
                     error!("Failed to play audio stream: {}", e);
                     return;
                 }
                 info!("Audio input stream started.");
-                // Loop to keep the thread alive while the service is running
                 while running_audio.load(Ordering::Relaxed) {
-                    thread::sleep(std::time::Duration::from_millis(100));
+                    thread::sleep(Duration::from_millis(100));
                 }
                 info!("Audio input stream stopping.");
             }
             Err(e) => error!("Failed to start audio input: {}", e),
         }
     });
+    handles.push(audio_handle);
 
-    // --- Audio Analysis Thread ---
     let running_analysis = running.clone();
     let analysis_handle = thread::spawn(move || {
         let mut prev = Vec::new();
-        let smoothing = 0.7; // This could be moved to Config
+        let smoothing = 0.7;
         while running_analysis.load(Ordering::Relaxed) {
-             // Use a timeout to prevent blocking indefinitely if the audio stream stops
-             if let Ok(buffer) = audio_rx.recv_timeout(std::time::Duration::from_secs(1)) {
+             if let Ok(buffer) = audio_rx.recv_timeout(Duration::from_secs(1)) {
                 let mags = compute_fft_magnitudes(&buffer, &mut prev, smoothing);
-                if fft_tx.send(mags).is_err() {
-                    // Stop if the receiving end has disconnected
-                    break;
-                }
+                if fft_tx.send(mags).is_err() { break; }
             }
         }
         info!("Audio analysis thread stopped.");
     });
+    handles.push(analysis_handle);
 
-    // --- Light Mapping Thread ---
     let led_count_mapping = config.led_count;
     let running_mapping = running.clone();
     let mapping_handle = thread::spawn(move || {
         while running_mapping.load(Ordering::Relaxed) {
-            if let Ok(mags) = fft_rx.recv_timeout(std::time::Duration::from_secs(1)) {
+            if let Ok(mags) = fft_rx.recv_timeout(Duration::from_secs(1)) {
                 let leds = map_audio_to_leds(&mags, led_count_mapping);
-                if led_tx.send(leds).is_err() {
-                    break;
-                }
+                if led_tx.send(leds).is_err() { break; }
             }
         }
         info!("Light mapping thread stopped.");
     });
+    handles.push(mapping_handle);
 
-    // --- DDP Output Thread ---
     let ddp_config = config.clone();
     let running_ddp = running.clone();
     let ddp_handle = thread::spawn(move || {
         let rgbw = ddp_config.color_format.as_deref().unwrap_or("RGB").eq_ignore_ascii_case("RGBW");
         let mut sender = match create_ddp_sender(&ddp_config.wled_ip, ddp_config.ddp_port.unwrap_or(4048), ddp_config.led_count, rgbw) {
             Ok(s) => s,
-            Err(e) => {
-                error!("Failed to create DDP sender: {}", e);
-                return;
-            }
+            Err(e) => { error!("Failed to create DDP sender: {}", e); return; }
         };
         info!("DDP sender created for {}", ddp_config.wled_ip);
-
         while running_ddp.load(Ordering::Relaxed) {
-            if let Ok(leds) = led_rx.recv_timeout(std::time::Duration::from_millis(100)) {
+            if let Ok(leds) = led_rx.recv_timeout(Duration::from_millis(100)) {
                 if let Err(e) = send_ddp_frame(&mut sender, &leds) {
                     warn!("Failed to send DDP frame: {}", e);
                 }
@@ -903,11 +745,132 @@ pub fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
         }
         info!("DDP output thread stopped.");
     });
+    handles.push(ddp_handle);
 
-    // Wait for all threads to finish their work after `running` is set to false.
-    audio_handle.join().expect("Audio input thread panicked");
-    analysis_handle.join().expect("Audio analysis thread panicked");
-    mapping_handle.join().expect("Light mapping thread panicked");
-    ddp_handle.join().expect("DDP output thread panicked");
+
+    // --- MIDI-to-WLED Pipeline ---
+    let midi_config = config.clone();
+    let running_midi_listener = running.clone();
+    let midi_listener_handle = thread::spawn(move || {
+        let rt = match Runtime::new() {
+            Ok(rt) => rt,
+            Err(e) => { error!("Failed to create Tokio runtime for MIDI listener: {}", e); return; }
+        };
+
+        rt.block_on(async move {
+            let port = midi_config.midi_port.unwrap_or(5004);
+            let addr = format!("0.0.0.0:{}", port);
+            let sock = match UdpSocket::bind(&addr).await {
+                Ok(s) => s,
+                Err(e) => { error!("Failed to bind MIDI UDP socket on {}: {}", addr, e); return; }
+            };
+            info!("MIDI listener started on UDP port {}", port);
+            let mut buf = [0; 1024];
+
+            while running_midi_listener.load(Ordering::Relaxed) {
+                if let Ok(Ok((len, _))) = tokio::time::timeout(Duration::from_secs(1), sock.recv_from(&mut buf)).await {
+                    match midi::rtp::RtpMidiPacket::parse(&buf[..len]) {
+                        Ok(packet) => {
+                            for command in packet.midi_commands() {
+                                if midi_tx.send(command.clone()).is_err() {
+                                    warn!("MIDI channel closed, stopping listener.");
+                                    return;
+                                }
+                            }
+                        }
+                        Err(e) => warn!("Failed to parse RTP-MIDI packet: {}", e),
+                    }
+                }
+            }
+            info!("MIDI listener thread stopped.");
+        });
+    });
+    handles.push(midi_listener_handle);
+
+    let wled_ip_midi = config.wled_ip.clone();
+    let running_midi_logic = running.clone();
+    let midi_logic_handle = thread::spawn(move || {
+         let rt = match Runtime::new() {
+            Ok(rt) => rt,
+            Err(e) => { error!("Failed to create Tokio runtime for MIDI logic: {}", e); return; }
+        };
+
+        while running_midi_logic.load(Ordering::Relaxed) {
+            if let Ok(midi_msg) = midi_rx.recv_timeout(Duration::from_secs(1)) {
+                let command_type = midi_msg.command.get(0).cloned().unwrap_or(0) & 0xF0;
+                match command_type {
+                    0x90 => { // Note On
+                        let note = midi_msg.command.get(1).cloned().unwrap_or(0);
+                        let velocity = midi_msg.command.get(2).cloned().unwrap_or(0);
+                        if velocity > 0 {
+                            info!("Note On: {}, Vel: {}", note, velocity);
+                            // Map note to a color (simple hue rotation)
+                            let hue = (note % 12) * 30;
+                            let (r,g,b) = hsv_to_rgb(hue as f32, 1.0, 1.0);
+                            let ip = wled_ip_midi.clone();
+                            rt.block_on(async move {
+                                if let Err(e) = wled_control::set_wled_color(&ip, r, g, b).await {
+                                    warn!("Failed to set WLED color via MIDI: {}", e);
+                                }
+                            });
+                        } else {
+                            // Note On with velocity 0 is often treated as Note Off
+                             info!("Note Off (via Vel 0): {}", note);
+                        }
+                    },
+                    0xB0 => { // Control Change
+                        let cc_num = midi_msg.command.get(1).cloned().unwrap_or(0);
+                        let cc_val = midi_msg.command.get(2).cloned().unwrap_or(0);
+                        info!("CC: #{}, Val: {}", cc_num, cc_val);
+                        if cc_num == 1 { // Typically modulation wheel
+                             // Map CC value to a preset ID (1-255)
+                             let preset_id = (cc_val as f32 / 127.0 * 254.0).round() as i32 + 1;
+                             let ip = wled_ip_midi.clone();
+                              rt.block_on(async move {
+                                if let Err(e) = wled_control::set_wled_preset(&ip, preset_id).await {
+                                    warn!("Failed to set WLED preset via MIDI: {}", e);
+                                }
+                            });
+                        }
+                    },
+                    _ => {}
+                }
+            }
+        }
+        info!("MIDI logic thread stopped.");
+    });
+    handles.push(midi_logic_handle);
+
+    // --- Wait for all threads to finish ---
+    for handle in handles {
+        handle.join().expect("A service thread panicked");
+    }
     info!("All service threads have been joined.");
 }
+
+// Helper to convert HSV to RGB for colorful MIDI notes
+fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
+    let c = v * s;
+    let x = c * (1.0 - ((h / 60.0) % 2.0 - 1.0).abs());
+    let m = v - c;
+    let (r_prime, g_prime, b_prime) = if h >= 0.0 && h < 60.0 {
+        (c, x, 0.0)
+    } else if h >= 60.0 && h < 120.0 {
+        (x, c, 0.0)
+    } else if h >= 120.0 && h < 180.0 {
+        (0.0, c, x)
+    } else if h >= 180.0 && h < 240.0 {
+        (0.0, x, c)
+    } else if h >= 240.0 && h < 300.0 {
+        (x, 0.0, c)
+    } else {
+        (c, 0.0, x)
+    };
+    (
+        ((r_prime + m) * 255.0) as u8,
+        ((g_prime + m) * 255.0) as u8,
+        ((b_prime + m) * 255.0) as u8,
+    )
+}
+
+pub mod ffi;

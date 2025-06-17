@@ -1758,6 +1758,7 @@ dependencies = [
  "ddp-rs",
  "env_logger",
  "futures-util",
+ "libc",
  "log",
  "mockito",
  "num-traits",
