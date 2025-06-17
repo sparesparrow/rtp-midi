@@ -398,15 +398,145 @@ The web UI can now send MIDI notes through the WebRTC data channel to the rtp-mi
 
 # RTP-MIDI Architecture Diagrams
 
-The following diagrams provide a visual overview of the system architecture, following the C4 model and key workflows. Click on each diagram to view or edit the Mermaid source.
-
-| Diagram Type      | Preview                                                                 | Source Link |
-|-------------------|------------------------------------------------------------------------|-------------|
-| Context Diagram   | ![Context Diagram](docs/architecture/context_diagram.mmd)               | [View Mermaid](docs/architecture/context_diagram.mmd) |
-| Container Diagram | ![Container Diagram](docs/architecture/container_diagram.mmd)           | [View Mermaid](docs/architecture/container_diagram.mmd) |
-| Component Diagram | ![Component Diagram](docs/architecture/component_diagram.mmd)           | [View Mermaid](docs/architecture/component_diagram.mmd) |
-| Sequence Diagram  | ![Sequence Diagram](docs/architecture/sequence_diagram.mmd)             | [View Mermaid](docs/architecture/sequence_diagram.mmd) |
+The following diagrams provide a visual overview of the system architecture, following the C4 model and key workflows. These diagrams are rendered directly in GitHub using Mermaid syntax ([GitHub Blog](https://github.blog/developer-skills/github/include-diagrams-markdown-files-mermaid/), [GitHub Docs](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams)).
 
 > _Diagrams are written in [Mermaid](https://mermaid.js.org/intro/) and can be edited or rendered using the Mermaid Live Editor or compatible Markdown viewers._
+> _Color themes are applied for clarity; you can customize them using Mermaid's frontmatter config._
+
+## Context Diagram
+
+```mermaid
+---
+title: RTP-MIDI System Context Diagram
+theme: forest
+---
+flowchart LR
+    User([User])
+    QtUI([Qt Desktop UI])
+    WebFrontend([Web Frontend])
+    AndroidApp([Android App])
+    RustCore([Rust Core Backend])
+    WLED([WLED/ESP32 Controller])
+    AudioInput([Audio Input Device])
+    MIDIInput([MIDI Input Device])
+
+    User -- interacts with --> QtUI
+    User -- interacts with --> WebFrontend
+    User -- interacts with --> AndroidApp
+
+    QtUI -- FFI (C++/Rust) --> RustCore
+    WebFrontend -- WebSocket/WebRTC --> RustCore
+    AndroidApp -- JNI/AIDL --> RustCore
+
+    RustCore -- UDP/DDP --> WLED
+    RustCore -- reads --> AudioInput
+    RustCore -- reads --> MIDIInput
+
+    WLED -- controls --> LEDStrips([LED Strips])
+    classDef ext fill:#e0e0e0,stroke:#333,stroke-width:2px;
+    class QtUI,WebFrontend,AndroidApp ext;
+    class WLED,LEDStrips ext;
+    class AudioInput,MIDIInput ext;
+```
+
+## Container Diagram
+
+```mermaid
+---
+title: RTP-MIDI Container Diagram
+theme: forest
+---
+flowchart TB
+    subgraph UserDevices["User Devices"]
+        QtUI["Qt Desktop UI (C++/QML)"]
+        WebFrontend["Web Frontend (HTML/JS)"]
+        AndroidApp["Android App (Kotlin/Java)"]
+    end
+
+    subgraph CoreServices["Core Services"]
+        RustCore["Rust Core Backend"]
+        AudioServer["Audio Server (Rust)"]
+        SignalingServer["Signaling Server (Rust)"]
+    end
+
+    subgraph External["External"]
+        WLED["WLED/ESP32 Controller"]
+        LEDStrips["LED Strips"]
+        AudioInput["Audio Input Device"]
+        MIDIInput["MIDI Input Device"]
+    end
+
+    QtUI -- FFI (C++/Rust) --> RustCore
+    WebFrontend -- WebSocket/WebRTC --> SignalingServer
+    AndroidApp -- JNI/AIDL --> RustCore
+    RustCore -- UDP/DDP --> WLED
+    RustCore -- reads --> AudioInput
+    RustCore -- reads --> MIDIInput
+    WLED -- controls --> LEDStrips
+    classDef ext fill:#e0e0e0,stroke:#333,stroke-width:2px;
+    class WLED,LEDStrips,AudioInput,MIDIInput ext;
+```
+
+## Component Diagram (Rust Core Backend)
+
+```mermaid
+---
+title: RTP-MIDI Rust Core Component Diagram
+theme: forest
+---
+flowchart TB
+    subgraph RustCore["Rust Core Backend"]
+        AudioInput["audio_input.rs: Audio Input"]
+        AudioAnalysis["audio_analysis.rs: Audio Analysis"]
+        LightMapper["light_mapper.rs: Light Mapper"]
+        DDPOutput["ddp_output.rs: DDP Output"]
+        WLEDControl["wled_control.rs: WLED Control"]
+        MIDI["midi/: MIDI Stack"]
+        PacketProcessor["packet_processor.rs: Packet Processor"]
+        EventBus["event_bus.rs: Event Bus"]
+        JournalEngine["journal_engine.rs: Recovery Journal"]
+        FFI["ffi.rs: FFI Boundary"]
+        Mapping["mapping.rs: Mapping Logic"]
+    end
+
+    AudioInput -- provides data --> AudioAnalysis
+    AudioAnalysis -- triggers --> LightMapper
+    LightMapper -- maps --> DDPOutput
+    DDPOutput -- sends --> WLEDControl
+    MIDI -- events --> PacketProcessor
+    PacketProcessor -- updates --> EventBus
+    EventBus -- notifies --> JournalEngine
+    FFI -- boundary --> RustCore
+    Mapping -- used by --> LightMapper
+    classDef core fill:#c6e48b,stroke:#333,stroke-width:2px;
+    class AudioInput,AudioAnalysis,LightMapper,DDPOutput,WLEDControl,MIDI,PacketProcessor,EventBus,JournalEngine,FFI,Mapping core;
+```
+
+## Sequence Diagram (MIDI Event to WLED)
+
+```mermaid
+---
+title: RTP-MIDI Sequence Diagram - MIDI Event to WLED
+theme: forest
+---
+sequenceDiagram
+    participant User as User
+    participant QtUI as Qt Desktop UI
+    participant FFI as FFI Boundary
+    participant RustCore as Rust Core
+    participant MIDI as MIDI Stack
+    participant PacketProcessor as Packet Processor
+    participant WLED as WLED Control
+    participant WLEDDevice as WLED/ESP32
+
+    User->>QtUI: Triggers MIDI event
+    QtUI->>FFI: Calls Rust FFI function
+    FFI->>RustCore: Passes event
+    RustCore->>MIDI: Processes MIDI event
+    MIDI->>PacketProcessor: Generates packet
+    PacketProcessor->>WLED: Prepares DDP/JSON
+    WLED->>WLEDDevice: Sends update
+    WLEDDevice-->>User: LEDs update in real time
+```
 
 ---
