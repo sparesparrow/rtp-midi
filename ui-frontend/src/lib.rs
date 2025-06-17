@@ -1,0 +1,1 @@
+use yew::prelude::*;\n\n#[function_component(App)]\npub fn app() -> Html {\n    html! { <h1>{ "rtp-midi UI (WASM/Yew)" }</h1> }\n}\n\n#[wasm_bindgen::prelude::wasm_bindgen(start)]\npub fn run_app() {\n    yew::start_app::<App>();\n}\n

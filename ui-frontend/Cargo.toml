@@ -1,0 +1,1 @@
+[package]\nname = "ui-frontend"\nversion = "0.1.0"\nedition = "2021"\n\n[lib]\ncrate-type = ["cdylib"]\n\n[dependencies]\nyew = "0.21"\nwasm-bindgen = "0.2"\nserde = { version = "1", features = ["derive"] }\nserde_json = "1"\nweb-sys = { version = "0.3", features = ["WebSocket", "console"] }\n\n[features]\ndefault = []\n
