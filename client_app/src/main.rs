@@ -3,9 +3,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use log::{info, error};
 use ctrlc;
 use rtp_midi_lib::{Config, run_service_loop};
-use rtp_midi_lib::midi::parser::MidiCommand;
-use rtp_midi_lib::midi::rtp::session::RtpMidiSession;
 use tokio::runtime::Runtime;
+use env_logger;
 
 /// Main entry point for the desktop application.
 /// This loads the configuration and runs the service loop until interrupted.

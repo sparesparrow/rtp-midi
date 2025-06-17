@@ -1,12 +1,13 @@
 use anyhow::Result;
 use cpal::traits::{DeviceTrait, HostTrait};
 use cpal::{Sample, SampleFormat};
-use crossbeam_channel::Sender;
-use num_traits;
+use tokio::sync::broadcast;
+use rustfft::num_traits;
+use crate::event_bus::Event;
 
 /// Starts audio capture from the specified device (or default if None).
 /// Sends audio buffers (Vec<f32>) to the provided channel sender.
-pub fn start_audio_input(device_name: Option<&str>, tx: Sender<Vec<f32>>) -> Result<cpal::Stream> {
+pub fn start_audio_input(device_name: Option<&str>, tx: broadcast::Sender<Event>) -> Result<cpal::Stream> {
     let host = cpal::default_host();
     let device = if let Some(name) = device_name {
         host.input_devices()?
@@ -31,7 +32,7 @@ pub fn start_audio_input(device_name: Option<&str>, tx: Sender<Vec<f32>>) -> Res
 fn build_input_stream<T>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
-    tx: Sender<Vec<f32>>,
+    tx: broadcast::Sender<Event>,
     err_fn: fn(cpal::StreamError),
 ) -> Result<cpal::Stream>
 where
@@ -47,10 +48,10 @@ where
                 buffer.push(num_traits::ToPrimitive::to_f32(&sample).unwrap_or(0.0));
             }
             // Optionally: downmix to mono or keep as is
-            let _ = tx.send(buffer);
+            let _ = tx.send(Event::AudioDataReady(buffer));
         },
         err_fn,
         None,
     )?;
     Ok(stream)
-} 
+}

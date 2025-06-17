@@ -1,0 +1,19 @@
+[package]
+name = "client_app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+log = { workspace = true }
+env_logger = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+rtp_midi_lib = { path = "../rtp_midi_lib" }
+webrtc = { workspace = true }
+url = { workspace = true }
+tokio-tungstenite = { workspace = true }
+futures-util = { workspace = true }
+uuid = { workspace = true }
+clap = { version = "4.5.4", features = ["derive"] } 

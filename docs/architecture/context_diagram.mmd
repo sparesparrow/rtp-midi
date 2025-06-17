@@ -1,0 +1,17 @@
+graph TD
+    A[User] --> B(rtp-midi System);
+    B -- Controls --> C[WLED/DDP LED Controller];
+    B -- Interacts With --> D[MIDI Controller];
+    B -- Connects To --> E[Android Device];
+    B -- Serves --> F[Web Frontend];
+    B -- Communicates With --> G[Qt Desktop UI];
+    B -- Processes --> H[Audio Input];
+
+    subgraph External Systems
+        C
+        D
+        E
+        F
+        G
+        H
+    end 

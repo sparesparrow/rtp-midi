@@ -1,0 +1,40 @@
+system-context "RTP-MIDI System" as rtp_midi_system
+
+  container "Main Rust App" as rust_app {
+    description "Core backend logic for MIDI processing, audio analysis, and device control."
+    component "RTP-MIDI Session" as rtp_midi_session
+    component "Audio Input & Analysis" as audio_analysis
+    component "Light Mapper" as light_mapper
+    component "WLED Control (JSON/DDP)" as wled_control
+    component "FFI Bridge" as ffi_bridge
+  }
+
+  container "Signaling Server" as signaling_server {
+    description "WebSocket server for WebRTC signaling."
+  }
+
+  container "Qt Desktop UI" as qt_ui {
+    description "Cross-platform desktop user interface."
+  }
+
+  container "Web Frontend" as web_frontend {
+    description "Browser-based user interface."
+  }
+
+  container "Android Integration" as android_app {
+    description "Android service/application for control and integration."
+  }
+
+  database "Configuration (config.toml)" as config_file
+
+  rel(rust_app, signaling_server, "Connects to", "WebSocket");
+  rel(qt_ui, rust_app, "Communicates via", "FFI");
+  rel(web_frontend, signaling_server, "Connects to", "WebSocket");
+  rel(web_frontend, rust_app, "Communicates via", "WebRTC Data Channel");
+  rel(android_app, rust_app, "Controls via", "AIDL/JNI");
+  rel(rust_app, config_file, "Reads from/Writes to", "TOML");
+
+  rel(audio_analysis, wled_control, "Sends commands to");
+  rel(rtp_midi_session, wled_control, "Sends commands to");
+
+  rel(wled_control, "WLED/DDP LED Controller", "Controls", "UDP (DDP) / HTTP (JSON)");
