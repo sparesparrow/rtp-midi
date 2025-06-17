@@ -28,6 +28,22 @@ pub struct JournalEntry {
     pub commands: Vec<MidiMessage>,
 }
 
+/// Represents the data contained within the RTP-MIDI Recovery Journal.
+#[derive(Debug, Clone)]
+pub enum JournalData {
+    /// Enhanced Recovery Journal as defined in RFC 6295, Section 6.2.2
+    Enhanced {
+        /// 0 for MIDI channel journal, 1 for system common/real-time journal.
+        a_bit: bool,
+        /// Channel number for channel journals (0-63), or 0 for system journals.
+        ch_bits: u8,
+        /// The sequence number of the checkpoint packet.
+        checkpoint_sequence_number: u8,
+        /// The list of journal entries.
+        entries: Vec<JournalEntry>,
+    },
+}
+
 /// Represents a full RTP-MIDI packet, including the recovery journal.
 #[derive(Debug, Clone)]
 pub struct RtpMidiPacket {
@@ -42,8 +58,10 @@ pub struct RtpMidiPacket {
     pub ssrc: u32,
 
     // --- RTP-MIDI Payload ---
+    pub delta_time_is_zero: bool,
+    pub is_sysex_start: bool,
     pub midi_commands: Vec<MidiMessage>,
-    pub journal: Vec<JournalEntry>,
+    pub journal_data: Option<JournalData>,
 }
 
 impl RtpMidiPacket {
@@ -59,7 +77,9 @@ impl RtpMidiPacket {
             timestamp,
             ssrc,
             midi_commands: Vec::new(),
-            journal: Vec::new(),
+            journal_data: None,
+            delta_time_is_zero: false,
+            is_sysex_start: false,
         }
     }
 
@@ -96,18 +116,20 @@ impl RtpMidiPacket {
             return Ok(Self { // Packet might have an empty payload (e.g. keep-alive)
                 version, padding, extension, marker, payload_type, sequence_number, timestamp, ssrc,
                 midi_commands: vec![],
-                journal: vec![],
+                journal_data: None,
+                delta_time_is_zero: false,
+                is_sysex_start: false,
             });
         }
         
         let mut midi_commands = Vec::new();
-        let mut journal = Vec::new();
+        let mut journal_data = None;
         
         // First byte of payload contains flags
         let flags = reader.get_u8();
         let has_journal = (flags & 0b1000_0000) != 0;
-        let _delta_time_is_zero = (flags & 0b0100_0000) != 0; // 'Y' flag
-        let _is_sysex_start = (flags & 0b0010_0000) != 0;     // 'P' flag
+        let delta_time_is_zero = (flags & 0b0100_0000) != 0; // 'Y' flag
+        let is_sysex_start = (flags & 0b0010_0000) != 0;     // 'P' flag
         let command_section_len = flags & 0b0000_1111; // 'L' field
 
         if command_section_len > 0 {
@@ -115,14 +137,16 @@ impl RtpMidiPacket {
         }
         
         if has_journal {
-            journal = Self::parse_journal_section(&mut reader)?;
+            journal_data = Some(Self::parse_enhanced_journal_section(&mut reader)?);
         }
         
         Ok(Self {
             version, padding, extension, marker, payload_type,
             sequence_number, timestamp, ssrc,
             midi_commands,
-            journal,
+            journal_data,
+            delta_time_is_zero,
+            is_sysex_start,
         })
     }
 
@@ -160,29 +184,37 @@ impl RtpMidiPacket {
 
         // --- Journal Payload ---
         let mut journal_payload = BytesMut::new();
-        if !self.journal.is_empty() {
-             // Enhanced Journal Header (RFC6295 Section 6.2.2)
-            journal_payload.put_u8(0b1000_0000); // S=1 (enhanced), A=0, CH=0
-            journal_payload.put_u8(0x00); // Checkpoint Packet Seqnum (placeholder)
-            journal_payload.put_u16(self.journal.len() as u16); // Count of packets in journal
-            
-            for entry in &self.journal {
-                 let mut entry_payload = BytesMut::new();
-                 for cmd in &entry.commands {
-                    let mut v_buf = [0u8; 4];
-                    let v_len = encode_variable_length_quantity(cmd.delta_time, &mut v_buf)?;
-                    entry_payload.put(&v_buf[..v_len]);
-                    entry_payload.put(&cmd.command[..]);
-                 }
-                 journal_payload.put_u16(entry.sequence_nr);
-                 journal_payload.put_u16(entry_payload.len() as u16);
-                 journal_payload.put(entry_payload);
-            }
-        }
+        let has_journal_flag = match &self.journal_data {
+            Some(JournalData::Enhanced { a_bit, ch_bits, checkpoint_sequence_number, entries }) => {
+                // Enhanced Journal Header (RFC6295 Section 6.2.2)
+                let s_bit = 0b1000_0000; // S=1 (enhanced)
+                let a_ch_bits = ((*a_bit as u8) << 6) | (*ch_bits & 0b0011_1111);
+                journal_payload.put_u8(s_bit | a_ch_bits);
+                journal_payload.put_u8(*checkpoint_sequence_number);
+                journal_payload.put_u16(entries.len() as u16); // Count of packets in journal
+                
+                for entry in entries {
+                    let mut entry_payload = BytesMut::new();
+                    for cmd in &entry.commands {
+                       let mut v_buf = [0u8; 4];
+                       let v_len = encode_variable_length_quantity(cmd.delta_time, &mut v_buf)?;
+                       entry_payload.put(&v_buf[..v_len]);
+                       entry_payload.put(&cmd.command[..]);
+                    }
+                    journal_payload.put_u16(entry.sequence_nr);
+                    journal_payload.put_u16(entry_payload.len() as u16);
+                    journal_payload.put(entry_payload);
+                }
+                0b1000_0000 // has_journal_flag for the main payload flags
+            },
+            None => 0,
+        };
         
         // --- Final Assembly ---
-        let has_journal_flag = if !self.journal.is_empty() { 0b1000_0000 } else { 0 };
-        let flags = has_journal_flag | (command_section_len as u8);
+        let flags = has_journal_flag 
+            | ((self.delta_time_is_zero as u8) << 6) 
+            | ((self.is_sysex_start as u8) << 5) 
+            | (command_section_len as u8);
         
         buf.put_u8(flags);
         buf.put(midi_payload);
@@ -217,15 +249,23 @@ impl RtpMidiPacket {
         Ok(commands)
     }
     
-    fn parse_journal_section(reader: &mut Bytes) -> Result<Vec<JournalEntry>> {
+    fn parse_enhanced_journal_section(reader: &mut Bytes) -> Result<JournalData> {
         if reader.remaining() < 4 {
-             return Err(anyhow!("Incomplete journal header"));
+             return Err(anyhow!("Incomplete enhanced journal header"));
         }
-        let _journal_header = reader.get_u8();
-        let _checkpoint_seqnum = reader.get_u8();
+        let header_byte0 = reader.get_u8();
+        let s_bit = (header_byte0 >> 7) & 0x01 == 1; // Should always be 1 for enhanced
+        let a_bit = (header_byte0 >> 6) & 0x01 == 1;
+        let ch_bits = header_byte0 & 0x3F;
+
+        if !s_bit {
+            return Err(anyhow!("Unsupported journal type: not an enhanced journal"));
+        }
+
+        let checkpoint_sequence_number = reader.get_u8();
         let packet_count = reader.get_u16();
         
-        let mut journal = Vec::with_capacity(packet_count as usize);
+        let mut entries = Vec::with_capacity(packet_count as usize);
         for _ in 0..packet_count {
              if reader.remaining() < 4 {
                  return Err(anyhow!("Incomplete journal entry header"));
@@ -233,10 +273,15 @@ impl RtpMidiPacket {
              let sequence_nr = reader.get_u16();
              let length = reader.get_u16();
              let commands = Self::parse_midi_command_section(reader, length as usize)?;
-             journal.push(JournalEntry { sequence_nr, commands });
+             entries.push(JournalEntry { sequence_nr, commands });
         }
         
-        Ok(journal)
+        Ok(JournalData::Enhanced {
+            a_bit,
+            ch_bits,
+            checkpoint_sequence_number,
+            entries,
+        })
     }
 
     pub fn midi_commands(&self) -> &Vec<MidiMessage> {

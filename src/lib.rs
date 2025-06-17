@@ -37,6 +37,12 @@ pub struct Config {
     pub midi_port: Option<u16>,
     pub log_level: Option<String>,
     pub mappings: Option<Vec<Mapping>>,
+    pub signaling_server_address: String,
+    pub audio_sample_rate: u32,
+    pub audio_channels: u16,
+    pub audio_buffer_size: usize,
+    pub audio_smoothing_factor: f32,
+    pub webrtc_ice_servers: Option<Vec<String>>,
 }
 
 // --- Implementation for Config ---

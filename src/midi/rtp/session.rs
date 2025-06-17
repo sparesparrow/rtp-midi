@@ -8,12 +8,13 @@ use std::sync::Arc;
 use tokio::net::UdpSocket;
 use tokio::sync::Mutex;
 
-use super::message::{JournalEntry, MidiMessage, RtpMidiPacket};
+use super::message::{JournalEntry, MidiMessage, RtpMidiPacket, JournalData};
 
 // The listener now receives only the MIDI commands, not the whole packet, for cleaner separation.
 type CommandListener = Arc<Mutex<dyn Fn(Vec<MidiMessage>) + Send + Sync>>;
 
 const HISTORY_SIZE: usize = 64; // How many sent packets to keep in the journal buffer
+const MIDI_CLOCK_HZ: f64 = 31250.0; // Standard MIDI clock frequency in Hz
 
 /// Represents a full RTP-MIDI session, managing sending, receiving, and journaling.
 pub struct RtpMidiSession {
@@ -33,6 +34,8 @@ pub struct RtpMidiSession {
 
     // --- Peer information ---
     peer_addr: Arc<Mutex<Option<SocketAddr>>>,
+    // Timestamp of the last sent packet, for calculating delta-time
+    last_sent_timestamp: Arc<Mutex<u32>>,
 }
 
 impl RtpMidiSession {
@@ -51,6 +54,7 @@ impl RtpMidiSession {
             send_history: Arc::new(Mutex::new(VecDeque::with_capacity(HISTORY_SIZE))),
             receive_history: Arc::new(Mutex::new(BTreeSet::new())),
             peer_addr: Arc::new(Mutex::new(None)),
+            last_sent_timestamp: Arc::new(Mutex::new(0)),
         })
     }
 
@@ -83,19 +87,39 @@ impl RtpMidiSession {
         let peer = peer_guard.ok_or_else(|| anyhow::anyhow!("Cannot send MIDI, no peer connected."))?;
 
         let mut seq_num_lock = self.sequence_number.lock().await;
-        let timestamp = 0; // Timestamping can be improved later (e.g., based on a media clock).
+        let mut last_sent_ts_lock = self.last_sent_timestamp.lock().await;
+        
+        let current_timestamp = (tokio::time::Instant::now().elapsed().as_secs_f64() * MIDI_CLOCK_HZ) as u32;
+        let delta_time_is_zero = commands.iter().all(|cmd| cmd.delta_time == 0);
+        let is_sysex_start = commands.first().map_or(false, |cmd| cmd.command.first().map_or(false, |&b| b == 0xF0));
 
-        let mut packet = RtpMidiPacket::new(self.ssrc, *seq_num_lock, timestamp);
+        let mut packet = RtpMidiPacket::new(self.ssrc, *seq_num_lock, current_timestamp);
         packet.midi_commands = commands.clone();
+        packet.delta_time_is_zero = delta_time_is_zero;
+        packet.is_sysex_start = is_sysex_start;
 
-        // Add journal from our send history.
+        // Add journal from our send history (Enhanced Journal).
         let history_lock = self.send_history.lock().await;
-        packet.journal = history_lock.iter().cloned().collect();
+        if !history_lock.is_empty() {
+            // For simplicity, we'll use a fixed A-bit (0 for channel journal) and CH-bits (0 for now).
+            // The checkpoint_sequence_number could be the sequence number of the oldest packet in the journal
+            // or a more sophisticated mechanism. For now, we'll use the oldest in history.
+            let checkpoint_seq = history_lock.front().map_or(0, |entry| entry.sequence_nr);
+            packet.journal_data = Some(JournalData::Enhanced {
+                a_bit: false, // Channel journal
+                ch_bits: 0,   // Channel 0 (can be extended later)
+                checkpoint_sequence_number: checkpoint_seq as u8, // Using u8 for checkpoint seqnum
+                entries: history_lock.iter().cloned().collect(),
+            });
+        }
         drop(history_lock);
 
         // Serialize and send the packet.
         let buffer = packet.serialize()?;
         self.socket.send_to(&buffer, peer).await?;
+
+        // Update last sent timestamp
+        *last_sent_ts_lock = current_timestamp;
 
         // Add this packet to our send history for future journals.
         let mut history_lock = self.send_history.lock().await;
@@ -139,7 +163,9 @@ impl RtpMidiSession {
                     let mut history = receive_history.lock().await;
 
                     // --- Journal Processing ---
-                    self.process_journal(&packet.journal, &mut history);
+                    if let Some(journal) = &packet.journal_data {
+                        self.process_journal(journal, &mut history);
+                    }
 
                     // --- Packet Processing ---
                     // Check if we've already processed this packet (from a journal).
@@ -163,12 +189,16 @@ impl RtpMidiSession {
 
     /// Processes a journal from an incoming packet, identifies missing packets,
     /// and updates the receive history.
-    fn process_journal(&self, journal: &[JournalEntry], history: &mut BTreeSet<u16>) {
-        if journal.is_empty() {
+    fn process_journal(&self, journal_data: &JournalData, history: &mut BTreeSet<u16>) {
+        let entries = match journal_data {
+            JournalData::Enhanced { entries, .. } => entries,
+        };
+
+        if entries.is_empty() {
             return;
         }
 
-        let first_seq_in_journal = journal.first().unwrap().sequence_nr;
+        let first_seq_in_journal = entries.first().unwrap().sequence_nr;
         let last_seq_in_history = history.iter().next_back().cloned().unwrap_or(first_seq_in_journal.saturating_sub(1));
 
         // Simple gap detection using sequence number wrapping.
@@ -182,7 +212,7 @@ impl RtpMidiSession {
         }
 
         // Add all sequence numbers from the journal to our history.
-        for entry in journal {
+        for entry in entries {
             history.insert(entry.sequence_nr);
         }
     }
