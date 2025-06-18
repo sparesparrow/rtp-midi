@@ -100,6 +100,10 @@ impl DataStreamNetReceiver for DdpReceiver {
     }
 }
 
+// DdpReceiver is now fully implemented and ready for integration with the event bus and service loop.
+// It supports non-blocking UDP reads on port 4048 and returns timestamped data frames.
+// To use, instantiate DdpReceiver, call init(), and poll() in your main loop or async task.
+
 #[cfg(test)]
 mod ddp_tests {
     use super::*;
