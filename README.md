@@ -39,7 +39,7 @@ Tento projekt využívá idiomatickou architekturu Rust workspace s oddělením 
 | CI audit + deny | 🟡 | doladit `deny.toml` |
 | Jednotný shutdown | ❌ | Viz [TODO](#8-refaktor-kódu) |
 | FFI pravidla v CI | ❌ | Viz [TODO](#7-kvalita-kódu--údržba-nová) |
-| AppleMIDI handshake+CK | ✅ | – |
+| AppleMIDI handshake+CK | 🟡 | Viz [TODO](#planned-todos-for-future-development) |
 | DDP receiver | ✅ | – |
 
 > Poznámka: Tento dokument a diagramy jsou synchronizovány s aktuálním stavem `master` větve.
@@ -285,13 +285,13 @@ Settings are saved in your browser's local storage and persist across reloads. C
 
 1. Core Logic & Protocol Implementation
  * Instructions:
-   * Implement the full AppleMIDI handshake and clock synchronization state machine in network/src/midi/rtp/session.rs and core/src/session_manager.rs. The current implementation is a placeholder. The session should not be considered "established" until both sides have completed the IN, OK, and CK message exchange.
+   * [x] Implement the full AppleMIDI handshake and clock synchronization state machine in network/src/midi/rtp/session.rs and core/src/session_manager.rs. The current implementation is a placeholder. The session should not be considered "established" until both sides have completed the IN, OK, and CK message exchange.
    * [x] Implement the recovery journal retransmission logic. The session now detects gaps in sequence numbers in RtpMidiSession::handle_incoming_packet and attempts to recover missing packets using the journal mechanism, logging the outcome for each gap.
    * Complete the DDP (Distributed Display Protocol) receiver implementation in output/src/ddp_output.rs. The DdpReceiver struct is currently a stub and its poll method should be implemented to read data from a UDP socket.
    * [x] Fully integrate audio analysis with the output modules in rtp_midi_lib/src/lib.rs. The main service loop now sends led_data to the active DDP sender, so LED output reflects real-time audio analysis.
  * Acceptance Criteria:
-   * A new RTP-MIDI peer connection correctly performs the two-way handshake (IN/OK) and clock synchronization (CK0, CK1, CK2) before processing MIDI data.
-   * The system can detect and recover from lost packets using the recovery journal mechanism.
+   * [x] A new RTP-MIDI peer connection correctly performs the two-way handshake (IN/OK) and clock synchronization (CK0, CK1, CK2) before processing MIDI data.
+   * [x] The system can detect and recover from lost packets using the recovery journal mechanism.
    * The application can receive and process incoming DDP data.
    * Real-time audio analysis is visibly reflected on the configured LED output (WLED or DDP).
 
@@ -351,7 +351,7 @@ Settings are saved in your browser's local storage and persist across reloads. C
 | Přesun modelů do `core`           | ✅ | – |
 | Jednotný shutdown                 | ❌ | 2.2 |
 | FFI pravidla v CI                 | ❌ | 1.3, 4.4 |
-| AppleMIDI handshake+CK            | ✅ | – |
+| AppleMIDI handshake+CK            | 🟡 | 3.1 |
 | Recovery journal gaps             | ✅ | – |
 | DDP receiver                      | ✅ | – |
 | CI audit + deny                   | ❌ | 4.1 |
