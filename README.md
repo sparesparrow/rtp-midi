@@ -7,7 +7,7 @@ Tento projekt využívá idiomatickou architekturu Rust workspace s oddělením 
 - **hal-pc**: PC HAL adapter, připravený pro platformně specifické implementace výstupů a vstupů.
 - **hal-esp32**: ESP32 HAL adapter, připravený pro embedded buildy a statickou dispatch.
 - **hal-android**: Android HAL adapter, připravený pro mobilní buildy.
-- **service-bus**: Abstrakce pro asynchronní message passing mezi komponentami (tokio mpsc).
+- **service-bus**: Abstrakce pro asynchronní message passing mezi komponentami (tokio broadcast event bus).
 
 ## Klíčové principy architektury
 
@@ -16,7 +16,7 @@ Tento projekt využívá idiomatickou architekturu Rust workspace s oddělením 
 - **Modulární crates**:
     - `core`: Platformně nezávislá logika, traity, protokoly, no_std.
     - `hal-*`: Platform-specific implementace (PC, Android, ESP32).
-    - `service-bus`: Asynchronní message passing (tokio mpsc).
+    - `service-bus`: Asynchronní message passing (tokio broadcast event bus).
     - `ui-frontend`: Oddělené UI (WASM/Tauri, WebSocket API).
 - **Jediný binární entrypoint**: `rtp-midi-node.rs` autodetekuje roli a platformu za běhu.
 - **Oddělené UI**: Samostatný crate, komunikace přes WebSocket.
@@ -36,7 +36,7 @@ graph TD
     A --> C
     subgraph Crates["crates/"]
         B1("<b>core</b><br/><i>#![no_std] RTP-MIDI logic<br/>DataStream traits</i>")
-        B2("<b>service-bus</b><br/><i>Async services & mpsc channels</i>")
+        B2("<b>service-bus</b><br/><i>Async services & broadcast event bus</i>")
         B3("<b>hal-pc</b><br/><i>cfg(feature = 'hal_pc')</i>")
         B4("<b>hal-android</b><br/><i>cfg(feature = 'hal_android')</i>")
         B5("<b>hal-esp32</b><br/><i>cfg(feature = 'hal_esp32')</i>")
@@ -84,4 +84,9 @@ Hlavní binární soubor `rtp-midi-node` lze spustit ve třech režimech podle r
 Každý režim spouští odpovídající službu podle autodetekce role.
 
 ---
+
+**Poznámka:**
+- Všechny hlavní TODO body pro architekturu, event bus a asynchronní message passing jsou nyní implementovány.
+- Pro rozšíření mappingů o další typy akcí/výstupů přidejte nový enum do utils, implementujte nový sender a rozšiřte service loop.
+- Pro další informace viz dokumentaci v `docs/architecture/`.
 
