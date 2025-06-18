@@ -179,3 +179,85 @@ Below are prioritized tasks for future development. Each TODO includes clear ins
 - **Acceptance Criteria:**
   - Releases are reproducible and easy to install.
 
+---
+
+# Getting Started
+
+## Prerequisites
+- Rust (latest stable, see [rustup.rs](https://rustup.rs))
+- For Android: Android NDK, cargo-ndk
+- For ESP32: xtensa toolchain (see docs/)
+- For UI: modern web browser
+
+## Quick Start (Linux)
+```sh
+git clone https://github.com/sparesparrow/rtp-midi.git
+cd rtp-midi
+cargo build --release
+cp config.toml.example config.toml # Edit as needed
+cargo run --release --bin rtp_midi_node -- --role server
+```
+
+## Running the Web UI
+- Open `frontend/index.html` in your browser, or run the backend in `--role ui-host` mode to serve it.
+
+---
+
+# Usage Examples
+
+## Audio to LED (WLED)
+- Connect a microphone or audio source.
+- Configure `wled_ip`, `led_count`, and `mapping_preset` in `config.toml`.
+- Start the service. LEDs will sync to audio in real time.
+
+## MIDI over RTP
+- Use a compatible MIDI client to connect to the server.
+- MIDI messages are routed and can be visualized in the UI.
+
+## UI Settings
+- Use the ⚙️ Settings panel in the web UI to adjust LED count and mapping preset at runtime.
+
+---
+
+# Configuration Summary
+
+All options are in `config.toml`:
+- `wled_ip`: IP address of your WLED controller
+- `led_count`: Number of LEDs
+- `mapping_preset`: `spectrum` or `vumeter`
+- (See file for more options)
+
+UI settings (LED count, mapping) are stored in your browser and override config at runtime.
+
+---
+
+# Architecture & Diagrams
+
+- See `docs/architecture/` for context, container, and sequence diagrams.
+- ADRs in `adr/` document key design decisions.
+
+---
+
+# Troubleshooting
+- **No LEDs light up:** Check WLED IP, LED count, and power.
+- **Audio not detected:** Verify audio device in config and permissions.
+- **MIDI not working:** Ensure correct ports and network visibility.
+- **Build errors (ESP32/Android):** See platform-specific docs in `docs/` and `build_*.sh` scripts.
+- **UI not updating:** Reload page, check browser console for errors.
+
+---
+
+# Platform Support & Building
+- **Linux:** Native, fully supported.
+- **Android:** Build with `build_android.sh` (requires NDK).
+- **ESP32:** See `build_esp32.sh` and docs for toolchain setup.
+
+---
+
+# Contributing
+- See ADRs and architecture docs before major changes.
+- Follow modular, testable, idiomatic Rust practices.
+- All config should be externalized; document new options.
+
+---
+
