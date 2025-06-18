@@ -179,6 +179,17 @@ Below are prioritized tasks for future development. Each TODO includes clear ins
 - **Acceptance Criteria:**
   - Releases are reproducible and easy to install.
 
+### 3. CI/CD and Release Automation
+- **Instructions:**
+  - Implement and maintain workflows in `.github/workflows/` for:
+    - Automated builds for all platforms
+    - Automated tests and linting
+    - Automated release creation with release notes and artifacts
+    - Automated code reviews and test results reviews using LLM APIs called by GitHub Actions
+- **Acceptance Criteria:**
+  - All builds, tests, and releases are automated and reproducible
+  - Code and test reviews are enhanced by LLM-based automation
+
 ---
 
 # Getting Started
