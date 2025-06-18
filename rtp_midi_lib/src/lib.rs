@@ -86,12 +86,12 @@ pub async fn run_service_loop(config: Config, mut shutdown_rx: watch::Receiver<b
 
         let mut raw_packet_rx = event_tx_clone_midi.subscribe();
         let session_clone = Arc::clone(&session);
-        let event_tx_clone_midi1 = event_tx_clone_midi.clone();
+        let event_tx_clone_midi_inner = event_tx_clone_midi.clone();
         tokio::spawn(async move {
             while let Ok(event) = raw_packet_rx.recv().await {
                 if let event_bus::Event::RawPacketReceived { payload, source_addr } = event {
                     info!("RTP-MIDI Session received raw packet from {}: {:?}", source_addr, payload);
-                    session_clone.lock().await.handle_incoming_packet(payload, &event_tx_clone_midi1, source_addr).await;
+                    session_clone.lock().await.handle_incoming_packet(payload, &event_tx_clone_midi_inner, source_addr).await;
                 }
             }
         });
@@ -190,7 +190,7 @@ pub async fn run_service_loop(config: Config, mut shutdown_rx: watch::Receiver<b
                 if let Ok((parsed_command, _)) = parse_midi_message(&commands) {
                     if let Some(mappings) = &mappings {
                         for mapping in mappings {
-                            if rtp_midi_core::mapping::matches_midi_command(mapping, &parsed_command) {
+                            if Mapping::matches_midi_command(mapping, &parsed_command) {
                                 match parsed_command {
                                     MidiCommand::NoteOn { key, .. } => info!("MIDI NoteOn {} matched a mapping.", key),
                                     MidiCommand::ControlChange { control, value, ..} => info!("MIDI CC {} ({}) matched a mapping.", control, value),

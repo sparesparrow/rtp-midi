@@ -1,7 +1,7 @@
 use tokio::net::UdpSocket;
-use crate::event_bus::{Event, EventBus};
 use std::net::SocketAddr;
 use tokio::sync::mpsc::Sender;
+use crate::event_bus::Event;
 
 pub struct NetworkInterface {
     socket: UdpSocket,

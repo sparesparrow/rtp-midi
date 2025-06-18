@@ -1,6 +1,6 @@
 // rtp_midi_lib/src/event_bus.rs
 
-use tokio::sync::broadcast::{self, Sender, Receiver};
+use tokio::sync::broadcast::{self, Sender};
 
 #[derive(Debug, Clone)]
 pub enum Event {
