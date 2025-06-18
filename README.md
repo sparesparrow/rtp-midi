@@ -165,95 +165,57 @@ Settings are saved in your browser's local storage and persist across reloads. C
 
 ## Planned TODOs for Future Development
 
-Below are prioritized tasks for future development. Each TODO includes clear instructions and acceptance criteria.
+1. Core Logic & Protocol Implementation
+ * Instructions:
+   * Implement the full AppleMIDI handshake and clock synchronization state machine in network/src/midi/rtp/session.rs and core/src/session_manager.rs. The current implementation is a placeholder. The session should not be considered "established" until both sides have completed the IN, OK, and CK message exchange.
+   * Implement the recovery journal retransmission logic. When a gap in sequence numbers is detected in RtpMidiSession::handle_incoming_packet, the session should request retransmission of the missing packets from the peer.
+   * Complete the DDP (Distributed Display Protocol) receiver implementation in output/src/ddp_output.rs. The DdpReceiver struct is currently a stub and its poll method should be implemented to read data from a UDP socket.
+   * Fully integrate audio analysis with the output modules in rtp_midi_lib/src/lib.rs. The main service loop correctly calculates led_data, but it is not sent to any output. Add logic to send led_data to the active DataStreamNetSender (e.g., a DDP sender).
+ * Acceptance Criteria:
+   * A new RTP-MIDI peer connection correctly performs the two-way handshake (IN/OK) and clock synchronization (CK0, CK1, CK2) before processing MIDI data.
+   * The system can detect and recover from lost packets using the recovery journal mechanism.
+   * The application can receive and process incoming DDP data.
+   * Real-time audio analysis is visibly reflected on the configured LED output (WLED or DDP).
 
-### 1. Documentation Polish & Examples
-- **Instructions:**
-  - Expand documentation with usage examples, diagrams, and troubleshooting tips.
-- **Acceptance Criteria:**
-  - README and docs are comprehensive and up to date.
+2. Architecture & Refactoring
+ * Instructions:
+   * Refactor shared data structures (MidiCommand, Mapping, InputEvent, WledOutputAction, etc.) from utils/src/lib.rs and rtp_midi_lib/src/lib.rs into the rtp_midi_core crate. The goal is to make rtp_midi_core the single source of truth for all platform-agnostic data models. The utils crate can then be deprecated or merged if it becomes redundant.
+   * Create a unified and robust shutdown mechanism. Replace thread_handle.abort() in platform/src/ffi.rs with a graceful shutdown signal (e.g., using a tokio::sync::watch channel). The main service loop and all spawned tasks should listen for this signal and terminate cleanly.
+   * Remove duplicated frontend and ui-frontend files from the dist/ directory in the source control. The package_release.sh script should be the only component responsible for copying these files into the release package, not Git.
+ * Acceptance Criteria:
+   * All core data structures are defined within the rtp_midi_core crate. Other crates import them from there.
+   * Calling stop_service from the FFI or sending a Ctrl+C signal results in all threads and async tasks shutting down without panics or abrupt termination.
+   * The git status command shows no duplicated frontend files; the dist/ directory is clean.
 
-### 2. Release Automation & Packaging
-- **Instructions:**
-  - Add scripts or CI jobs for building and packaging releases for all platforms (Linux, Android, ESP32).
-- **Acceptance Criteria:**
-  - Releases are reproducible and easy to install.
+3. Error Handling & Robustness
+ * Instructions:
+   * Replace all uses of .unwrap() and .expect() in application logic (especially in rtp_midi_lib/src/lib.rs and server binaries) with structured error handling using anyhow::Result and the log crate. Panics should only occur for unrecoverable state errors.
+   * Standardize error logging. All errors captured via Result or in catch blocks should be logged using log::error!, instead of eprintln!, for consistency.
+   * Handle potential failures in the audio/src/audio_input.rs module. Specifically, replace the todo!("Unsupported sample format") with a fallback mechanism or a clear error message that informs the user which formats are supported.
+ * Acceptance Criteria:
+   * The application is resilient to common failures (e.g., file not found, network issues) and logs descriptive errors instead of panicking.
+   * The application produces no output on stderr during normal operation; all diagnostic messages go through the log crate.
+   * The application provides a clear error message if an unsupported audio device or sample format is selected.
 
-### 3. CI/CD and Release Automation
-- **Instructions:**
-  - Implement and maintain workflows in `.github/workflows/` for:
-    - Automated builds for all platforms
-    - Automated tests and linting
-    - Automated release creation with release notes and artifacts
-    - Automated code reviews and test results reviews using LLM APIs called by GitHub Actions
-- **Acceptance Criteria:**
-  - All builds, tests, and releases are automated and reproducible
-  - Code and test reviews are enhanced by LLM-based automation
+4. Build & CI/CD
+ * Instructions:
+   * Automate the generation of the dependency graph. Create a new GitHub Actions workflow step that runs cargo tree --workspace and commits the updated docs/dep-graph.txt file to the repository.
+   * The build_android.sh script currently overwrites .cargo/config.toml. Modify it to check if the file exists and, if so, to merge the required configuration instead of overwriting it, or at least to back up the original file first.
+   * Finalize the release automation. In .github/workflows/release.yml, replace the "TODO: Add release notes here" placeholder with a mechanism to automatically generate release notes from commit messages or pull request titles since the last tag.
+ * Acceptance Criteria:
+   * The docs/dep-graph.txt file is automatically kept in sync with the project's dependencies on every push to master.
+   * The Android build script no longer causes data loss by overwriting user configuration files.
+   * Creating a new Git tag (e.g., v0.2.0) automatically triggers the release.yml workflow, which creates a GitHub Release with populated release notes and attached build artifacts.
 
-### 4. Code Quality & Static Analysis
-**Instructions:**
-- Add `clippy` and `rustfmt` checks to the workflow in `.github/workflows/` and make the build fail on warnings.
-- Configure `cargo deny` to scan for vulnerable, unmaintained or duplicate dependencies.
-**Acceptance Criteria:**
-- PRs are blocked if `clippy`, `rustfmt` or `cargo deny` report findings.
-- Summary of the three tools is shown in the GitHub Checks tab.
-
-### 5. Unified Logging & Tracing
-**Instructions:**
-- Introduce the `tracing` crate in `core` and all `hal-*` crates; export a reusable `init_tracing()` helper behind the `log` feature flag.
-- Route logs to the browser console when running in WASM and to `systemd-journal` when on Linux PC.
-**Acceptance Criteria:**
-- Every major state-machine transition (RTP-MIDI session, AppleMIDI handshake, audio pipeline) emits structured spans visible in `tokio-console` or `tracing-flame`.
-
-### 6. Fuzzing & Property-Based Tests
-**Instructions:**
-- Add a `fuzz/` directory and integrate `cargo-fuzz` for parsers in `network/src/midi/rtp/session.rs`.
-- Use `proptest` for serialization/deserialization round-trip tests of MIDI and LED frames.
-**Acceptance Criteria:**
-- CI runs at least one minute of fuzzing on every push.
-- Round-trip tests reach > 95 % branch coverage (measured with `grcov`).
-
-### 7. Performance Optimisation of LED Mapping
-**Instructions:**
-- Replace per-LED loop in `mapping_spectrum.rs` with SIMD using `wide` or `packed_simd_2`.
-- Benchmark before/after with `criterion` on x86-64 and ESP32 (Xtensa).
-**Acceptance Criteria:**
-- Throughput improvement ≥ 2× on x86-64 and ≥ 1.3× on ESP32 without raising binary size by more than 5 %.
-
-### 8. Packaging & Distribution
-**Instructions:**
-- Provide `Dockerfile` that builds a minimal image (~25 MB) with `rtp-midi-node` and default config.
-- Create `deb` and Homebrew formulas via `cargo-deb` and `brew tap`.
-**Acceptance Criteria:**
-- Tagged GitHub release automatically uploads `.deb`, Homebrew bottle and Docker image to GHCR.
-
-### 9. OTA Update Flow for ESP32
-**Instructions:**
-- Add an HTTP-based OTA endpoint guarded by a simple token to the `hal-esp32` runtime.
-- Document update steps in `docs/platforms/esp32.md`.
-**Acceptance Criteria:**
-- Full firmware update succeeds in < 30 s over Wi-Fi with progress logged to UART and the web UI.
-
-### 10. Ableton Link Synchronisation
-**Instructions:**
-- Introduce optional `ableton_link` feature using the `ableton-link` crate; expose tempo and phase on the `service-bus`.
-- Visualise Link status in the web UI header.
-**Acceptance Criteria:**
-- When another Link peer is present, tempo lock jitter < 0.5 BPM (measured over 5 min).
-
-### 11. Documentation Site via mdBook
-**Instructions:**
-- Generate an mdBook in `docs/book/` from existing ADRs and architecture diagrams; deploy with GitHub Pages from `gh-pages` branch.
-- Link the book prominently from the README title section.
-**Acceptance Criteria:**
-- `docs.rs` badge and "Open Book 📖" link appear in README; Pages site builds without warnings.
-
-### 12. README Maintenance Task
-**Instructions:**
-- Move each completed item from "Planned TODOs" to a new "Changelog of Completed Tasks" subsection to keep the list concise.
-- Renumber the remaining TODOs sequentially after every merge.
-**Acceptance Criteria:**
-- `Planned TODOs` never exceeds 15 open items; changelog shows date, PR number and contributor for each moved task.
+5. Frontend & UI
+ * Instructions:
+   * Implement the remaining WebRTC data channel logic in frontend/script.js. Specifically, address the TODO comments for indicating when the data channel is ready, processing incoming MIDI data (e.g., visualizing it on the piano), and handling channel closure.
+   * Refactor the webrtc_client.html frontend to send MIDI messages via the data channel when piano keys are clicked. The sendMidiMessage function should serialize the MIDI command into a binary format (e.g., Uint8Array) and send it through the dataChannel.
+   * Add functionality to the web UI settings panel (frontend/index.html) to send configuration changes (LED Count, Mapping Preset) to the backend via the WebSocket or WebRTC data channel, so they can be applied at runtime.
+ * Acceptance Criteria:
+   * The web UI correctly establishes a WebRTC peer-to-peer connection with the backend.
+   * Clicking a key on the piano in webrtc_client.html sends a valid MIDI Note On/Off message through the data channel, which is received and processed by the Rust backend.
+   * Changing the LED count in the UI settings panel and clicking "Save" updates the number of LEDs the backend renders to in real time.
 
 ---
 
