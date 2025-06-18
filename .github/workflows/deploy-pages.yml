@@ -1,0 +1,33 @@
+name: Deploy WASM to GitHub Pages
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'ui-frontend/**'
+      - '.github/workflows/deploy-pages.yml'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --locked
+
+      - name: Build WASM package
+        run: wasm-pack build ./ui-frontend --target web --out-dir ./ui-frontend/dist
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./ui-frontend/dist
+          # Volitelné: commit zpráva
+          commit_message: 'deploy: auto-deploy WASM UI to gh-pages' 

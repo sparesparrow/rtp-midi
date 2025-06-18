@@ -1,6 +1,124 @@
 # rtp-midi: Modulární architektura pro real-time MIDI, audio a LED
 
+## Přehled
+
 Tento projekt využívá idiomatickou architekturu Rust workspace s oddělením core logiky, platformních HAL vrstev a samostatného UI. Všechny síťové odesílače a přijímače implementují sjednocené traity `DataStreamNetSender` a `DataStreamNetReceiver`.
+
+### Klíčové vlastnosti
+- **Modulární design**: Oddělené crates pro `core`, `network`, `audio`, `output`, `platform` a hardwarové abstrakce (`hal-*`).
+- **Cross-Platform**: Cílí na Linux, Android a ESP32 s jednotnou kódovou základnou.
+- **Moderní CI/CD**: Automatizované testování, lintování, bezpečnostní audity, releasy, nasazení na GitHub Pages a publikace Docker image do GHCR.
+- **Konfigurovatelnost**: Všechna nastavení jsou spravována přes `config.toml`.
+
+---
+## Obsah
+1.  [Stav projektu](#stav-projektu)
+2.  [Getting Started](#getting-started)
+3.  [Platform Support & Building](#platform-support--building)
+4.  [Architektura a design](#architektura-a-design)
+5.  [TODO Roadmap](#8-todo-roadmap)
+6.  [Troubleshooting](#troubleshooting)
+7.  [Contributing](#contributing)
+
+---
+
+## 1. Stav projektu
+
+### Architektura
+- Architektonické diagramy v `docs/architecture/` jsou aktuální.
+- ADRs v `adr/` dokumentují klíčová rozhodnutí.
+
+### Stav migrace na modulární architekturu
+
+| Oblast | Hotovo | Zbývá |
+|---|:---:|:---:|
+| Struktura workspace (core, audio…) | ✅ | – |
+| `hal-*`, `service-bus` crates | ✅ | – |
+| Přesun modelů do `core` | ✅ | – |
+| ADR konsolidace & update | ✅ | – |
+| CI audit + deny | 🟡 | doladit `deny.toml` |
+| Jednotný shutdown | ❌ | Viz [TODO](#8-refaktor-kódu) |
+| FFI pravidla v CI | ❌ | Viz [TODO](#7-kvalita-kódu--údržba-nová) |
+| AppleMIDI handshake+CK | ✅ | – |
+| DDP receiver | ✅ | – |
+
+> Poznámka: Tento dokument a diagramy jsou synchronizovány s aktuálním stavem `master` větve.
+
+---
+## 2. Getting Started
+
+### Požadavky
+- Rust (latest stable, viz [rustup.rs](https://rustup.rs))
+- Pro Android: Android NDK, `cargo-ndk`
+- Pro ESP32: xtensa toolchain (viz `docs/`)
+- Pro Docker: Docker nebo kompatibilní container runtime
+
+### Rychlý start (Linux)
+```sh
+git clone https://github.com/sparesparrow/rtp-midi.git
+cd rtp-midi
+# cp config.toml.example config.toml # Volitelně upravte
+cargo run --release --bin rtp_midi_node -- --role server
+```
+
+### Spuštění přes Docker
+Projekt lze také spustit v Docker kontejneru. Image jsou automaticky publikovány v [GitHub Container Registry](https://github.com/sparesparrow/rtp-midi/pkgs/container/rtp-midi).
+
+```sh
+# Stáhnout a spustit nejnovější verzi
+docker run -it --rm -p 5004:5004/udp ghcr.io/sparesparrow/rtp-midi:latest
+```
+
+---
+## 3. Platform Support & Building
+
+### Nativní build
+- **Linux:** Plně podporováno. `cargo build --release`
+- **Android:** Podporováno. `bash ./build_android.sh`
+- **ESP32:** Experimentální. `bash ./build_esp32.sh`
+
+### Web UI
+Webové rozhraní je v `ui-frontend/` a je automaticky nasazováno na GitHub Pages.
+
+### Containerization (Docker)
+K dispozici je `Dockerfile` pro sestavení a spuštění aplikace v izolovaném prostředí.
+```sh
+# Lokální sestavení Docker image
+docker build -t rtp-midi-local .
+
+# Spuštění lokálně sestavené image
+docker run -it --rm -p 5004:5004/udp rtp-midi-local
+```
+---
+## 4. Architektura a design
+
+- **Diagramy**: `docs/architecture/` obsahuje kontextové, kontejnerové a komponentové diagramy.
+- **ADRs**: `adr/` obsahuje záznamy o architektonických rozhodnutích.
+- **CI/CD**: Workflows v `.github/workflows/` zajišťují:
+    - Testování, lintování a bezpečnostní audity (`ci.yml`, `security_audit.yml`).
+    - Automatické nasazení webového UI na GitHub Pages (`deploy-pages.yml`).
+    - Tvorbu releasů a nahrávání binárních artefaktů (`release.yml`).
+    - Publikaci Docker image do GHCR (`docker-publish.yml`).
+
+---
+## 8. TODO Roadmap
+
+### 7. Kvalita kódu & údržba
+* **Static Lint Zero-Warning Policy**: Zapnout `#![deny(warnings)]` ve workspace pro CI.
+* **Opravit všechna varování kompilátoru**: Odstranit nepoužívané importy, proměnné a `unreachable_code`.
+* **CI job pro `cargo fix`**: Vytvořit CI job, který navrhne opravy a commitne je do PR.
+* **Vyčistit Git od artefaktů**: Odstranit `dist/` adresář z historie a přidat ho do `.gitignore`.
+
+### 8. Refaktor kódu
+* **Metoda `matches_midi_command`**: Přesunout do `impl Mapping` v `core/src/lib.rs`.
+* **Jednotný shutdown**: Dokončit implementaci graceful shutdown pomocí `tokio::sync::watch`.
+* **Refaktor build skriptů**: Sjednotit logiku v `build_*.sh` skriptech.
+
+### 9. Dokumentace & README zlepšení
+* **Vložit diagram architektury**: Přidat hlavní komponentový diagram přímo do README.
+* **FAQ sekce**: Vytvořit sekci s častými dotazy a řešeními.
+
+---
 
 ## Nové crates v projektu
 
@@ -233,9 +351,9 @@ Settings are saved in your browser's local storage and persist across reloads. C
 | Přesun modelů do `core`           | ✅ | – |
 | Jednotný shutdown                 | ❌ | 2.2 |
 | FFI pravidla v CI                 | ❌ | 1.3, 4.4 |
-| AppleMIDI handshake+CK            | 🟡 | 3.1 |
+| AppleMIDI handshake+CK            | ✅ | – |
 | Recovery journal gaps             | ✅ | – |
-| DDP receiver                      | ❌ | 3.3 |
+| DDP receiver                      | ✅ | – |
 | CI audit + deny                   | ❌ | 4.1 |
 | ADR konsolidace                   | ❌ | 1.1 |
 

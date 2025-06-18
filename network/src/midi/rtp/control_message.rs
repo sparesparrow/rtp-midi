@@ -18,7 +18,7 @@ impl AppleMidiHeader {
         buf.put_u8(0xFF);
         buf.put_u8(0xFF);
         buf.put_slice(&self.command);
-        buf.put_u32(self.protocol_version);
+        buf.put_u32(self.protocol_version.into());
         buf.put_u32(self.initiator_token);
         buf.put_u32(self.ssrc);
     }

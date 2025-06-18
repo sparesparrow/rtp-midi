@@ -1,6 +1,16 @@
 # .gitignore
 
-/target
+# Rust
+/target/
+**/Cargo.lock
+
+# Build artifacts
+/dist/
+
+# Editor
+.vscode/
+.idea/
+*.swp
 
 # Ignorovat adresář s AIDL definicemi, pokud je spravován odděleně
 # nebo pokud ho nechceme v gitu. Prozatím ponecháme, je součástí projektu.

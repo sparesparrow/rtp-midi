@@ -1,0 +1,59 @@
+# deny.toml - Konfigurace pro cargo-deny
+# Full reference: https://embarkstudios.github.io/cargo-deny/checks/index.html
+
+[advisories]
+vulnerability = "deny"
+unmaintained = "warn"
+yanked = "deny"
+notice = "warn"
+ignore = [
+    # "RUSTSEC-2021-0145", # Příklad ignorování konkrétní zranitelnosti
+]
+
+[licenses]
+unlicensed = "deny"
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-DFS-2016",
+    "MPL-2.0",
+]
+deny = [
+    "GPL-2.0",
+    "GPL-3.0",
+    "AGPL-3.0",
+    "LGPL-2.0",
+    "LGPL-3.0",
+]
+# Povolit duplicitní licence, ale varovat.
+copyleft = "warn"
+# Povolit triviální výjimky (např. licence, která je podmnožinou jiné).
+allow-osi-fsf-free = "neither"
+# Důvěřovat tomu, co říká crates.io
+confidence-threshold = 0.90
+# Nepovolit licence, které nejsou na OSI nebo FSF seznamu.
+unrecognized-spdx-license = "deny"
+
+[bans]
+multiple-versions = "warn"
+wildcards = "allow"
+# Příklad zákazu konkrétní verze crate:
+# [[bans.skip]]
+# name = "openssl"
+# version = "=0.9.23"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
+
+[graph]
+# Zobrazit všechny cesty k závislostem, které způsobují chybu.
+all-features = true
+no-default-features = false
+no-dev-dependencies = false
+targets = [] 

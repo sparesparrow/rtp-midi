@@ -14,6 +14,25 @@ jobs:
   build_and_test:
     name: Build, Test, Format & Lint
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: "Linux x86_64"
+            os: ubuntu-latest
+            target: "x86_64-unknown-linux-gnu"
+            features: ""
+            run_tests: true
+          - name: "Android aarch64"
+            os: ubuntu-latest
+            target: "aarch64-linux-android"
+            features: "hal_android"
+            run_tests: false
+          - name: "ESP32 xtensa"
+            os: ubuntu-latest
+            target: "xtensa-esp32-none-elf"
+            features: "hal_esp32"
+            run_tests: false
 
     steps:
     - name: Checkout repository
@@ -23,6 +42,7 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
       with:
         components: clippy, rustfmt
+        targets: ${{ matrix.target }}
 
     - name: Cache dependencies
       uses: actions/cache@v4
@@ -36,9 +56,10 @@ jobs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Build
-      run: cargo build --verbose
+      run: cargo build --verbose --target ${{ matrix.target }} --features ${{ matrix.features }}
 
     - name: Run tests
+      if: matrix.run_tests
       run: cargo test --verbose
 
     - name: Check formatting
@@ -46,23 +67,6 @@ jobs:
 
     - name: Run linter (Clippy)
       run: cargo clippy -- -D warnings
-
-    - name: Build WASM UI (ui-frontend)
-      run: |
-        cd ui-frontend
-        cargo install wasm-pack --locked || true
-        wasm-pack build --target web
-        cd ..
-
-    - name: Build for Android (check only)
-      run: |
-        rustup target add aarch64-linux-android
-        cargo build --target aarch64-linux-android --release --features hal_android || true
-
-    - name: Build for ESP32 (check only)
-      run: |
-        rustup target add xtensa-esp32-none-elf || true
-        cargo build --target xtensa-esp32-none-elf --release --features hal_esp32 || true
 
     - name: Run integration tests
       run: cargo test --test integration_tests -- --nocapture

@@ -12,6 +12,9 @@ use rtp_midi_core::event_bus::Event;
 
 use super::message::{MidiMessage, RtpMidiPacket};
 use rtp_midi_core::parse_rtp_packet;
+use super::control_message::{AppleMidiMessage, Invitation, InvitationAccepted, InvitationRejected, Exit, Sync as AppleMidiSync, ReceiverFeedback};
+use tokio::time::{Instant, Duration, Sleep};
+use std::pin::Pin;
 
 // The listener now receives only the MIDI commands, not the whole packet, for cleaner separation.
 type MidiCommandListener = Arc<Mutex<dyn Fn(Vec<MidiMessage>) + Send + Sync>>;
@@ -20,7 +23,18 @@ type OutgoingPacketHandler = Arc<Mutex<dyn Fn(String, u16, Vec<u8>) + Send + Syn
 const HISTORY_SIZE: usize = 64; // How many sent packets to keep in the journal buffer
 const MIDI_CLOCK_HZ: f64 = 31250.0; // Standard MIDI clock frequency in Hz
 
-/// Represents a full RTP-MIDI session, managing sending, receiving, and journaling.
+/// Represents the AppleMIDI session state.
+#[derive(Debug, Clone, PartialEq)]
+pub enum SessionState {
+    Idle,
+    Inviting,
+    AwaitingOK,
+    ClockSync, // Starting clock sync
+    Established, // Handshake complete, ready for data
+    Terminated,
+}
+
+/// Represents a full RTP-MIDI session, managing sending, receiving, journaling, and AppleMIDI handshake.
 pub struct RtpMidiSession {
     name: String,
     // socket: Arc<UdpSocket>, // Removed: network I/O is now event-driven
@@ -41,10 +55,18 @@ pub struct RtpMidiSession {
     peer_addr: Arc<Mutex<Option<SocketAddr>>>,
     // Timestamp of the last sent packet, for calculating delta-time
     last_sent_timestamp: Arc<Mutex<u32>>,
+
+    // --- AppleMIDI State ---
+    pub session_state: Arc<Mutex<SessionState>>,
+    pub handshake_timer: Arc<Mutex<Option<Pin<Box<Sleep>>>>>,
+    pub sync_timer: Arc<Mutex<Option<Pin<Box<Sleep>>>>>,
+    pub last_sync_count: Arc<Mutex<u8>>,
+    pub initiator_token: u32,
+    pub peer_ssrc: Arc<Mutex<Option<u32>>>,
 }
 
 impl RtpMidiSession {
-    /// Creates a new RTP-MIDI session without binding to a socket. Network I/O is external.
+    /// Creates a new RTP-MIDI session with handshake state.
     pub async fn new(name: String, _port: u16) -> Result<Self> {
         // The port parameter is now advisory; actual binding is done by network_interface.
         info!("RTP-MIDI session '{}' created.", name);
@@ -59,6 +81,12 @@ impl RtpMidiSession {
             receive_history: Arc::new(Mutex::new(BTreeSet::new())),
             peer_addr: Arc::new(Mutex::new(None)),
             last_sent_timestamp: Arc::new(Mutex::new(0)),
+            session_state: Arc::new(Mutex::new(SessionState::Idle)),
+            handshake_timer: Arc::new(Mutex::new(None)),
+            sync_timer: Arc::new(Mutex::new(None)),
+            last_sync_count: Arc::new(Mutex::new(0)),
+            initiator_token: rand::random(),
+            peer_ssrc: Arc::new(Mutex::new(None)),
         })
     }
 
@@ -181,6 +209,10 @@ impl RtpMidiSession {
 
     /// Sends a list of MIDI commands, publishing the raw packet via the outgoing handler.
     pub async fn send_midi(&self, commands: Vec<MidiMessage>) -> Result<()> {
+        if *self.session_state.lock().await != SessionState::Established {
+            return Err(anyhow!("Cannot send MIDI data: session not established."));
+        }
+
         let peer_guard = self.peer_addr.lock().await;
         let peer = peer_guard.ok_or_else(|| anyhow!("Cannot send MIDI, no peer connected."))?;
 
@@ -268,6 +300,150 @@ impl RtpMidiSession {
         }
         recovered
     }
+
+    /// Initiates the AppleMIDI handshake by sending an IN (invitation) message.
+    pub async fn initiate_handshake(&self, peer_addr: SocketAddr, name: &str) -> Result<()> {
+        let mut state = self.session_state.lock().await;
+        if *state != SessionState::Idle {
+            return Err(anyhow!("Handshake already in progress or established."));
+        }
+        *state = SessionState::AwaitingOK;
+        *self.peer_addr.lock().await = Some(peer_addr);
+
+        info!("Initiating handshake with {} at {}", name, peer_addr);
+
+        let invitation = AppleMidiMessage::Invitation(Invitation::new(
+            self.initiator_token,
+            self.ssrc,
+            self.name.clone(),
+        ));
+        
+        self.send_control_message(&invitation).await?;
+
+        // TODO: Start a timer here to re-send the invitation if no OK is received.
+        // For now, we just wait.
+        
+        Ok(())
+    }
+
+    /// Handles a control message from a remote peer.
+    pub async fn handle_control_message(&self, msg: AppleMidiMessage, peer_addr: SocketAddr) -> Result<()> {
+        let mut state = self.session_state.lock().await;
+        match msg {
+            AppleMidiMessage::Invitation(inv) => {
+                if *state == SessionState::Idle {
+                    info!("Received invitation from {}. Accepting.", inv.name);
+                    *self.peer_addr.lock().await = Some(peer_addr);
+                    *self.peer_ssrc.lock().await = Some(inv.header.ssrc);
+                    // Send OK response
+                    let response = AppleMidiMessage::InvitationAccepted(InvitationAccepted::new(
+                        inv.header.initiator_token,
+                        self.ssrc,
+                        self.name.clone(),
+                    ));
+                    self.send_control_message(&response).await?;
+                    *state = SessionState::Established; // We are now established
+                }
+            }
+            AppleMidiMessage::InvitationAccepted(ok) => {
+                if *state == SessionState::AwaitingOK && ok.header.initiator_token == self.initiator_token {
+                    info!("Invitation accepted by {}. Session established.", ok.name);
+                    *self.peer_ssrc.lock().await = Some(ok.header.ssrc);
+                    *state = SessionState::Established;
+                    // Optional: start clock sync
+                    self.initiate_clock_sync(peer_addr).await?;
+                }
+            }
+            AppleMidiMessage::InvitationRejected(_no) => {
+                if *state == SessionState::AwaitingOK {
+                    warn!("Invitation rejected by peer.");
+                    *state = SessionState::Idle;
+                }
+            }
+            AppleMidiMessage::Sync(sync) => {
+                // This is a simplified clock sync. A full implementation would handle CK0, CK1, CK2.
+                if *state == SessionState::Established || *state == SessionState::ClockSync {
+                    if sync.count == 0 { // Peer initiated sync (CK0)
+                        info!("Received CK0, responding with CK1.");
+                        let response = AppleMidiMessage::Sync(AppleMidiSync::new(
+                            self.ssrc,
+                            1,
+                            sync.timestamps, // Echo back timestamps
+                        ));
+                        self.send_control_message(&response).await?;
+                    } else if sync.count == 1 { // We initiated, this is CK1 response
+                        info!("Received CK1, sending CK2 and finalizing sync.");
+                        let response = AppleMidiMessage::Sync(AppleMidiSync::new(
+                            self.ssrc,
+                            2,
+                            sync.timestamps,
+                        ));
+                        self.send_control_message(&response).await?;
+                        *state = SessionState::ClockSync;
+                    } else if sync.count == 2 {
+                        info!("Received CK2, clock sync complete.");
+                        *state = SessionState::Established;
+                    }
+                }
+            }
+            AppleMidiMessage::Exit(_exit) => {
+                info!("Peer requested to end the session.");
+                *state = SessionState::Terminated;
+                // Clean up resources, etc.
+            }
+            _ => warn!("Received unexpected control message in state {:?}: {:?}", *state, msg),
+        }
+        Ok(())
+    }
+
+    /// Sends a control message to the currently connected peer.
+    async fn send_control_message(&self, msg: &AppleMidiMessage) -> Result<()> {
+        if let Some(peer) = *self.peer_addr.lock().await {
+            let data = msg.serialize();
+            if let Some(handler) = &*self.outgoing_packet_handler.lock().await {
+                let handler_clone = handler.clone();
+                handler_clone.lock().await(peer.ip().to_string(), peer.port(), data.to_vec());
+            }
+            Ok(())
+        } else {
+            Err(anyhow!("Cannot send control message: no peer connected."))
+        }
+    }
+
+    /// Initiates the CK (clock sync) exchange.
+    pub async fn initiate_clock_sync(&self, peer_addr: SocketAddr) -> Result<()> {
+        let mut state = self.session_state.lock().await;
+        if *state != SessionState::Established {
+            warn!("Cannot initiate clock sync: session not established.");
+            return Ok(());
+        }
+        *state = SessionState::ClockSync;
+        info!("Initiating clock sync with peer at {}", peer_addr);
+
+        let sync_msg = AppleMidiMessage::Sync(AppleMidiSync::new(
+            self.ssrc,
+            0, // This is CK0
+            [0, 0, 0], // Timestamps are filled by the receiver
+        ));
+
+        self.send_control_message(&sync_msg).await?;
+
+        // TODO: Start a timer. If CK1 is not received, retry or fail the sync.
+        
+        Ok(())
+    }
+
+    /// Gracefully terminates the session.
+    pub async fn end_session(&self) -> Result<()> {
+        let mut state = self.session_state.lock().await;
+        *state = SessionState::Terminated;
+        // Clean up resources, etc.
+        Ok(())
+    }
+
+    // TODO: Add more methods for handshake/CK retries, timeouts, and cleanup
+    // TODO: Add event emission for all state changes and sync status
+    // TODO: Add tests for handshake and CK edge cases
 }
 
 #[async_trait::async_trait]

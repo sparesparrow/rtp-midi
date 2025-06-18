@@ -204,91 +204,87 @@ impl SessionManager {
                     dest_addr: source_addr,
                 }).await;
                 self.state = SessionState::Syncing;
-                // Store timestamp1 for later offset calculation
-                // (In real impl, store in struct field)
-                log::info!("Sent CK0 to peer, starting clock sync");
             }
             _ => {
-                log::warn!("Received OK in unexpected state");
+                // Ignore if not in handshaking
             }
         }
     }
 
     // Placeholder: handle invitation rejected (NO)
     async fn handle_invitation_rejected(&mut self, _initiator_token: u32, _ssrc: u32, _source_addr: SocketAddr) {
-        // Reset state and log
+        // Invitation rejected, reset state
         self.state = SessionState::Disconnected;
-        self.peer_addr = None;
-        self.initiator_token = None;
-        self.ssrc = None;
-        log::warn!("Session invitation rejected by peer");
+        // Emit event: SessionRejected
+        // TODO: Implement event emission for rejection
     }
 
     // Placeholder: handle session termination (BY)
-    async fn handle_end_session(&mut self, _ssrc: u32, _source_addr: SocketAddr) {
-        // Clean up session and reset state
+    async fn handle_end_session(&mut self, _ssrc: u32, source_addr: SocketAddr) {
+        // Session terminated
         self.state = SessionState::Disconnected;
-        self.peer_addr = None;
-        self.initiator_token = None;
-        self.ssrc = None;
-        log::info!("Session ended by peer");
+        // Emit event: SessionTerminated
+        let _ = self.event_sender.send(Event::SessionTerminated {
+            peer: source_addr,
+        }).await;
     }
 
     // Placeholder: handle clock sync (CK)
-    async fn handle_clock_sync(&mut self, count: u8, timestamps: [u64; 3], ssrc: u32, source_addr: SocketAddr) {
+    async fn handle_clock_sync(&mut self, count: u8, mut timestamps: [u64; 3], ssrc: u32, source_addr: SocketAddr) {
+        // AppleMIDI CK three-way exchange
         match self.state {
             SessionState::Syncing => {
                 match count {
                     0 => {
-                        // Received CK0: reply with CK1 (echo timestamp1, add timestamp2)
+                        // Received CK0, respond with CK1
                         let now = Self::current_timestamp();
                         let mut payload = Vec::new();
                         payload.extend_from_slice(b"CK");
                         payload.push(1); // count = 1 (CK1)
                         payload.push(0); // reserved
                         payload.extend_from_slice(&ssrc.to_be_bytes());
-                        payload.extend_from_slice(&timestamps[0].to_be_bytes()); // timestamp1
-                        payload.extend_from_slice(&now.to_be_bytes()); // timestamp2
+                        payload.extend_from_slice(&timestamps[0].to_be_bytes()); // timestamp1 (from peer)
+                        payload.extend_from_slice(&now.to_be_bytes()); // timestamp2 (our time)
                         payload.extend_from_slice(&0u64.to_be_bytes()); // timestamp3 (zero)
                         let _ = self.event_sender.send(Event::SendPacket {
                             payload,
                             dest_addr: source_addr,
                         }).await;
-                        log::info!("Received CK0, sent CK1");
                     }
                     1 => {
-                        // Received CK1: reply with CK2 (echo timestamp1, timestamp2, add timestamp3)
+                        // Received CK1, respond with CK2
                         let now = Self::current_timestamp();
                         let mut payload = Vec::new();
                         payload.extend_from_slice(b"CK");
                         payload.push(2); // count = 2 (CK2)
                         payload.push(0); // reserved
                         payload.extend_from_slice(&ssrc.to_be_bytes());
-                        payload.extend_from_slice(&timestamps[0].to_be_bytes()); // timestamp1
-                        payload.extend_from_slice(&timestamps[1].to_be_bytes()); // timestamp2
-                        payload.extend_from_slice(&now.to_be_bytes()); // timestamp3
+                        payload.extend_from_slice(&timestamps[0].to_be_bytes()); // timestamp1 (from peer)
+                        payload.extend_from_slice(&timestamps[1].to_be_bytes()); // timestamp2 (from peer)
+                        payload.extend_from_slice(&now.to_be_bytes()); // timestamp3 (our time)
                         let _ = self.event_sender.send(Event::SendPacket {
                             payload,
                             dest_addr: source_addr,
                         }).await;
-                        log::info!("Received CK1, sent CK2");
+                        // Session is now established
+                        self.state = SessionState::Connected;
+                        // Emit event: SessionEstablished
+                        let _ = self.event_sender.send(Event::SessionEstablished {
+                            peer: source_addr,
+                        }).await;
                     }
                     2 => {
-                        // Received CK2: complete clock sync, mark session as Connected
-                        // Calculate offset/latency if needed
+                        // Received CK2, handshake complete
                         self.state = SessionState::Connected;
-                        log::info!("Clock sync complete, session established");
-                        let peer = self.peer_addr.unwrap_or(source_addr);
-                        let _ = self.event_sender.send(Event::SessionEstablished { peer }).await;
+                        // Emit event: SessionEstablished
+                        let _ = self.event_sender.send(Event::SessionEstablished {
+                            peer: source_addr,
+                        }).await;
                     }
-                    _ => {
-                        log::warn!("Unexpected CK count: {}", count);
-                    }
+                    _ => {}
                 }
             }
-            _ => {
-                log::warn!("Received CK in unexpected state");
-            }
+            _ => {}
         }
     }
 
