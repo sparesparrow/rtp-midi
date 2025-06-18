@@ -1,16 +1,11 @@
 #!/bin/bash
 set -e
 
-# Build all binaries and libraries for PC Linux (x86_64)
-# Uses all default features unless overridden
+# Build the main binary for PC Linux (x86_64)
 
-# Optional: set features (edit as needed)
-FEATURES="hal_pc,ui"
-
-# Build workspace
-cargo build --release --features "$FEATURES"
+cargo build --release --bin rtp_midi_node
 
 # List built artifacts
-ls -lh target/release/
+ls -lh target/release/rtp_midi_node
 
 echo "--- PC Linux build finished successfully ---" 
