@@ -52,6 +52,50 @@ function updatePeerList(peers) {
     });
 }
 
+// MIDI Events Visualization
+const midiEventsBody = document.getElementById('midiEventsBody');
+function addMidiEvent({direction, type, channel, noteOrControl, velocityOrValue}) {
+    const now = new Date();
+    const time = now.toLocaleTimeString();
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td style="padding:2px 8px;color:#888;">${time}</td>
+        <td style="padding:2px 8px;">${direction}</td>
+        <td style="padding:2px 8px;">${type}</td>
+        <td style="padding:2px 8px;">${channel ?? ''}</td>
+        <td style="padding:2px 8px;">${noteOrControl ?? ''}</td>
+        <td style="padding:2px 8px;">${velocityOrValue ?? ''}</td>
+    `;
+    if (type === 'Note On' && velocityOrValue > 0) {
+        row.style.background = '#e3ffe3';
+    } else if (type === 'Note Off' || (type === 'Note On' && velocityOrValue === 0)) {
+        row.style.background = '#ffe3e3';
+    }
+    midiEventsBody.appendChild(row);
+    // Keep only last 100 events
+    while (midiEventsBody.children.length > 100) {
+        midiEventsBody.removeChild(midiEventsBody.firstChild);
+    }
+}
+
+// Helper: Parse MIDI message bytes (basic)
+function parseMidiMessage(bytes) {
+    if (!bytes || bytes.length < 1) return null;
+    const status = bytes[0];
+    const typeNibble = status & 0xF0;
+    const channel = (status & 0x0F) + 1;
+    switch (typeNibble) {
+        case 0x80:
+            return { type: 'Note Off', channel, noteOrControl: bytes[1], velocityOrValue: bytes[2] };
+        case 0x90:
+            return { type: 'Note On', channel, noteOrControl: bytes[1], velocityOrValue: bytes[2] };
+        case 0xB0:
+            return { type: 'Control Change', channel, noteOrControl: bytes[1], velocityOrValue: bytes[2] };
+        default:
+            return { type: 'Other', channel, noteOrControl: bytes[1], velocityOrValue: bytes[2] };
+    }
+}
+
 function connectWebSocket() {
     setStatus('connecting', 'Connecting...');
     websocket = new WebSocket(wsUrl);
@@ -132,6 +176,14 @@ function handleSignalingMessage(message) {
                     currentPeers.push(message.payload.client_id);
                     updatePeerList(currentPeers);
                 }
+            }
+            break;
+        case 'midi':
+            // Incoming MIDI event from server/peer
+            if (message.payload && message.payload.data) {
+                const midiBytes = message.payload.data;
+                const midi = parseMidiMessage(midiBytes);
+                if (midi) addMidiEvent({direction: 'In', ...midi});
             }
             break;
         default:

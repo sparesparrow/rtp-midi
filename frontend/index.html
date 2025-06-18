@@ -122,6 +122,22 @@
         <div id="peerList">No peers available.</div>
         <h2>Messages</h2>
         <div id="messages"></div>
+        <h2>MIDI Events</h2>
+        <table id="midiEventsTable" style="width:100%;border-collapse:collapse;margin-top:10px;">
+            <thead>
+                <tr style="background:#f0f4f8;">
+                    <th style="padding:4px 8px;">Time</th>
+                    <th style="padding:4px 8px;">Direction</th>
+                    <th style="padding:4px 8px;">Type</th>
+                    <th style="padding:4px 8px;">Channel</th>
+                    <th style="padding:4px 8px;">Note/Control</th>
+                    <th style="padding:4px 8px;">Velocity/Value</th>
+                </tr>
+            </thead>
+            <tbody id="midiEventsBody">
+                <!-- MIDI events will be appended here -->
+            </tbody>
+        </table>
     </div>
     <script src="script.js"></script>
     <!--
