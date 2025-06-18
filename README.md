@@ -90,3 +90,59 @@ Každý režim spouští odpovídající službu podle autodetekce role.
 - Pro rozšíření mappingů o další typy akcí/výstupů přidejte nový enum do utils, implementujte nový sender a rozšiřte service loop.
 - Pro další informace viz dokumentaci v `docs/architecture/`.
 
+---
+
+## Planned TODOs for Future Development
+
+Below are prioritized tasks for future development. Each TODO includes clear instructions and acceptance criteria.
+
+### 1. MIDI Data Visualization in UI
+- **Instructions:**
+  - Extend the web UI to display incoming and outgoing MIDI messages in real time.
+  - Use a table or timeline view for clarity.
+  - Highlight active notes and velocity.
+- **Acceptance Criteria:**
+  - UI shows a live-updating list or timeline of MIDI events.
+  - User can distinguish between incoming and outgoing messages.
+  - Visualization updates without page reload.
+
+### 2. Advanced LED Mapping Presets
+- **Instructions:**
+  - Add support for multiple LED mapping presets (e.g., spectrum, vu-meter, custom patterns).
+  - Allow runtime switching of presets via config or UI.
+- **Acceptance Criteria:**
+  - At least two new mapping modes are implemented and selectable.
+  - Switching presets updates LED output in real time.
+
+### 3. Automated End-to-End Integration Tests
+- **Instructions:**
+  - Implement tests that simulate a full workflow: audio input → MIDI processing → LED output (mocked or in hardware-in-the-loop).
+  - Use CI to run these tests automatically.
+- **Acceptance Criteria:**
+  - Tests cover all major data flows and error cases.
+  - CI fails if any integration test fails.
+
+### 4. User-Configurable Settings in UI
+- **Instructions:**
+  - Add a settings panel to the UI for configuring server address, LED count, mapping mode, etc.
+  - Persist settings in local storage.
+- **Acceptance Criteria:**
+  - User can update and save settings via the UI.
+  - Settings persist across reloads.
+
+### 5. Documentation Polish & Examples
+- **Instructions:**
+  - Expand documentation with usage examples, diagrams, and troubleshooting.
+  - Add a 'Getting Started' section and advanced configuration tips.
+- **Acceptance Criteria:**
+  - README and docs/ contain clear, up-to-date guides and diagrams.
+  - New users can set up and run the project using only the documentation.
+
+### 6. Release Automation & Packaging
+- **Instructions:**
+  - Add scripts and CI jobs for building, packaging, and releasing binaries for all supported platforms.
+  - Automate changelog generation and version bumping.
+- **Acceptance Criteria:**
+  - Release artifacts are generated for Linux, Windows, and Android (where applicable).
+  - Changelog and version are updated automatically on release.
+
