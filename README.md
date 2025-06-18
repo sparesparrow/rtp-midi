@@ -153,25 +153,27 @@ cargo test --all --workspace
 
 ---
 
+## User-Configurable Settings in UI
+
+The web UI now includes a Settings panel (⚙️ button) that allows users to configure:
+- **LED Count**: Number of LEDs to control (default: 60)
+- **Mapping Preset**: LED mapping mode (`spectrum` or `vumeter`)
+
+Settings are saved in your browser's local storage and persist across reloads. Changes take effect immediately in the UI.
+
+---
+
 ## Planned TODOs for Future Development
 
 Below are prioritized tasks for future development. Each TODO includes clear instructions and acceptance criteria.
 
-### 1. User-Configurable Settings in UI
-- **Instructions:**
-  - Add a settings panel to the web UI for runtime configuration (e.g., LED count, mapping preset, server address).
-  - Persist user settings in local storage.
-- **Acceptance Criteria:**
-  - User can change settings at runtime and see immediate effect.
-  - Settings persist across reloads.
-
-### 2. Documentation Polish & Examples
+### 1. Documentation Polish & Examples
 - **Instructions:**
   - Expand documentation with usage examples, diagrams, and troubleshooting tips.
 - **Acceptance Criteria:**
   - README and docs are comprehensive and up to date.
 
-### 3. Release Automation & Packaging
+### 2. Release Automation & Packaging
 - **Instructions:**
   - Add scripts or CI jobs for building and packaging releases for all platforms (Linux, Android, ESP32).
 - **Acceptance Criteria:**

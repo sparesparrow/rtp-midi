@@ -138,6 +138,23 @@
                 <!-- MIDI events will be appended here -->
             </tbody>
         </table>
+        <button id="settingsBtn" style="float:right;margin-top:-8px;">⚙️ Settings</button>
+        <div id="settingsPanel" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.25);z-index:1000;">
+            <div style="background:#fff;max-width:340px;margin:60px auto;padding:24px 20px 16px 20px;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,0.13);position:relative;">
+                <h2 style="margin-top:0;font-size:1.3em;">Settings</h2>
+                <label>LED Count:<br>
+                    <input type="number" id="ledCountInput" min="1" max="1024" style="width:80px;">
+                </label><br><br>
+                <label>Mapping Preset:<br>
+                    <select id="mappingPresetInput">
+                        <option value="spectrum">Spectrum</option>
+                        <option value="vumeter">VU Meter</option>
+                    </select>
+                </label><br><br>
+                <button id="saveSettingsBtn">Save</button>
+                <button id="closeSettingsBtn" style="float:right;">Close</button>
+            </div>
+        </div>
     </div>
     <script src="script.js"></script>
     <!--

@@ -12,6 +12,43 @@ let peerConnection = null;
 let dataChannel = null;
 let myClientId = 'client-' + Math.random().toString(36).substring(7);
 
+// === Settings Panel Logic ===
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsPanel = document.getElementById('settingsPanel');
+const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+const ledCountInput = document.getElementById('ledCountInput');
+const mappingPresetInput = document.getElementById('mappingPresetInput');
+
+function loadSettings() {
+    const settings = JSON.parse(localStorage.getItem('rtpmidi_settings') || '{}');
+    ledCountInput.value = settings.ledCount || 60;
+    mappingPresetInput.value = settings.mappingPreset || 'spectrum';
+}
+
+function saveSettings() {
+    const settings = {
+        ledCount: parseInt(ledCountInput.value, 10),
+        mappingPreset: mappingPresetInput.value
+    };
+    localStorage.setItem('rtpmidi_settings', JSON.stringify(settings));
+    addMessage('Settings saved.');
+    settingsPanel.style.display = 'none';
+    // Optionally: send settings to backend or reload UI as needed
+}
+
+settingsBtn.onclick = () => {
+    loadSettings();
+    settingsPanel.style.display = 'block';
+};
+closeSettingsBtn.onclick = () => {
+    settingsPanel.style.display = 'none';
+};
+saveSettingsBtn.onclick = saveSettings;
+
+// Load settings on page load
+loadSettings();
+
 // Utility: Set status badge
 function setStatus(status, text) {
     statusSpan.textContent = text;
