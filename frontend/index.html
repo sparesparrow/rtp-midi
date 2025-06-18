@@ -6,45 +6,127 @@
     <title>RTP-MIDI Signaling Client</title>
     <style>
         body {
-            font-family: sans-serif;
-            line-height: 1.6;
-            margin: 20px;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f7f9fa;
+            color: #222;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            padding: 32px 24px 24px 24px;
+        }
+        h1 {
+            margin-top: 0;
+            font-size: 2rem;
+            letter-spacing: 1px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.95em;
+            font-weight: 500;
+            background: #eee;
+            color: #555;
+            margin-left: 8px;
+        }
+        .status-badge.connected { background: #d1f5d3; color: #217a2b; }
+        .status-badge.error { background: #ffd6d6; color: #b30000; }
+        .status-badge.disconnected { background: #f5e6d1; color: #a86a00; }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .controls label {
+            font-weight: 500;
+        }
+        .controls input[type="text"] {
+            padding: 6px 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+        .controls button {
+            padding: 7px 18px;
+            background: #217a2b;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .controls button:hover {
+            background: #1a5e21;
+        }
+        #peerList {
+            margin-bottom: 18px;
+            padding: 10px;
+            background: #f0f4f8;
+            border-radius: 8px;
+            min-height: 40px;
+        }
+        #peerList .peer {
+            display: inline-block;
+            background: #e3eaff;
+            color: #2a3a5e;
+            border-radius: 8px;
+            padding: 4px 10px;
+            margin: 2px 6px 2px 0;
+            cursor: pointer;
+            font-size: 0.98em;
+            transition: background 0.2s;
+        }
+        #peerList .peer:hover {
+            background: #b3cfff;
         }
         #messages {
-            border: 1px solid #ccc;
+            border: 1px solid #e0e0e0;
+            background: #fafbfc;
             padding: 10px;
-            height: 300px;
+            height: 260px;
             overflow-y: scroll;
             margin-bottom: 10px;
+            border-radius: 8px;
+            font-size: 0.98em;
         }
         .message {
             margin-bottom: 5px;
-            padding: 5px;
-            border-bottom: 1px solid #eee;
+            padding: 5px 8px;
+            border-bottom: 1px solid #f0f0f0;
+            background: #fff;
+            border-radius: 4px;
         }
-        .controls {
-            margin-bottom: 20px;
-        }
-        .controls label,
-        .controls input[type="text"],
-        .controls button {
-            margin-right: 10px;
+        @media (max-width: 700px) {
+            .container { padding: 12px 4vw; }
         }
     </style>
 </head>
 <body>
-    <h1>RTP-MIDI Signaling Client</h1>
-    <p>Connection Status: <span id="status">Connecting...</span></p>
-    
-    <div class="controls">
-        <label for="peerIdInput">Target Peer ID:</label>
-        <input type="text" id="peerIdInput" placeholder="Enter peer ID">
-        <button id="connectButton">Connect to Peer</button>
+    <div class="container">
+        <h1>RTP-MIDI Signaling Client
+            <span id="status" class="status-badge disconnected">Connecting...</span>
+        </h1>
+        <div class="controls">
+            <label for="peerIdInput">Target Peer ID:</label>
+            <input type="text" id="peerIdInput" placeholder="Enter peer ID">
+            <button id="connectButton">Connect to Peer</button>
+        </div>
+        <div id="peerList">No peers available.</div>
+        <h2>Messages</h2>
+        <div id="messages"></div>
     </div>
-
-    <h2>Messages</h2>
-    <div id="messages"></div>
-
     <script src="script.js"></script>
+    <!--
+      Developer note: To run simple frontend UI tests, open the browser console and call runFrontendTests().
+      See script.js for details.
+    -->
 </body>
 </html> 

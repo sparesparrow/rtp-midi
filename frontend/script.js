@@ -12,12 +12,53 @@ let peerConnection = null;
 let dataChannel = null;
 let myClientId = 'client-' + Math.random().toString(36).substring(7);
 
+// Utility: Set status badge
+function setStatus(status, text) {
+    statusSpan.textContent = text;
+    statusSpan.className = 'status-badge ' + status;
+}
+
+// Utility: Add message with timestamp
+function addMessage(text) {
+    const messageElement = document.createElement('div');
+    messageElement.classList.add('message');
+    const now = new Date();
+    const time = now.toLocaleTimeString();
+    messageElement.innerHTML = `<span style="color:#888;font-size:0.92em;">[${time}]</span> ${text}`;
+    messagesDiv.appendChild(messageElement);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+// Peer list UI
+const peerListDiv = document.getElementById('peerList');
+let currentPeers = [];
+function updatePeerList(peers) {
+    currentPeers = peers;
+    if (!peers || peers.length === 0) {
+        peerListDiv.textContent = 'No peers available.';
+        return;
+    }
+    peerListDiv.innerHTML = '';
+    peers.forEach(peerId => {
+        if (peerId === myClientId) return; // Don't show self
+        const peerElem = document.createElement('span');
+        peerElem.className = 'peer';
+        peerElem.textContent = peerId;
+        peerElem.onclick = () => {
+            peerIdInput.value = peerId;
+            createOffer(peerId);
+        };
+        peerListDiv.appendChild(peerElem);
+    });
+}
+
 function connectWebSocket() {
-    statusSpan.textContent = 'Connecting...';
+    setStatus('connecting', 'Connecting...');
     websocket = new WebSocket(wsUrl);
 
     websocket.onopen = (event) => {
-        statusSpan.textContent = 'Connected';
+        setStatus('connected', 'Connected');
+        addMessage('WebSocket connected.');
         console.log('WebSocket connected:', event);
         // Send registration message
         sendSignalingMessage('register', 'server', {
@@ -27,12 +68,8 @@ function connectWebSocket() {
     };
 
     websocket.onmessage = (event) => {
+        addMessage(event.data);
         console.log('Message from server:', event.data);
-        const messageElement = document.createElement('div');
-        messageElement.classList.add('message');
-        messageElement.textContent = event.data;
-        messagesDiv.appendChild(messageElement);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight; // Auto-scroll to the latest message
 
         try {
             const signalingMessage = JSON.parse(event.data);
@@ -43,12 +80,14 @@ function connectWebSocket() {
     };
 
     websocket.onerror = (event) => {
-        statusSpan.textContent = 'Error';
+        setStatus('error', 'Error');
+        addMessage('WebSocket error.');
         console.error('WebSocket error:', event);
     };
 
     websocket.onclose = (event) => {
-        statusSpan.textContent = 'Disconnected';
+        setStatus('disconnected', 'Disconnected');
+        addMessage('WebSocket closed. Reconnecting in 5s...');
         console.log('WebSocket closed:', event);
         // Attempt to reconnect after a delay
         setTimeout(connectWebSocket, 5000);
@@ -85,13 +124,16 @@ function handleSignalingMessage(message) {
             handleIceCandidate(message.payload.candidate);
             break;
         case 'peer_list':
-             console.log('Received peer list:', message.payload.peers);
-             // TODO: Display the peer list in the UI
-             break;
+            updatePeerList(message.payload.peers);
+            break;
         case 'new_client':
-             console.log('New client connected:', message.payload.client_id);
-             // TODO: Update the peer list in the UI
-             break;
+            if (message.payload && message.payload.client_id) {
+                if (!currentPeers.includes(message.payload.client_id)) {
+                    currentPeers.push(message.payload.client_id);
+                    updatePeerList(currentPeers);
+                }
+            }
+            break;
         default:
             console.warn('Unknown signaling message type:', message.message_type);
     }
@@ -120,8 +162,12 @@ function createPeerConnection() {
 
     // Listen for connection state changes
     peerConnection.onconnectionstatechange = (event) => {
-        console.log('ICE connection state change:', peerConnection.connectionState);
-        // TODO: Update UI based on connection state
+        addMessage('ICE connection state: ' + peerConnection.connectionState);
+        if (peerConnection.connectionState === 'connected') {
+            setStatus('connected', 'Peer Connected');
+        } else if (peerConnection.connectionState === 'disconnected' || peerConnection.connectionState === 'failed') {
+            setStatus('disconnected', 'Peer Disconnected');
+        }
     };
 
     // Listen for data channel
@@ -226,4 +272,29 @@ connectButton.addEventListener('click', () => {
 });
 
 // Initial connection attempt
-connectWebSocket(); 
+connectWebSocket();
+
+// === Simple Frontend Test Harness ===
+function runFrontendTests() {
+    let passed = 0, failed = 0;
+    function assert(cond, msg) {
+        if (cond) { console.log('PASS:', msg); passed++; }
+        else { console.error('FAIL:', msg); failed++; }
+    }
+    // Test: Peer list rendering
+    updatePeerList(['peer1', 'peer2', myClientId]);
+    assert(peerListDiv.children.length === 2, 'Peer list renders correct number of peers (excluding self)');
+    // Test: Status badge update
+    setStatus('connected', 'Connected');
+    assert(statusSpan.classList.contains('connected'), 'Status badge class updated to connected');
+    setStatus('error', 'Error');
+    assert(statusSpan.classList.contains('error'), 'Status badge class updated to error');
+    // Test: Message log
+    const msgCountBefore = messagesDiv.children.length;
+    addMessage('Test message');
+    assert(messagesDiv.children.length === msgCountBefore + 1, 'Message log appends new message');
+    // Summary
+    console.log(`Frontend tests: ${passed} passed, ${failed} failed.`);
+}
+// Uncomment to run tests in browser console:
+// runFrontendTests(); 
