@@ -170,7 +170,7 @@ Settings are saved in your browser's local storage and persist across reloads. C
    * Implement the full AppleMIDI handshake and clock synchronization state machine in network/src/midi/rtp/session.rs and core/src/session_manager.rs. The current implementation is a placeholder. The session should not be considered "established" until both sides have completed the IN, OK, and CK message exchange.
    * [x] Implement the recovery journal retransmission logic. The session now detects gaps in sequence numbers in RtpMidiSession::handle_incoming_packet and attempts to recover missing packets using the journal mechanism, logging the outcome for each gap.
    * Complete the DDP (Distributed Display Protocol) receiver implementation in output/src/ddp_output.rs. The DdpReceiver struct is currently a stub and its poll method should be implemented to read data from a UDP socket.
-   * Fully integrate audio analysis with the output modules in rtp_midi_lib/src/lib.rs. The main service loop correctly calculates led_data, but it is not sent to any output. Add logic to send led_data to the active DataStreamNetSender (e.g., a DDP sender).
+   * [x] Fully integrate audio analysis with the output modules in rtp_midi_lib/src/lib.rs. The main service loop now sends led_data to the active DDP sender, so LED output reflects real-time audio analysis.
  * Acceptance Criteria:
    * A new RTP-MIDI peer connection correctly performs the two-way handshake (IN/OK) and clock synchronization (CK0, CK1, CK2) before processing MIDI data.
    * The system can detect and recover from lost packets using the recovery journal mechanism.
@@ -216,6 +216,14 @@ Settings are saved in your browser's local storage and persist across reloads. C
    * The web UI correctly establishes a WebRTC peer-to-peer connection with the backend.
    * Clicking a key on the piano in webrtc_client.html sends a valid MIDI Note On/Off message through the data channel, which is received and processed by the Rust backend.
    * Changing the LED count in the UI settings panel and clicking "Save" updates the number of LEDs the backend renders to in real time.
+
+6. Architektura, Správa a Meta-úkoly
+ * Instructions:
+   * Finalizovat ADR pro modularizaci workspace: `ADR-0003-workspace-modularization.md` je označen jako `Proposed`, ale změny již byly z velké části implementovány. Je potřeba revidovat ADR, aby odrážel finální strukturu `crates/hal-*`, označit jej jako `Accepted` a doplnit datum.
+   * Standardizovat názvy ADR souborů a uklidit: V projektu jsou dva ADR pro sledování rozhodnutí (`0000-*.md` a `ADR-0000.md`) a nekonzistentní pojmenování. Je třeba je sjednotit, rozhodnout o jediné šabloně a přejmenovat všechny ADR soubory na konzistentní formát, např. `ADR-XXXX-nazev-slug.md`.
+ * Acceptance Criteria:
+   * Stav `ADR-0003` je `Accepted` a obsah odpovídá realitě.
+   * Všechny ADR soubory v adresáři `adr/` mají konzistentní a jasný název.
 
 ---
 

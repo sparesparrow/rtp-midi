@@ -16,6 +16,7 @@ use network::midi::rtp::session::RtpMidiSession;
 use output::wled_control::WledSender;
 use tokio::sync::Mutex;
 use output::light_mapper::{MappingPreset, map_leds_with_preset};
+use output::ddp_output::{DdpSender, create_ddp_sender};
 
 // --- Structs defined at the library root ---
 #[derive(Debug, serde::Deserialize, Clone, PartialEq)]
@@ -69,7 +70,19 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
     // --- Výstupní zařízení ---
     let mut wled_sender = WledSender::new(wled_ip.clone());
     // DDP sender lze přidat obdobně, až budou akce
-    // let mut ddp_sender = ...
+    let ddp_ip = wled_ip.clone(); // Use wled_ip for DDP by default, or add a separate config field if needed
+    let mut ddp_sender = match create_ddp_sender(&ddp_ip, ddp_port, config.led_count, false) {
+        Ok(sender) => DdpSender::new(sender),
+        Err(e) => {
+            error!("Failed to create DDP sender: {}", e);
+            // Fallback: do not send DDP output
+            // In production, consider retrying or exiting
+            // For now, use a dummy sender that does nothing
+            // (Or set ddp_sender to None and check before sending)
+            // Here, we just panic to surface the error
+            panic!("Failed to create DDP sender: {}", e);
+        }
+    };
 
     // --- Event Bus Setup ---
     let event_bus = event_bus::EventBus::new(32);
@@ -165,7 +178,10 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
                 let band_size = magnitudes.len() / 3;
                 let bass_level = magnitudes.iter().take(band_size).cloned().fold(0.0, f32::max);
                 let led_data = map_leds_with_preset(&magnitudes, config.led_count, mapping_preset);
-                // TODO: Send led_data to output (WLED/DDP) as appropriate
+                // Send led_data to DDP output
+                if let Err(e) = ddp_sender.send(0, &led_data) {
+                    error!("Failed to send LED data to DDP output: {}", e);
+                }
 
                 if let Some(mappings) = &mappings {
                     for mapping in mappings {
