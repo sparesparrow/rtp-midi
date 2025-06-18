@@ -181,24 +181,121 @@ impl SessionManager {
     }
 
     // Placeholder: handle invitation accepted (OK)
-    async fn handle_invitation_accepted(&mut self, _initiator_token: u32, _ssrc: u32, _name: Option<String>, _source_addr: SocketAddr) {
-        // TODO: Update state, proceed to next handshake step
+    async fn handle_invitation_accepted(&mut self, initiator_token: u32, ssrc: u32, name: Option<String>, source_addr: SocketAddr) {
+        // AppleMIDI handshake: handle OK response
+        match self.state {
+            SessionState::Handshaking => {
+                // Store peer info
+                self.peer_addr = Some(source_addr);
+                self.initiator_token = Some(initiator_token);
+                self.ssrc = Some(ssrc);
+                // Begin clock sync as initiator: send CK0
+                let now = Self::current_timestamp();
+                let mut payload = Vec::new();
+                payload.extend_from_slice(b"CK");
+                payload.push(0); // count = 0 (CK0)
+                payload.push(0); // reserved
+                payload.extend_from_slice(&ssrc.to_be_bytes());
+                payload.extend_from_slice(&now.to_be_bytes()); // timestamp1
+                payload.extend_from_slice(&0u64.to_be_bytes()); // timestamp2 (zero)
+                payload.extend_from_slice(&0u64.to_be_bytes()); // timestamp3 (zero)
+                let _ = self.event_sender.send(Event::SendPacket {
+                    payload,
+                    dest_addr: source_addr,
+                }).await;
+                self.state = SessionState::Syncing;
+                // Store timestamp1 for later offset calculation
+                // (In real impl, store in struct field)
+                log::info!("Sent CK0 to peer, starting clock sync");
+            }
+            _ => {
+                log::warn!("Received OK in unexpected state");
+            }
+        }
     }
 
     // Placeholder: handle invitation rejected (NO)
     async fn handle_invitation_rejected(&mut self, _initiator_token: u32, _ssrc: u32, _source_addr: SocketAddr) {
-        // TODO: Handle rejection, reset state
+        // Reset state and log
+        self.state = SessionState::Disconnected;
+        self.peer_addr = None;
+        self.initiator_token = None;
+        self.ssrc = None;
+        log::warn!("Session invitation rejected by peer");
     }
 
     // Placeholder: handle session termination (BY)
     async fn handle_end_session(&mut self, _ssrc: u32, _source_addr: SocketAddr) {
-        // TODO: Clean up session, reset state
+        // Clean up session and reset state
+        self.state = SessionState::Disconnected;
+        self.peer_addr = None;
+        self.initiator_token = None;
+        self.ssrc = None;
+        log::info!("Session ended by peer");
     }
 
     // Placeholder: handle clock sync (CK)
-    async fn handle_clock_sync(&mut self, _count: u8, _timestamps: [u64; 3], _ssrc: u32, _source_addr: SocketAddr) {
-        // TODO: Implement clock sync exchange, update state
-        // On successful sync, publish SessionEstablished
+    async fn handle_clock_sync(&mut self, count: u8, timestamps: [u64; 3], ssrc: u32, source_addr: SocketAddr) {
+        match self.state {
+            SessionState::Syncing => {
+                match count {
+                    0 => {
+                        // Received CK0: reply with CK1 (echo timestamp1, add timestamp2)
+                        let now = Self::current_timestamp();
+                        let mut payload = Vec::new();
+                        payload.extend_from_slice(b"CK");
+                        payload.push(1); // count = 1 (CK1)
+                        payload.push(0); // reserved
+                        payload.extend_from_slice(&ssrc.to_be_bytes());
+                        payload.extend_from_slice(&timestamps[0].to_be_bytes()); // timestamp1
+                        payload.extend_from_slice(&now.to_be_bytes()); // timestamp2
+                        payload.extend_from_slice(&0u64.to_be_bytes()); // timestamp3 (zero)
+                        let _ = self.event_sender.send(Event::SendPacket {
+                            payload,
+                            dest_addr: source_addr,
+                        }).await;
+                        log::info!("Received CK0, sent CK1");
+                    }
+                    1 => {
+                        // Received CK1: reply with CK2 (echo timestamp1, timestamp2, add timestamp3)
+                        let now = Self::current_timestamp();
+                        let mut payload = Vec::new();
+                        payload.extend_from_slice(b"CK");
+                        payload.push(2); // count = 2 (CK2)
+                        payload.push(0); // reserved
+                        payload.extend_from_slice(&ssrc.to_be_bytes());
+                        payload.extend_from_slice(&timestamps[0].to_be_bytes()); // timestamp1
+                        payload.extend_from_slice(&timestamps[1].to_be_bytes()); // timestamp2
+                        payload.extend_from_slice(&now.to_be_bytes()); // timestamp3
+                        let _ = self.event_sender.send(Event::SendPacket {
+                            payload,
+                            dest_addr: source_addr,
+                        }).await;
+                        log::info!("Received CK1, sent CK2");
+                    }
+                    2 => {
+                        // Received CK2: complete clock sync, mark session as Connected
+                        // Calculate offset/latency if needed
+                        self.state = SessionState::Connected;
+                        log::info!("Clock sync complete, session established");
+                        let peer = self.peer_addr.unwrap_or(source_addr);
+                        let _ = self.event_sender.send(Event::SessionEstablished { peer }).await;
+                    }
+                    _ => {
+                        log::warn!("Unexpected CK count: {}", count);
+                    }
+                }
+            }
+            _ => {
+                log::warn!("Received CK in unexpected state");
+            }
+        }
+    }
+
+    fn current_timestamp() -> u64 {
+        // Return current time in microseconds since epoch (placeholder)
+        use std::time::{SystemTime, UNIX_EPOCH};
+        SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_micros() as u64
     }
 }
 
