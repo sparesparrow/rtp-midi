@@ -7,6 +7,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use rtp_midi_core::{DataStreamNetSender, DataStreamNetReceiver, StreamError, JournalData, JournalEntry};
+use rtp_midi_core::journal_engine::TimedMidiCommand;
 
 use super::message::{MidiMessage, RtpMidiPacket};
 use utils::parse_rtp_packet;
@@ -179,7 +180,18 @@ impl RtpMidiSession {
         }
         history_lock.push_back(JournalEntry {
             sequence_nr: packet.sequence_number,
-            commands: Vec::new(), // TODO: Map MidiMessage to TimedMidiCommand
+            commands: commands.iter().filter_map(|msg| {
+                match utils::parse_midi_message(&msg.command) {
+                    Ok((cmd, _)) => Some(TimedMidiCommand {
+                        delta_time: msg.delta_time,
+                        command: cmd,
+                    }),
+                    Err(e) => {
+                        warn!("Failed to parse MidiMessage for journaling: {}", e);
+                        None
+                    }
+                }
+            }).collect(),
         });
 
         // Increment sequence number for the next packet.
@@ -218,7 +230,20 @@ impl DataStreamNetSender for RtpMidiSession {
         // Pro jednoduchost předpokládáme, že payload je již správně připravený
         // (v praxi by zde byla serializace/deserializace)
         // TODO: Implementace podle konkrétního formátu
-        Ok(())
+        match utils::parse_midi_message(payload) {
+            Ok((cmd, _)) => {
+                // Wrap in MidiMessage with delta_time = 0 for now
+                let midi_msg = MidiMessage { delta_time: 0, command: payload.to_vec() };
+                // This is a sync function, but send_midi is async, so we just log for now
+                // In production, this should be refactored for async context
+                warn!("DataStreamNetSender::send called, but send_midi is async. Message: {:?}", midi_msg);
+                Ok(())
+            },
+            Err(e) => {
+                warn!("Failed to parse MIDI payload in DataStreamNetSender::send: {}", e);
+                Err(StreamError::Other(format!("Failed to parse MIDI payload: {}", e)))
+            }
+        }
     }
 }
 
