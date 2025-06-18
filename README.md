@@ -141,39 +141,39 @@ To change the mapping mode, set the `mapping_preset` field in `config.toml` to e
 
 ---
 
+## End-to-End Integration Testing
+
+The project includes automated end-to-end integration tests that simulate the full workflow from audio input to LED output, covering both supported mapping presets. These tests ensure that the system produces correct LED data for given audio input and that all major data flows are exercised.
+
+To run all tests:
+
+```sh
+cargo test --all --workspace
+```
+
+---
+
 ## Planned TODOs for Future Development
 
 Below are prioritized tasks for future development. Each TODO includes clear instructions and acceptance criteria.
 
-### 1. Automated End-to-End Integration Tests
+### 1. User-Configurable Settings in UI
 - **Instructions:**
-  - Implement tests that simulate a full workflow: audio input → MIDI processing → LED output (mocked or in hardware-in-the-loop).
-  - Use CI to run these tests automatically.
+  - Add a settings panel to the web UI for runtime configuration (e.g., LED count, mapping preset, server address).
+  - Persist user settings in local storage.
 - **Acceptance Criteria:**
-  - Tests cover all major data flows and error cases.
-  - CI fails if any integration test fails.
-
-### 2. User-Configurable Settings in UI
-- **Instructions:**
-  - Add a settings panel to the UI for configuring server address, LED count, mapping mode, etc.
-  - Persist settings in local storage.
-- **Acceptance Criteria:**
-  - User can update and save settings via the UI.
+  - User can change settings at runtime and see immediate effect.
   - Settings persist across reloads.
 
-### 3. Documentation Polish & Examples
+### 2. Documentation Polish & Examples
 - **Instructions:**
-  - Expand documentation with usage examples, diagrams, and troubleshooting.
-  - Add a 'Getting Started' section and advanced configuration tips.
+  - Expand documentation with usage examples, diagrams, and troubleshooting tips.
 - **Acceptance Criteria:**
-  - README and docs/ contain clear, up-to-date guides and diagrams.
-  - New users can set up and run the project using only the documentation.
+  - README and docs are comprehensive and up to date.
 
-### 4. Release Automation & Packaging
+### 3. Release Automation & Packaging
 - **Instructions:**
-  - Add scripts and CI jobs for building, packaging, and releasing binaries for all supported platforms.
-  - Automate changelog generation and version bumping.
+  - Add scripts or CI jobs for building and packaging releases for all platforms (Linux, Android, ESP32).
 - **Acceptance Criteria:**
-  - Release artifacts are generated for Linux, Windows, and Android (where applicable).
-  - Changelog and version are updated automatically on release.
+  - Releases are reproducible and easy to install.
 
