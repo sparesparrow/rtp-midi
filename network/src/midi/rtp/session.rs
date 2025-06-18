@@ -6,12 +6,11 @@ use std::collections::{BTreeSet, VecDeque};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use core::DataStreamNetSender;
-use core::DataStreamNetReceiver;
-use core::StreamError;
+use rtp_midi_core::{DataStreamNetSender, DataStreamNetReceiver, StreamError, JournalData, JournalEntry};
+use async_trait::async_trait;
 
-use super::message::{JournalEntry, MidiMessage, RtpMidiPacket, JournalData};
-use utils::ParsedPacket;
+use super::message::{MidiMessage, RtpMidiPacket};
+use utils::parse_rtp_packet;
 
 // The listener now receives only the MIDI commands, not the whole packet, for cleaner separation.
 type MidiCommandListener = Arc<Mutex<dyn Fn(Vec<MidiMessage>) + Send + Sync>>;
@@ -64,7 +63,7 @@ impl RtpMidiSession {
 
     /// Handles an incoming raw UDP packet, parses it, and processes MIDI commands or journal data.
     pub async fn handle_incoming_packet(&mut self, data: Vec<u8>) {
-        let parsed_rtp = match ParsedPacket::parse_rtp_packet(&data) {
+        let parsed_rtp = match parse_rtp_packet(&data) {
             Ok(p) => p,
             Err(e) => {
                 error!("Failed to parse raw RTP packet: {}", e);
@@ -166,7 +165,7 @@ impl RtpMidiSession {
 
         // Send the packet via the outgoing handler (event bus).
         if let Some(handler) = &*self.outgoing_packet_handler.lock().await {
-            handler.lock().await(peer.ip().to_string(), peer.port(), buffer);
+            handler.lock().await(peer.ip().to_string(), peer.port(), buffer.to_vec());
         } else {
             warn!("No outgoing packet handler registered. Packet not sent.");
         }
@@ -181,7 +180,7 @@ impl RtpMidiSession {
         }
         history_lock.push_back(JournalEntry {
             sequence_nr: packet.sequence_number,
-            commands,
+            commands: Vec::new(), // TODO: Map MidiMessage to TimedMidiCommand
         });
 
         // Increment sequence number for the next packet.

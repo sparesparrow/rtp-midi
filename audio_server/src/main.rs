@@ -4,7 +4,7 @@ use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use tokio::sync::Mutex;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc;
 use tokio_tungstenite::{accept_async, tungstenite::Message, connect_async, MaybeTlsStream, WebSocketStream};
@@ -22,6 +22,7 @@ use webrtc::peer_connection::RTCPeerConnection;
 use webrtc::track::track_remote::TrackRemote;
 use webrtc::rtp_transceiver::RTCRtpTransceiver;
 use webrtc::rtp_transceiver::rtp_receiver::RTCRtpReceiver;
+use std::sync::Arc;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 enum PeerType {
@@ -73,7 +74,7 @@ async fn main() -> Result<()> {
     };
 
     let register_msg_str = serde_json::to_string(&register_msg)?;
-    ws_write.lock().unwrap().send(Message::text(register_msg_str)).await?;
+    ws_write.lock().await.send(Message::text(register_msg_str)).await?;
 
     let client_connections = Arc::new(Mutex::new(HashMap::<String, ClientConnection>::new()));
 
@@ -165,7 +166,8 @@ async fn handle_offer(
                 };
     
                 if let Ok(msg_str) = serde_json::to_string(&candidate_msg) {
-                    if let Err(e) = ws_write.lock().unwrap().send(Message::text(msg_str)).await {
+                    let mut guard = ws_write.lock().await;
+                    if let Err(e) = guard.send(Message::text(msg_str)).await {
                         error!("[AudioServer] Chyba při odesílání ICE kandidáta: {}", e);
                     }
                 }
@@ -186,14 +188,17 @@ async fn handle_offer(
             let client_id_clone = client_id.clone();
     
             data_channel.on_message(Box::new(move |msg| {
-                Box::pin(async move {
-                    if !msg.is_string {
-                        info!("[AudioServer] MIDI data od klienta {}: {:?}", client_id_clone, msg.data);
+                Box::pin({
+                    let value = client_id_clone.clone();
+                    async move {
+                        if !msg.is_string {
+                            info!("[AudioServer] MIDI data od klienta {}: {:?}", value, msg.data);
+                        }
                     }
                 })
             }));
     
-            let mut connections_lock = connections.lock().unwrap();
+            let mut connections_lock = connections.lock().await;
             if let Some(conn) = connections_lock.get_mut(&client_id) {
                 conn.data_channel = Some(Arc::clone(&data_channel));
             }
@@ -227,10 +232,13 @@ async fn handle_offer(
         };
     
         if let Ok(msg_str) = serde_json::to_string(&answer_msg) {
-            ws_write.lock().unwrap().send(Message::text(msg_str)).await?;
+            let mut guard = ws_write.lock().await;
+            if let Err(e) = guard.send(Message::text(msg_str)).await {
+                error!("[AudioServer] Chyba při odesílání odpovědi: {}", e);
+            }
         }
     
-        let mut client_conns = client_connections.lock().unwrap();
+        let mut client_conns = client_connections.lock().await;
         client_conns.insert(
             client_id.to_string(),
             ClientConnection {

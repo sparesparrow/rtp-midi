@@ -1,6 +1,6 @@
 use anyhow::Result;
-use ddp_rs::DDPConnection;
-use core::{DataStreamNetSender, StreamError, DataStreamNetReceiver};
+use ddp_rs::connection::DDPConnection;
+use rtp_midi_core::{DataStreamNetSender, StreamError, DataStreamNetReceiver};
 
 /// Wrapper pro DDP odesílač implementující sjednocené API.
 /// 
@@ -26,7 +26,9 @@ impl DataStreamNetSender for DdpSender {
         Ok(())
     }
     fn send(&mut self, _ts: u64, payload: &[u8]) -> Result<(), StreamError> {
-        self.conn.write(payload).map_err(|e| StreamError::Other(e.to_string()))
+        self.conn.write(payload)
+            .map(|_| ())
+            .map_err(|e| StreamError::Other(e.to_string()))
     }
 }
 

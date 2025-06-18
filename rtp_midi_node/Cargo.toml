@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-simple-server = "0.4.0"
+anyhow = "1.0"
+log = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+bytes = "1.0"
+tokio = { version = "1", features = ["full"] }
+utils = { path = "../utils" }
+rtp_midi_core = { path = "../core" }
 rtp_midi_lib = { path = "../rtp_midi_lib" }
-client_app = { path = "../client_app" }
+simple-server = "0.4.0"

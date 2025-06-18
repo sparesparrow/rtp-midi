@@ -111,3 +111,5 @@ fn test_sender_injection() {
     assert_eq!(sender.sent[0].1, b"test");
 }
 */
+
+pub use crate::journal_engine::{JournalData, JournalEntry};

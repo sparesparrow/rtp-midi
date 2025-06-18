@@ -10,7 +10,7 @@ crate-type = ["cdylib", "rlib"]
 audio = { path = "../audio" }
 network = { path = "../network" }
 output = { path = "../output" }
-core = { path = "../core" }
+rtp_midi_core = { path = "../core" }
 platform = { path = "../platform" }
 utils = { path = "../utils" }
 log = "0.4"
@@ -24,7 +24,7 @@ cpal = { workspace = true }
 rustfft = { workspace = true }
 midir = { workspace = true }
 midi-types = "0.2.1"
-bytes = { workspace = true }
+bytes = "1.0"
 url = { workspace = true }
 async-trait = { workspace = true }
 once_cell = { workspace = true }

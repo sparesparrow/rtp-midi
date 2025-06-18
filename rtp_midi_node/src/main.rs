@@ -14,8 +14,7 @@ fn main() {
         }
         Some("client") => {
             println!("[rtp-midi-node] Spouštím v režimu CLIENT");
-            // Spustit klientskou logiku (použijeme client_app::main)
-            client_app::main();
+            println!("Spusťte klientskou aplikaci přímo: cargo run -p client_app");
         }
         Some("ui-host") => {
             println!("[rtp-midi-node] Spouštím v režimu UI-HOST");

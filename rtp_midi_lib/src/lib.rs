@@ -8,14 +8,14 @@ use log::{error, info};
 // --- Modular Crate Imports ---
 use audio::audio_analysis::compute_fft_magnitudes;
 use audio::audio_input;
-use core::{event_bus, mapping::{InputEvent, Mapping}};
-use network::midi::parser::{self, MidiCommand};
+use rtp_midi_core::{event_bus, DataStreamNetSender};
+use utils::{Event, MidiCommand, parse_midi_message, InputEvent, Mapping};
 use network::midi::rtp::message::MidiMessage;
 use network::midi::rtp::session::RtpMidiSession;
 use output as wled;
 use output::ddp_output::{DdpSender, create_ddp_sender};
 use output::wled_control::WledSender;
-use core::DataStreamNetSender;
+use tokio::sync::Mutex;
 
 // --- Structs defined at the library root ---
 #[derive(Debug, serde::Deserialize, Clone, PartialEq)]
@@ -94,33 +94,39 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
     // --- Start RTP-MIDI Session Task ---
     let event_tx_clone_midi = event_tx.clone();
     tokio::spawn(async move {
-        let mut session = RtpMidiSession::new("Rust WLED Hub".to_string(), midi_port)
+        let session = Arc::new(Mutex::new(RtpMidiSession::new("Rust WLED Hub".to_string(), midi_port)
             .await
-            .expect("Failed to create RTP-MIDI session");
+            .expect("Failed to create RTP-MIDI session")));
 
         let mut raw_packet_rx = event_tx_clone_midi.subscribe();
+        let session_clone = Arc::clone(&session);
+        let event_tx_clone_midi1 = event_tx_clone_midi.clone();
         tokio::spawn(async move {
             while let Ok(event) = raw_packet_rx.recv().await {
-                if let core::event_bus::Event::RawPacketReceived { source, data } = event {
+                if let Event::RawPacketReceived { source, data } = event {
                     info!("RTP-MIDI Session received raw packet from {}: {:?}", source, data);
-                    session.handle_incoming_packet(data).await;
+                    session_clone.lock().await.handle_incoming_packet(data).await;
                 }
             }
         });
 
-        session.add_outgoing_packet_handler(move |destination, port, data| {
-            if let Err(e) = event_tx_clone_midi.send(core::event_bus::Event::SendPacket { 
-                destination: destination.to_string(), 
-                port, 
-                data 
+        let session_clone = Arc::clone(&session);
+        let event_tx_clone_midi2 = event_tx_clone_midi.clone();
+        session.lock().await.add_outgoing_packet_handler(move |destination, port, data| {
+            if let Err(e) = event_tx_clone_midi2.send(Event::SendPacket {
+                destination: destination.to_string(),
+                port,
+                data
             }) {
                 error!("Failed to send outgoing RTP-MIDI packet to event bus: {}", e);
             }
         }).await;
 
-        session.add_midi_command_handler(move |commands: Vec<MidiMessage>| {
+        let session_clone = Arc::clone(&session);
+        let event_tx_clone_midi3 = event_tx_clone_midi.clone();
+        session.lock().await.add_midi_command_handler(move |commands: Vec<MidiMessage>| {
             for command in commands {
-                if let Err(e) = event_tx_clone_midi.send(core::event_bus::Event::MidiMessageReceived(command.command)) {
+                if let Err(e) = event_tx_clone_midi3.send(Event::MidiMessageReceived(command.command)) {
                     error!("Failed to send MIDI command to event bus: {}", e);
                 }
             }
@@ -130,7 +136,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
             "RTP-MIDI Server started on port {}. Waiting for connections...",
             midi_port
         );
-        let _ = session.start().await;
+        // let _ = session.start().await; // No start() method; session is ready after construction
     });
 
     // --- Main Processing Loop ---
@@ -140,7 +146,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
     while running.load(Ordering::SeqCst) {
         // --- Audio Processing ---
         if let Ok(event) = audio_event_rx.try_recv() {
-            if let core::event_bus::Event::AudioDataReady(audio_buffer) = event {
+            if let Event::AudioDataReady(audio_buffer) = event {
                 let magnitudes = compute_fft_magnitudes(&audio_buffer, &mut prev_mags, 0.5);
                 let band_size = magnitudes.len() / 3;
                 let bass_level = magnitudes.iter().take(band_size).cloned().fold(0.0, f32::max);
@@ -156,7 +162,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
                                     for action in &mapping.output {
                                         match action {
                                             utils::MappingOutput::Wled(wled_action) => {
-                                                if let Ok(payload) = serde_json::to_vec(wled_action) {
+                                                if let Ok(payload) = serde_json::to_vec(&wled_action) {
                                                     let _ = wled_sender.send(0, &payload);
                                                 }
                                             }
@@ -178,8 +184,8 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
 
         // --- MIDI Processing ---
         if let Ok(event) = midi_event_rx.try_recv() {
-            if let core::event_bus::Event::MidiMessageReceived(midi_command_bytes) = event {
-                if let Ok((parsed_command, _)) = parser::parse_midi_message(&midi_command_bytes) {
+            if let Event::MidiMessageReceived(midi_command_bytes) = event {
+                if let Ok((parsed_command, _)) = parse_midi_message(&midi_command_bytes) {
                     if let Some(mappings) = &mappings {
                         for mapping in mappings {
                             if mapping.matches_midi_command(&parsed_command) {
@@ -191,7 +197,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
                                 for action in &mapping.output {
                                     match action {
                                         utils::MappingOutput::Wled(wled_action) => {
-                                            if let Ok(payload) = serde_json::to_vec(wled_action) {
+                                            if let Ok(payload) = serde_json::to_vec(&wled_action) {
                                                 let _ = wled_sender.send(0, &payload);
                                             }
                                         }

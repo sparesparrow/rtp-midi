@@ -8,7 +8,7 @@ use utils::WledOutputAction;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use std::net::SocketAddr;
-use core::{DataStreamNetSender, StreamError};
+use rtp_midi_core::{DataStreamNetSender, StreamError};
 
 /// Wrapper pro WLED JSON API odesílač implementující sjednocené API.
 /// 

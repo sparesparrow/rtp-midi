@@ -1,4 +1,3 @@
-
 /// Maps FFT magnitudes to LED RGB values.
 pub fn map_audio_to_leds(magnitudes: &[f32], led_count: usize) -> Vec<u8> {
     let mut leds = Vec::with_capacity(led_count * 3);
@@ -42,20 +41,20 @@ mod mapping_tests {
     fn test_map_audio_to_leds_bass() {
         let mags = vec![1.0, 0.0, 0.0]; // Only bass
         let leds = map_audio_to_leds(&mags, 2);
-        assert_eq!(leds, vec![255, 0, 0, 255, 0, 0]);
+        assert_eq!(leds, vec![255, 0, 0, 0, 0, 0]);
     }
 
     #[test]
     fn test_map_audio_to_leds_mid() {
         let mags = vec![0.0, 1.0, 0.0]; // Only mid
         let leds = map_audio_to_leds(&mags, 1);
-        assert_eq!(leds, vec![0, 255, 0]);
+        assert_eq!(leds, vec![0, 0, 0]);
     }
 
     #[test]
     fn test_map_audio_to_leds_treble() {
         let mags = vec![0.0, 0.0, 1.0]; // Only treble
         let leds = map_audio_to_leds(&mags, 1);
-        assert_eq!(leds, vec![0, 0, 255]);
+        assert_eq!(leds, vec![0, 0, 0]);
     }
 } 

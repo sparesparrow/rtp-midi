@@ -1,12 +1,11 @@
 // src/midi/rtp/message.rs
 
-use network::midi::parser::midi_command_length;
 use anyhow::{anyhow, Result};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use serde::{Deserialize, Serialize};
-
-use core::journal_engine::{JournalData, JournalEntry};
+use utils::midi_command_length;
 use utils::ParsedPacket;
+use rtp_midi_core::JournalData;
 
 /// Represents a single MIDI message with its delta-time.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -41,7 +40,7 @@ pub struct RtpMidiPacket {
     pub delta_time_is_zero: bool,
     pub is_sysex_start: bool,
     pub midi_commands: Vec<MidiMessage>,
-    pub journal_data: Option<JournalData>,
+    pub journal_data: Option<rtp_midi_core::JournalData>,
 }
 
 impl RtpMidiPacket {
@@ -81,7 +80,7 @@ impl RtpMidiPacket {
         
         let mut journal_data = None;
         if has_journal {
-            journal_data = Some(JournalData::parse_enhanced(&mut reader)?);
+            journal_data = Some(rtp_midi_core::JournalData::parse_enhanced(&mut reader)?);
         }
         
         Ok(Self {
@@ -185,7 +184,7 @@ impl RtpMidiPacket {
     }
 }
 
-fn parse_variable_length_quantity(data: &[u8]) -> Result<(u32, usize)> {
+fn parse_variable_length_quantity(mut data: &[u8]) -> Result<(u32, usize)> {
     let mut value = 0u32;
     let mut length = 0;
     for _ in 0..4 { // VLQ is max 4 bytes
