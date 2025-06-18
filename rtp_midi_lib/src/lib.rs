@@ -91,7 +91,7 @@ pub async fn run_service_loop(config: Config, mut shutdown_rx: watch::Receiver<b
             while let Ok(event) = raw_packet_rx.recv().await {
                 if let event_bus::Event::RawPacketReceived { payload, source_addr } = event {
                     info!("RTP-MIDI Session received raw packet from {}: {:?}", source_addr, payload);
-                    session_clone.lock().await.handle_incoming_packet(payload).await;
+                    session_clone.lock().await.handle_incoming_packet(payload, &event_tx_clone_midi1, source_addr).await;
                 }
             }
         });

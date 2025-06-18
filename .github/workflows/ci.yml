@@ -8,6 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
 
 jobs:
   build_and_test:
@@ -65,3 +66,20 @@ jobs:
 
     - name: Run integration tests
       run: cargo test --test integration_tests -- --nocapture
+
+    - name: Install cargo-deny
+      run: cargo install cargo-deny --locked
+
+    - name: Run cargo deny (licenses, bans, sources)
+      run: cargo deny check --hide-inclusion-graph
+
+    - name: Generate dependency graph
+      run: cargo tree --workspace > docs/dep-graph.txt
+
+    - name: Commit updated dep-graph
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      uses: EndBug/add-and-commit@v9
+      with:
+        add: "docs/dep-graph.txt"
+        message: "ci: auto-update dependency graph"
+        default_author: github_actions

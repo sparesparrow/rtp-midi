@@ -196,7 +196,7 @@ fn encode_variable_length_quantity(value: u32, buf: &mut [u8; 4]) -> Result<usiz
 }
 
 // MIDI příkaz na byty (pro serializaci)
-fn serialize_midi_command(cmd: &MidiCommand, out: &mut Vec<u8>) -> Result<()> {
+pub fn serialize_midi_command(cmd: &MidiCommand, out: &mut Vec<u8>) -> Result<()> {
     // Pro jednoduchost použijeme existující serializaci do raw MIDI bytu
     // (můžete rozšířit podle potřeby)
     match cmd {

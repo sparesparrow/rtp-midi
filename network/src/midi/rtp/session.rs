@@ -8,6 +8,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use rtp_midi_core::{DataStreamNetSender, DataStreamNetReceiver, StreamError, JournalData, JournalEntry};
 use rtp_midi_core::journal_engine::TimedMidiCommand;
+use rtp_midi_core::event_bus::Event;
 
 use super::message::{MidiMessage, RtpMidiPacket};
 use rtp_midi_core::parse_rtp_packet;
@@ -62,7 +63,7 @@ impl RtpMidiSession {
     }
 
     /// Handles an incoming raw UDP packet, parses it, and processes MIDI commands or journal data.
-    pub async fn handle_incoming_packet(&mut self, data: Vec<u8>) {
+    pub async fn handle_incoming_packet(&mut self, data: Vec<u8>, event_sender: &tokio::sync::broadcast::Sender<Event>, peer_addr: SocketAddr) {
         let parsed_rtp = match parse_rtp_packet(&data) {
             Ok(p) => p,
             Err(e) => {
@@ -93,6 +94,26 @@ impl RtpMidiSession {
                         if let Some(journal) = &packet.journal_data {
                             let recovered = self.process_journal(journal, &mut history);
                             let unrecovered: Vec<_> = missing.iter().filter(|seq| !recovered.contains(seq)).cloned().collect();
+                            // --- Enhanced: Reconstruct and emit repaired MIDI commands for each missing sequence ---
+                            for seq in &missing {
+                                if let Some(entry) = journal.entries().iter().find(|e| &e.sequence_nr == seq) {
+                                    // Convert TimedMidiCommand to raw MIDI bytes for event
+                                    let mut repaired_bytes = Vec::new();
+                                    for cmd in &entry.commands {
+                                        // Serialize each TimedMidiCommand to raw MIDI bytes
+                                        let mut midi_bytes = Vec::new();
+                                        if let Ok(()) = rtp_midi_core::journal_engine::serialize_midi_command(&cmd.command, &mut midi_bytes) {
+                                            repaired_bytes.extend(midi_bytes);
+                                        }
+                                    }
+                                    if !repaired_bytes.is_empty() {
+                                        let _ = event_sender.send(Event::JournalBasedRepair {
+                                            repaired_commands: repaired_bytes,
+                                            peer: peer_addr,
+                                        });
+                                    }
+                                }
+                            }
                             if !unrecovered.is_empty() {
                                 warn!("Could not recover all missing packets from journal: {:?}", unrecovered);
                             } else {
@@ -287,5 +308,17 @@ impl DataStreamNetReceiver for RtpMidiSession {
         // Zde by se zpracovával příchozí packet a naplnil buf
         // Prozatím pouze stub
         Ok(None)
+    }
+}
+
+// Helper to get entries from JournalData
+trait JournalEntries {
+    fn entries(&self) -> &Vec<JournalEntry>;
+}
+impl JournalEntries for JournalData {
+    fn entries(&self) -> &Vec<JournalEntry> {
+        match self {
+            JournalData::Enhanced { entries, .. } => entries,
+        }
     }
 }

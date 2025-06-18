@@ -234,7 +234,7 @@ Settings are saved in your browser's local storage and persist across reloads. C
 | Jednotný shutdown                 | ❌ | 2.2 |
 | FFI pravidla v CI                 | ❌ | 1.3, 4.4 |
 | AppleMIDI handshake+CK            | 🟡 | 3.1 |
-| Recovery journal gaps             | 🟡 | 3.2 |
+| Recovery journal gaps             | ✅ | – |
 | DDP receiver                      | ❌ | 3.3 |
 | CI audit + deny                   | ❌ | 4.1 |
 | ADR konsolidace                   | ❌ | 1.1 |
