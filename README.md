@@ -190,6 +190,71 @@ Below are prioritized tasks for future development. Each TODO includes clear ins
   - All builds, tests, and releases are automated and reproducible
   - Code and test reviews are enhanced by LLM-based automation
 
+### 4. Code Quality & Static Analysis
+**Instructions:**
+- Add `clippy` and `rustfmt` checks to the workflow in `.github/workflows/` and make the build fail on warnings.
+- Configure `cargo deny` to scan for vulnerable, unmaintained or duplicate dependencies.
+**Acceptance Criteria:**
+- PRs are blocked if `clippy`, `rustfmt` or `cargo deny` report findings.
+- Summary of the three tools is shown in the GitHub Checks tab.
+
+### 5. Unified Logging & Tracing
+**Instructions:**
+- Introduce the `tracing` crate in `core` and all `hal-*` crates; export a reusable `init_tracing()` helper behind the `log` feature flag.
+- Route logs to the browser console when running in WASM and to `systemd-journal` when on Linux PC.
+**Acceptance Criteria:**
+- Every major state-machine transition (RTP-MIDI session, AppleMIDI handshake, audio pipeline) emits structured spans visible in `tokio-console` or `tracing-flame`.
+
+### 6. Fuzzing & Property-Based Tests
+**Instructions:**
+- Add a `fuzz/` directory and integrate `cargo-fuzz` for parsers in `network/src/midi/rtp/session.rs`.
+- Use `proptest` for serialization/deserialization round-trip tests of MIDI and LED frames.
+**Acceptance Criteria:**
+- CI runs at least one minute of fuzzing on every push.
+- Round-trip tests reach > 95 % branch coverage (measured with `grcov`).
+
+### 7. Performance Optimisation of LED Mapping
+**Instructions:**
+- Replace per-LED loop in `mapping_spectrum.rs` with SIMD using `wide` or `packed_simd_2`.
+- Benchmark before/after with `criterion` on x86-64 and ESP32 (Xtensa).
+**Acceptance Criteria:**
+- Throughput improvement ≥ 2× on x86-64 and ≥ 1.3× on ESP32 without raising binary size by more than 5 %.
+
+### 8. Packaging & Distribution
+**Instructions:**
+- Provide `Dockerfile` that builds a minimal image (~25 MB) with `rtp-midi-node` and default config.
+- Create `deb` and Homebrew formulas via `cargo-deb` and `brew tap`.
+**Acceptance Criteria:**
+- Tagged GitHub release automatically uploads `.deb`, Homebrew bottle and Docker image to GHCR.
+
+### 9. OTA Update Flow for ESP32
+**Instructions:**
+- Add an HTTP-based OTA endpoint guarded by a simple token to the `hal-esp32` runtime.
+- Document update steps in `docs/platforms/esp32.md`.
+**Acceptance Criteria:**
+- Full firmware update succeeds in < 30 s over Wi-Fi with progress logged to UART and the web UI.
+
+### 10. Ableton Link Synchronisation
+**Instructions:**
+- Introduce optional `ableton_link` feature using the `ableton-link` crate; expose tempo and phase on the `service-bus`.
+- Visualise Link status in the web UI header.
+**Acceptance Criteria:**
+- When another Link peer is present, tempo lock jitter < 0.5 BPM (measured over 5 min).
+
+### 11. Documentation Site via mdBook
+**Instructions:**
+- Generate an mdBook in `docs/book/` from existing ADRs and architecture diagrams; deploy with GitHub Pages from `gh-pages` branch.
+- Link the book prominently from the README title section.
+**Acceptance Criteria:**
+- `docs.rs` badge and "Open Book 📖" link appear in README; Pages site builds without warnings.
+
+### 12. README Maintenance Task
+**Instructions:**
+- Move each completed item from "Planned TODOs" to a new "Changelog of Completed Tasks" subsection to keep the list concise.
+- Renumber the remaining TODOs sequentially after every merge.
+**Acceptance Criteria:**
+- `Planned TODOs` never exceeds 15 open items; changelog shows date, PR number and contributor for each moved task.
+
 ---
 
 # Getting Started
