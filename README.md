@@ -168,7 +168,7 @@ Settings are saved in your browser's local storage and persist across reloads. C
 1. Core Logic & Protocol Implementation
  * Instructions:
    * Implement the full AppleMIDI handshake and clock synchronization state machine in network/src/midi/rtp/session.rs and core/src/session_manager.rs. The current implementation is a placeholder. The session should not be considered "established" until both sides have completed the IN, OK, and CK message exchange.
-   * Implement the recovery journal retransmission logic. When a gap in sequence numbers is detected in RtpMidiSession::handle_incoming_packet, the session should request retransmission of the missing packets from the peer.
+   * [x] Implement the recovery journal retransmission logic. The session now detects gaps in sequence numbers in RtpMidiSession::handle_incoming_packet and attempts to recover missing packets using the journal mechanism, logging the outcome for each gap.
    * Complete the DDP (Distributed Display Protocol) receiver implementation in output/src/ddp_output.rs. The DdpReceiver struct is currently a stub and its poll method should be implemented to read data from a UDP socket.
    * Fully integrate audio analysis with the output modules in rtp_midi_lib/src/lib.rs. The main service loop correctly calculates led_data, but it is not sent to any output. Add logic to send led_data to the active DataStreamNetSender (e.g., a DDP sender).
  * Acceptance Criteria:

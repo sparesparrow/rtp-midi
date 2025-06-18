@@ -76,6 +76,34 @@ impl RtpMidiSession {
             Ok(packet) => {
                 let mut history = self.receive_history.lock().await;
 
+                // --- Gap Detection ---
+                let expected_seq = history.iter().next_back().map_or(packet.sequence_number, |&last| last.wrapping_add(1));
+                if packet.sequence_number != expected_seq && !history.is_empty() {
+                    let mut missing = Vec::new();
+                    let mut seq = expected_seq;
+                    while seq != packet.sequence_number {
+                        if !history.contains(&seq) {
+                            missing.push(seq);
+                        }
+                        seq = seq.wrapping_add(1);
+                    }
+                    if !missing.is_empty() {
+                        warn!("Detected missing RTP-MIDI packets: {:?}. Attempting recovery via journal.", missing);
+                        // Try to recover using the journal if present
+                        if let Some(journal) = &packet.journal_data {
+                            let recovered = self.process_journal(journal, &mut history);
+                            let unrecovered: Vec<_> = missing.iter().filter(|seq| !recovered.contains(seq)).cloned().collect();
+                            if !unrecovered.is_empty() {
+                                warn!("Could not recover all missing packets from journal: {:?}", unrecovered);
+                            } else {
+                                info!("Successfully recovered all missing packets from journal.");
+                            }
+                        } else {
+                            warn!("No journal present to recover missing packets: {:?}", missing);
+                        }
+                    }
+                }
+
                 // --- Journal Processing ---
                 if let Some(journal) = &packet.journal_data {
                     self.process_journal(journal, &mut history);
@@ -201,20 +229,23 @@ impl RtpMidiSession {
     }
 
     /// Processes a journal from an incoming packet, identifies missing packets,
-    /// and updates the receive history.
-    fn process_journal(&self, journal_data: &JournalData, history: &mut BTreeSet<u16>) {
+    /// and updates the receive history. Returns a set of sequence numbers recovered.
+    fn process_journal(&self, journal_data: &JournalData, history: &mut BTreeSet<u16>) -> std::collections::HashSet<u16> {
         let entries = match journal_data {
             JournalData::Enhanced { entries, .. } => entries,
         };
 
+        let mut recovered = std::collections::HashSet::new();
         if entries.is_empty() {
-            return;
+            return recovered;
         }
 
-        // For simplicity, we are not requesting retransmissions yet, but just updating history.
         for entry in entries {
-            history.insert(entry.sequence_nr);
+            if history.insert(entry.sequence_nr) {
+                recovered.insert(entry.sequence_nr);
+            }
         }
+        recovered
     }
 }
 
