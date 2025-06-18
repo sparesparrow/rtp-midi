@@ -92,21 +92,49 @@ Každý režim spouští odpovídající službu podle autodetekce role.
 
 ---
 
+## Remaining Technical TODOs and Issues
+
+Below is a summary of outstanding TODOs and technical issues found in the codebase, with their locations and a brief description. These should be addressed in future development cycles:
+
+- **Tasker Automation Path** (`tasker/README.md`):
+  - The Tasker-based automation path is a placeholder and not implemented.
+
+- **Data Channel Handling in UI** (`frontend/script.js`):
+  - Indicate when the data channel is ready for MIDI data.
+  - Process incoming MIDI data on the data channel.
+  - Handle data channel closure events.
+
+- **AppleMIDI Handshake and Clock Sync** (`core/src/session_manager.rs`):
+  - Implement the full AppleMIDI handshake and clock synchronization state machine.
+
+- **RTP-MIDI Session** (`network/src/midi/rtp/session.rs`):
+  - Map `MidiMessage` to `TimedMidiCommand` for journaling.
+  - Implement parsing/handling according to the specific format.
+
+- **DDP Receiver Implementation** (`output/src/ddp_output.rs`):
+  - Initialize the DDP receiver (e.g., open socket).
+  - Implement reading data from the DDP stream.
+
+- **Release Automation** (`.github/workflows/release.yml`):
+  - Add release notes and finalize the release workflow.
+
+- **Audio Input** (`audio/src/audio_input.rs`):
+  - Handle unsupported sample formats in a more robust way (currently uses `todo!()`).
+
+- **Entrypoint Improvements** (`rtp_midi_node/src/main.rs`):
+  - Add a better webserver or Tauri integration for UI hosting.
+  - For embedded/ESP32 builds, autodetect platform via feature flags or environment variables.
+
+- **UI Frontend** (`ui-frontend/README.md`):
+  - Contains a TODO section for further UI/UX improvements.
+
+---
+
 ## Planned TODOs for Future Development
 
 Below are prioritized tasks for future development. Each TODO includes clear instructions and acceptance criteria.
 
-### 1. MIDI Data Visualization in UI
-- **Instructions:**
-  - Extend the web UI to display incoming and outgoing MIDI messages in real time.
-  - Use a table or timeline view for clarity.
-  - Highlight active notes and velocity.
-- **Acceptance Criteria:**
-  - UI shows a live-updating list or timeline of MIDI events.
-  - User can distinguish between incoming and outgoing messages.
-  - Visualization updates without page reload.
-
-### 2. Advanced LED Mapping Presets
+### 1. Advanced LED Mapping Presets
 - **Instructions:**
   - Add support for multiple LED mapping presets (e.g., spectrum, vu-meter, custom patterns).
   - Allow runtime switching of presets via config or UI.
@@ -114,7 +142,7 @@ Below are prioritized tasks for future development. Each TODO includes clear ins
   - At least two new mapping modes are implemented and selectable.
   - Switching presets updates LED output in real time.
 
-### 3. Automated End-to-End Integration Tests
+### 2. Automated End-to-End Integration Tests
 - **Instructions:**
   - Implement tests that simulate a full workflow: audio input → MIDI processing → LED output (mocked or in hardware-in-the-loop).
   - Use CI to run these tests automatically.
@@ -122,7 +150,7 @@ Below are prioritized tasks for future development. Each TODO includes clear ins
   - Tests cover all major data flows and error cases.
   - CI fails if any integration test fails.
 
-### 4. User-Configurable Settings in UI
+### 3. User-Configurable Settings in UI
 - **Instructions:**
   - Add a settings panel to the UI for configuring server address, LED count, mapping mode, etc.
   - Persist settings in local storage.
@@ -130,7 +158,7 @@ Below are prioritized tasks for future development. Each TODO includes clear ins
   - User can update and save settings via the UI.
   - Settings persist across reloads.
 
-### 5. Documentation Polish & Examples
+### 4. Documentation Polish & Examples
 - **Instructions:**
   - Expand documentation with usage examples, diagrams, and troubleshooting.
   - Add a 'Getting Started' section and advanced configuration tips.
@@ -138,7 +166,7 @@ Below are prioritized tasks for future development. Each TODO includes clear ins
   - README and docs/ contain clear, up-to-date guides and diagrams.
   - New users can set up and run the project using only the documentation.
 
-### 6. Release Automation & Packaging
+### 5. Release Automation & Packaging
 - **Instructions:**
   - Add scripts and CI jobs for building, packaging, and releasing binaries for all supported platforms.
   - Automate changelog generation and version bumping.
