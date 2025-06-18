@@ -1,4 +1,3 @@
-use std::fs;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -10,7 +9,7 @@ use log::{error, info};
 use audio::audio_analysis::compute_fft_magnitudes;
 use audio::audio_input;
 use rtp_midi_core::{event_bus, DataStreamNetSender};
-use utils::{MidiCommand, parse_midi_message, InputEvent, Mapping};
+use rtp_midi_core::{MidiCommand, parse_midi_message, InputEvent, Mapping, MappingOutput};
 use network::midi::rtp::message::MidiMessage;
 use network::midi::rtp::session::RtpMidiSession;
 use output::wled_control::WledSender;
@@ -19,33 +18,6 @@ use output::light_mapper::{MappingPreset, map_leds_with_preset};
 use output::ddp_output::{DdpSender, create_ddp_sender};
 
 // --- Structs defined at the library root ---
-#[derive(Debug, serde::Deserialize, Clone, PartialEq)]
-pub struct Config {
-    pub wled_ip: String,
-    pub ddp_port: Option<u16>,
-    pub led_count: usize,
-    pub color_format: Option<String>,
-    pub audio_device: Option<String>,
-    pub midi_port: Option<u16>,
-    pub log_level: Option<String>,
-    pub mappings: Option<Vec<Mapping>>,
-    pub signaling_server_address: String,
-    pub audio_sample_rate: u32,
-    pub audio_channels: u16,
-    pub audio_buffer_size: usize,
-    pub audio_smoothing_factor: f32,
-    pub webrtc_ice_servers: Option<Vec<String>>,
-    pub mapping_preset: Option<String>,
-}
-
-// --- Implementation for Config ---
-impl Config {
-    pub fn load_from_file(path: &str) -> anyhow::Result<Self> {
-        let content = fs::read_to_string(path)?;
-        let config: Config = toml::from_str(&content)?;
-        Ok(config)
-    }
-}
 
 // --- Main Service Loop ---
 /// Hlavní service loop pro orchestraci audio/MIDI vstupů a výstupů.
@@ -193,7 +165,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
                                     info!("Bass peak detected! Level: {:.2}. Triggering actions.", bass_level);
                                     for action in &mapping.output {
                                         match action {
-                                            utils::MappingOutput::Wled(wled_action) => {
+                                            MappingOutput::Wled(wled_action) => {
                                                 if let Ok(payload) = serde_json::to_vec(&wled_action) {
                                                     let _ = wled_sender.send(0, &payload);
                                                 }
@@ -220,7 +192,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
                 if let Ok((parsed_command, _)) = parse_midi_message(&commands) {
                     if let Some(mappings) = &mappings {
                         for mapping in mappings {
-                            if mapping.matches_midi_command(&parsed_command) {
+                            if rtp_midi_core::mapping::matches_midi_command(mapping, &parsed_command) {
                                 match parsed_command {
                                     MidiCommand::NoteOn { key, .. } => info!("MIDI NoteOn {} matched a mapping.", key),
                                     MidiCommand::ControlChange { control, value, ..} => info!("MIDI CC {} ({}) matched a mapping.", control, value),
@@ -228,7 +200,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
                                 }
                                 for action in &mapping.output {
                                     match action {
-                                        utils::MappingOutput::Wled(wled_action) => {
+                                        MappingOutput::Wled(wled_action) => {
                                             if let Ok(payload) = serde_json::to_vec(&wled_action) {
                                                 let _ = wled_sender.send(0, &payload);
                                             }
@@ -250,4 +222,6 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
 
     info!("Service has shut down gracefully.");
 }
+
+pub use rtp_midi_core::Config;
 

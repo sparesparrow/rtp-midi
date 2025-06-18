@@ -1,29 +1,29 @@
 ---
-title: RTP-MIDI System Context Diagram (C4)
-theme: forest
+title: RTP-MIDI System Context Diagram (Updated)
 ---
 
-flowchart LR
-    User([User])
-    HostOS([Host OS: ALSA/CoreMIDI/WinMM])
-    Network([Network: UDP/IP])
-    Bonjour([Bonjour/mDNS])
-    AppleMIDI([AppleMIDI Session])
-    RFC6295([RFC 6295 RTP-MIDI])
-    EventBus([Event Bus])
-    rtpMidi([rtp-midi Core System])
+flowchart TD
+    User["User"]
+    MIDIController["MIDI Controller"]
+    AndroidDevice["Android Device"]
+    WLED["WLED/ESP32 Controller"]
+    Network["Network (UDP, RTP, DDP)"]
+    Workspace["rtp-midi Workspace (core, audio, output, network, ...)"]
+    UI["UI (Web/Qt)"]
 
-    User -- interacts with --> rtpMidi
-    rtpMidi -- uses --> HostOS
-    rtpMidi -- sends/receives --> Network
-    rtpMidi -- advertises/discovers --> Bonjour
-    rtpMidi -- manages session --> AppleMIDI
-    rtpMidi -- implements --> RFC6295
-    rtpMidi -- event-driven --> EventBus
+    User -->|Control| UI
+    UI -->|FFI/API| Workspace
+    MIDIController -->|MIDI| Workspace
+    AndroidDevice -->|AIDL/USB| Workspace
+    Workspace -->|DDP| WLED
+    Workspace -->|RTP-MIDI| Network
+    Network -->|RTP-MIDI| Workspace
+    WLED -->|LED Feedback| User
+    Workspace -->|Status/Events| UI
 
     classDef ext fill:#e0e0e0,stroke:#333,stroke-width:2px;
-    class User,HostOS,Network,Bonjour,AppleMIDI,RFC6295 ext;
+    class User,MIDIController,AndroidDevice,WLED,Network,Workspace,UI ext;
     classDef core fill:#c6e48b,stroke:#333,stroke-width:2px;
-    class rtpMidi,EventBus core;
+    class Workspace core;
 
     %% Note: rtp-midi core is compliant with both RFC 6295 and AppleMIDI protocols, and is architected around an internal event bus for maximum modularity and testability. 

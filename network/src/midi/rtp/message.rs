@@ -3,8 +3,8 @@
 use anyhow::{anyhow, Result};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use serde::{Deserialize, Serialize};
-use utils::midi_command_length;
-use utils::ParsedPacket;
+use rtp_midi_core::midi_command_length;
+use rtp_midi_core::ParsedPacket;
 
 /// Represents a single MIDI message with its delta-time.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

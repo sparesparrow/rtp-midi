@@ -1,4 +1,4 @@
-# 0001: Initial Project Architecture
+# ADR-0002: Initial Project Architecture
 
 ## Status
 

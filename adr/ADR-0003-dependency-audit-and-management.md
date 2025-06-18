@@ -1,4 +1,4 @@
-# 0002: Dependency Audit and Management Policy
+# ADR-0003: Dependency Audit and Management Policy
 
 ## Status
 

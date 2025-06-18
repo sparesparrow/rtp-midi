@@ -12,7 +12,6 @@ network = { path = "../network" }
 output = { path = "../output" }
 rtp_midi_core = { path = "../core" }
 platform = { path = "../platform" }
-utils = { path = "../utils" }
 log = "0.4"
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.8"

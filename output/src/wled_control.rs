@@ -3,8 +3,8 @@ use reqwest::Client;
 use serde_json::json;
 use log::{error, info};
 // use utils::NetworkInterface; // Removed to break dependency cycle
-use utils::WledOutputAction;
 use rtp_midi_core::{DataStreamNetSender, StreamError};
+use rtp_midi_core::WledOutputAction;
 
 /// Wrapper pro WLED JSON API odesílač implementující sjednocené API.
 /// 

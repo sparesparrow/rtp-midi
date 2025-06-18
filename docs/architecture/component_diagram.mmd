@@ -1,20 +1,27 @@
 ---
-title: RTP-MIDI Rust Core Component Diagram
+title: RTP-MIDI Rust Core Component Diagram (Updated)
 ---
 
 flowchart TB
     subgraph RustCore["Rust Core Backend"]
-        AudioInput["audio_input.rs: Audio Input"]
-        AudioAnalysis["audio_analysis.rs: Audio Analysis"]
-        LightMapper["light_mapper.rs: Light Mapper"]
-        DDPOutput["ddp_output.rs: DDP Output"]
-        WLEDControl["wled_control.rs: WLED Control"]
-        MIDI["midi/: MIDI Stack"]
-        PacketProcessor["packet_processor.rs: Packet Processor"]
-        EventBus["event_bus.rs: Event Bus"]
-        JournalEngine["journal_engine.rs: Recovery Journal"]
-        FFI["ffi.rs: FFI Boundary"]
-        Mapping["mapping.rs: Mapping Logic"]
+        AudioInput["audio/src/audio_input.rs: Audio Input"]
+        AudioAnalysis["audio/src/audio_analysis.rs: Audio Analysis"]
+        LightMapper["output/src/light_mapper.rs: Light Mapper"]
+        DDPOutput["output/src/ddp_output.rs: DDP Output"]
+        WLEDControl["output/src/wled_control.rs: WLED Control"]
+        MIDI["network/src/midi/: MIDI Stack"]
+        PacketProcessor["core/src/packet_processor.rs: Packet Processor"]
+        EventBus["core/src/event_bus.rs: Event Bus (Central)"]
+        JournalEngine["core/src/journal_engine.rs: Recovery Journal"]
+        Mapping["core/src/mapping.rs: Mapping Logic"]
+        ServiceBus["crates/service-bus/src/lib.rs: Service Bus"]
+    end
+
+    subgraph Platform["Platform Abstraction"]
+        HalPC["crates/hal-pc/src/lib.rs"]
+        HalAndroid["crates/hal-android/src/lib.rs"]
+        HalESP32["crates/hal-esp32/src/lib.rs"]
+        FFI["platform/src/ffi.rs: FFI Boundary"]
     end
 
     AudioInput -- provides data --> AudioAnalysis
@@ -25,10 +32,18 @@ flowchart TB
     PacketProcessor -- updates --> EventBus
     EventBus -- notifies --> JournalEngine
     JournalEngine -- recovery info --> PacketProcessor
+    Mapping -- used by --> LightMapper
+    ServiceBus -- async comms --> EventBus
+
+    %% Platform connections
+    HalPC -- implements traits --> RustCore
+    HalAndroid -- implements traits --> RustCore
+    HalESP32 -- implements traits --> RustCore
     FFI -- exposes --> EventBus
     FFI -- exposes --> JournalEngine
     FFI -- exposes --> WLEDControl
-    Mapping -- used by --> LightMapper
 
     classDef component fill:#bbf,stroke:#333,stroke-width:2px;
-    class AudioInput,AudioAnalysis,LightMapper,DDPOutput,WLEDControl,MIDI,PacketProcessor,EventBus,JournalEngine,FFI,Mapping component; 
+    classDef platform fill:#ffd,stroke:#333,stroke-width:2px;
+    class AudioInput,AudioAnalysis,LightMapper,DDPOutput,WLEDControl,MIDI,PacketProcessor,EventBus,JournalEngine,Mapping,ServiceBus component;
+    class HalPC,HalAndroid,HalESP32,FFI platform; 

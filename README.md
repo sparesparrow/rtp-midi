@@ -217,13 +217,29 @@ Settings are saved in your browser's local storage and persist across reloads. C
    * Clicking a key on the piano in webrtc_client.html sends a valid MIDI Note On/Off message through the data channel, which is received and processed by the Rust backend.
    * Changing the LED count in the UI settings panel and clicking "Save" updates the number of LEDs the backend renders to in real time.
 
-6. Architektura, Správa a Meta-úkoly
- * Instructions:
-   * Finalizovat ADR pro modularizaci workspace: `ADR-0003-workspace-modularization.md` je označen jako `Proposed`, ale změny již byly z velké části implementovány. Je potřeba revidovat ADR, aby odrážel finální strukturu `crates/hal-*`, označit jej jako `Accepted` a doplnit datum.
-   * Standardizovat názvy ADR souborů a uklidit: V projektu jsou dva ADR pro sledování rozhodnutí (`0000-*.md` a `ADR-0000.md`) a nekonzistentní pojmenování. Je třeba je sjednotit, rozhodnout o jediné šabloně a přejmenovat všechny ADR soubory na konzistentní formát, např. `ADR-XXXX-nazev-slug.md`.
- * Acceptance Criteria:
-   * Stav `ADR-0003` je `Accepted` a obsah odpovídá realitě.
-   * Všechny ADR soubory v adresáři `adr/` mají konzistentní a jasný název.
+6. Dokumentace
+
+**Stav k tomuto commitu:**
+- Architektonické diagramy v `docs/architecture/` (component, container, context, sequence) byly aktualizovány a odpovídají aktuální struktuře crate-ů a tokům událostí.
+- README a roadmap byly synchronizovány se stavem kódu.
+- Všechny hlavní TODOs týkající se refaktoringu, centralizace modelů, importů, modularizace a dokumentace byly implementovány.
+
+### Stav migrace (rychlý přehled)
+
+| Oblast                            | Hotovo | Zbývá |
+|----------------------------------|:------:|:-----:|
+| Struktura workspace (core, audio…) | ✅ | – |
+| `hal-*`, `service-bus`, `ui-frontend` crates | ✅ | – |
+| Přesun modelů do `core`           | ✅ | – |
+| Jednotný shutdown                 | ❌ | 2.2 |
+| FFI pravidla v CI                 | ❌ | 1.3, 4.4 |
+| AppleMIDI handshake+CK            | 🟡 | 3.1 |
+| Recovery journal gaps             | 🟡 | 3.2 |
+| DDP receiver                      | ❌ | 3.3 |
+| CI audit + deny                   | ❌ | 4.1 |
+| ADR konsolidace                   | ❌ | 1.1 |
+
+> Poznámka: Diagramy a dokumentace jsou aktuální k tomuto commitu. Další TODOs viz roadmap níže.
 
 ---
 

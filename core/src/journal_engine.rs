@@ -3,7 +3,7 @@
 use anyhow::{anyhow, Result};
 use std::collections::BTreeSet;
 
-use utils::{midi_command_length, MidiCommand};
+use crate::{midi_command_length, MidiCommand};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 /// MIDI příkaz s časováním (delta_time)

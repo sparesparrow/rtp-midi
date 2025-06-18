@@ -10,7 +10,7 @@ use rtp_midi_core::{DataStreamNetSender, DataStreamNetReceiver, StreamError, Jou
 use rtp_midi_core::journal_engine::TimedMidiCommand;
 
 use super::message::{MidiMessage, RtpMidiPacket};
-use utils::parse_rtp_packet;
+use rtp_midi_core::parse_rtp_packet;
 
 // The listener now receives only the MIDI commands, not the whole packet, for cleaner separation.
 type MidiCommandListener = Arc<Mutex<dyn Fn(Vec<MidiMessage>) + Send + Sync>>;
@@ -209,7 +209,7 @@ impl RtpMidiSession {
         history_lock.push_back(JournalEntry {
             sequence_nr: packet.sequence_number,
             commands: commands.iter().filter_map(|msg| {
-                match utils::parse_midi_message(&msg.command) {
+                match rtp_midi_core::parse_midi_message(&msg.command) {
                     Ok((cmd, _)) => Some(TimedMidiCommand {
                         delta_time: msg.delta_time,
                         command: cmd,
@@ -261,7 +261,7 @@ impl DataStreamNetSender for RtpMidiSession {
         // Pro jednoduchost předpokládáme, že payload je již správně připravený
         // (v praxi by zde byla serializace/deserializace)
         // TODO: Implementace podle konkrétního formátu
-        match utils::parse_midi_message(payload) {
+        match rtp_midi_core::parse_midi_message(payload) {
             Ok((cmd, _)) => {
                 // Wrap in MidiMessage with delta_time = 0 for now
                 let midi_msg = MidiMessage { delta_time: 0, command: payload.to_vec() };

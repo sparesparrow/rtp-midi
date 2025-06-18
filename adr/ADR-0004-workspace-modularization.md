@@ -1,10 +1,12 @@
-# ADR-0003: Workspace Modularization for Modular, Event-Driven Architecture
+# ADR-0004: Workspace Modularization for Modular, Event-Driven Architecture
 
 ## Status
-Proposed
+Accepted
+
+**Date:** 2024-06-09
 
 ## Context
-The `rtp-midi` project has grown to encompass multiple domains: MIDI networking, audio analysis, LED output, platform integration, and more. The current structure centralizes most logic in `rtp_midi_lib`, making it difficult to maintain, test, and extend. The new architecture (see ADR-0001) calls for strict modularity, event-driven design, and clear boundaries between domains.
+The `rtp-midi` project has grown to encompass multiple domains: MIDI networking, audio analysis, LED output, platform integration, and more. The current structure centralizes most logic in `rtp_midi_lib`, making it difficult to maintain, test, and extend. The new architecture (see ADR-0002) calls for strict modularity, event-driven design, and clear boundaries between domains.
 
 ## Decision
 We will modularize the workspace into separate crates, each responsible for a major domain. This will:
@@ -21,6 +23,12 @@ rtp-midi/
   audio/          # Audio input, analysis, device, codec
   output/         # WLED/LED output, DDP, light mapping
   platform/       # FFI, JNI, platform bridges (Qt, Android, CLI, Web)
+  crates/
+    hal-pc/         # PC HAL adapter
+    hal-esp32/      # ESP32 HAL adapter
+    hal-android/    # Android HAL adapter
+    service-bus/    # Async message bus
+    ui-frontend/    # WASM/Tauri UI
   utils/          # Shared utilities
   ...
 ```
@@ -42,4 +50,4 @@ Each will be a Rust crate, added to `[workspace.members]` in the root `Cargo.tom
 
 ---
 **Reviewed by:** [pending]
-**Date:** [pending] 
+**Date:** 2024-06-09 

@@ -9,7 +9,6 @@ log = "0.4"
 serde = { version = "1.0", features = ["derive"] }
 bytes = "1.0"
 tokio = { version = "1", features = ["full"] }
-utils = { path = "../utils" }
 rtp_midi_core = { path = "../core" }
 rtp_midi_lib = { path = "../rtp_midi_lib" }
 simple-server = "0.4.0"
