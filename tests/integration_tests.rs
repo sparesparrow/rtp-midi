@@ -11,6 +11,7 @@ use rtp_midi::midi::rtp::RtpMidiPacket;
 use rtp_midi::{map_audio_to_leds};
 use rtp_midi::wled_control;
 use mockito;
+use output::light_mapper::{map_leds_with_preset, MappingPreset};
 
 
 #[tokio::test]
@@ -149,5 +150,25 @@ fn test_audio_to_led_pipeline() {
         assert_eq!(r, 229, "Red component mismatch at LED {}", i);
         assert_eq!(g, 51, "Green component mismatch at LED {}", i);
         assert_eq!(b, 0, "Blue component mismatch at LED {}", i);
+    }
+}
+
+#[test]
+fn test_audio_to_led_end_to_end_presets() {
+    // Simulate a strong audio signal (all bands)
+    let magnitudes = vec![1.0; 16];
+    let led_count = 8;
+    // Spectrum preset
+    let spectrum_leds = map_leds_with_preset(&magnitudes, led_count, MappingPreset::Spectrum);
+    assert_eq!(spectrum_leds.len(), led_count * 3);
+    // Should be bright colors (not all zero)
+    assert!(spectrum_leds.iter().any(|&v| v > 0));
+    // VuMeter preset
+    let vumeter_leds = map_leds_with_preset(&magnitudes, led_count, MappingPreset::VuMeter);
+    // All LEDs should be green (0,255,0)
+    for i in 0..led_count {
+        assert_eq!(vumeter_leds[i*3], 0);
+        assert_eq!(vumeter_leds[i*3+1], 255);
+        assert_eq!(vumeter_leds[i*3+2], 0);
     }
 }
