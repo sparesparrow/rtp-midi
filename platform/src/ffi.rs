@@ -1,12 +1,12 @@
 use std::ffi::{CStr, CString};
 use std::sync::{Arc, Mutex};
-use std::sync::atomic::{AtomicBool, Ordering};
 use libc::c_char;
 use core::Config;
 use output::wled_control;
 use tokio::runtime::Runtime;
 use log::{error, info};
 use once_cell::sync::Lazy;
+use tokio::sync::watch;
 
 static TOKIO_RUNTIME: Lazy<Runtime> = Lazy::new(|| {
     Runtime::new().expect("Failed to create global Tokio runtime for FFI")
@@ -16,9 +16,9 @@ static TOKIO_RUNTIME: Lazy<Runtime> = Lazy::new(|| {
 /// The pointer to this struct acts as a handle for the C/C++ side.
 pub struct ServiceHandle {
     config: Arc<Mutex<Option<Config>>>,
-    running: Arc<AtomicBool>,
     worker_thread: Mutex<Option<tokio::task::JoinHandle<()>>>,
     tokio_rt_handle: tokio::runtime::Handle,
+    shutdown_tx: Mutex<Option<watch::Sender<bool>>>,
 }
 
 /// Creates a new service instance but does not start it.
@@ -46,9 +46,9 @@ pub unsafe extern "C" fn create_service(config_path: *const c_char) -> *mut Serv
     
     let handle = Box::new(ServiceHandle {
         config: Arc::new(Mutex::new(config)),
-        running: Arc::new(AtomicBool::new(false)),
         worker_thread: Mutex::new(None),
         tokio_rt_handle: TOKIO_RUNTIME.handle().clone(), // Clone handle from global Runtime
+        shutdown_tx: Mutex::new(None),
     });
 
     Box::into_raw(handle)
@@ -64,7 +64,7 @@ pub unsafe extern "C" fn start_service(handle: *mut ServiceHandle) {
     let handle_ref = &*handle;
 
     let mut worker_guard = handle_ref.worker_thread.lock().unwrap();
-    if worker_guard.is_some() || handle_ref.running.load(Ordering::SeqCst) {
+    if worker_guard.is_some() {
         info!("Service is already running.");
         return;
     }
@@ -79,15 +79,16 @@ pub unsafe extern "C" fn start_service(handle: *mut ServiceHandle) {
     };
     drop(config_guard);
 
-    handle_ref.running.store(true, Ordering::SeqCst);
-    let running_clone = handle_ref.running.clone();
-    let rt_handle_clone = handle_ref.tokio_rt_handle.clone(); // Use stored handle
-
-    // Spawn the async run_service_loop directly onto the Tokio runtime
+    // Create a new shutdown channel for this service instance
+    let (shutdown_tx, shutdown_rx) = watch::channel(false);
+    {
+        let mut shutdown_guard = handle_ref.shutdown_tx.lock().unwrap();
+        *shutdown_guard = Some(shutdown_tx);
+    }
+    let rt_handle_clone = handle_ref.tokio_rt_handle.clone();
     let thread = rt_handle_clone.spawn(async move {
-        run_service_loop(config, running_clone).await;
+        run_service_loop(config, shutdown_rx).await;
     });
-
     *worker_guard = Some(thread);
     info!("Service started via FFI.");
 }
@@ -101,19 +102,19 @@ pub unsafe extern "C" fn stop_service(handle: *mut ServiceHandle) {
     if handle.is_null() { return; }
     let handle_ref = &*handle;
 
-    if !handle_ref.running.load(Ordering::SeqCst) {
-        info!("Service is not running.");
-        return;
-    }
-
     info!("Stopping service via FFI...");
-    handle_ref.running.store(false, Ordering::SeqCst);
-
+    // Signal shutdown via the shutdown channel
+    {
+        let mut shutdown_guard = handle_ref.shutdown_tx.lock().unwrap();
+        if let Some(tx) = shutdown_guard.as_ref() {
+            let _ = tx.send(true);
+        }
+    }
+    // Wait for the worker thread to finish
     let mut worker_guard = handle_ref.worker_thread.lock().unwrap();
     if let Some(thread_handle) = worker_guard.take() {
-        // Abort the spawned Tokio task
-        thread_handle.abort();
-        info!("Service task signaled to stop and handle cleared.");
+        let _ = futures::executor::block_on(thread_handle);
+        info!("Service task shut down and handle cleared.");
     }
 }
 

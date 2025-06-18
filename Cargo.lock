@@ -3333,6 +3333,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytes 1.10.1",
+ "ctrlc",
  "log 0.4.27",
  "rtp_midi_core",
  "rtp_midi_lib",

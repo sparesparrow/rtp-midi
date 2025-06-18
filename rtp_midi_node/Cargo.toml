@@ -12,3 +12,4 @@ tokio = { version = "1", features = ["full"] }
 rtp_midi_core = { path = "../core" }
 rtp_midi_lib = { path = "../rtp_midi_lib" }
 simple-server = "0.4.0"
+ctrlc = "3.4"

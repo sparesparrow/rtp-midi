@@ -1,4 +1,3 @@
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::net::{SocketAddr, IpAddr, Ipv4Addr};
@@ -16,6 +15,7 @@ use output::wled_control::WledSender;
 use tokio::sync::Mutex;
 use output::light_mapper::{MappingPreset, map_leds_with_preset};
 use output::ddp_output::{DdpSender, create_ddp_sender};
+use tokio::sync::watch;
 
 // --- Structs defined at the library root ---
 
@@ -31,7 +31,7 @@ use output::ddp_output::{DdpSender, create_ddp_sender};
 /// Příklad rozšíření:
 /// if let MappingOutput::Wled(action) = ... { wled_sender.send(...); }
 /// if let MappingOutput::Ddp(action) = ... { ddp_sender.send(...); }
-pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
+pub async fn run_service_loop(config: Config, mut shutdown_rx: watch::Receiver<bool>) {
     info!("Service loop starting...");
 
     let wled_ip = config.wled_ip.clone();
@@ -41,17 +41,11 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
 
     // --- Výstupní zařízení ---
     let mut wled_sender = WledSender::new(wled_ip.clone());
-    // DDP sender lze přidat obdobně, až budou akce
-    let ddp_ip = wled_ip.clone(); // Use wled_ip for DDP by default, or add a separate config field if needed
+    let ddp_ip = wled_ip.clone();
     let mut ddp_sender = match create_ddp_sender(&ddp_ip, ddp_port, config.led_count, false) {
         Ok(sender) => DdpSender::new(sender),
         Err(e) => {
             error!("Failed to create DDP sender: {}", e);
-            // Fallback: do not send DDP output
-            // In production, consider retrying or exiting
-            // For now, use a dummy sender that does nothing
-            // (Or set ddp_sender to None and check before sending)
-            // Here, we just panic to surface the error
             panic!("Failed to create DDP sender: {}", e);
         }
     };
@@ -64,9 +58,13 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
     let network_send_rx = event_tx.subscribe();
     let network_recv_tx = event_tx.clone();
 
+    // --- Unified Shutdown Channel ---
+    // The shutdown channel is now passed in from the entry point (CLI/FFI)
+
     // --- Start Network Interface Task ---
-    tokio::spawn(async move {
-        network::network_interface::start_network_interface(network_send_rx, network_recv_tx, midi_port)
+    let mut network_shutdown_rx = shutdown_rx.clone();
+    let network_task = tokio::spawn(async move {
+        network::network_interface::start_network_interface(network_send_rx, network_recv_tx, midi_port, &mut network_shutdown_rx)
             .await
             .expect("Failed to start network interface");
     });
@@ -142,7 +140,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
         _ => MappingPreset::Spectrum,
     };
 
-    while running.load(Ordering::SeqCst) {
+    while !*shutdown_rx.borrow() {
         // --- Audio Processing ---
         if let Ok(event) = audio_event_rx.try_recv() {
             if let event_bus::Event::AudioDataReady(audio_buffer) = event {
@@ -220,6 +218,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
         tokio::time::sleep(Duration::from_millis(10)).await;
     }
 
+    let _ = network_task.await;
     info!("Service has shut down gracefully.");
 }
 

@@ -323,3 +323,40 @@ UI settings (LED count, mapping) are stored in your browser and override config 
 
 ---
 
+## 8. TODO Roadmap
+
+### 7. Kvalita kódu & údržba (nová)
+* **Static Lint Zero-Warning Policy**  
+  - Zapnout `#![deny(warnings)]` ve workspace pro CI;
+  - Spustit `cargo clippy --all-targets -- -D warnings` v GitHub Actions.
+* **Odstranit nepoužívané importy a proměnné**  
+  - `core/src/event_bus.rs`: nepoužívaný `Receiver`.
+  - `core/src/network_interface.rs`: nepoužívaný `EventBus`.
+  - `network/src/midi/rtp/session.rs`: proměnné `_cmd`, `_ts`, `_buf`.
+  - `audio_server/src/main.rs`: proměnné `_pc_clone`, `_dc_clone`, `_receiver`, `_transceiver`.
+  - `rtp_midi_lib/src/lib.rs`: `_timestamp`, `_peer`, `_event_tx_clone_midi1`, `_session_clone`.
+* **Unexpected cfg feature `hal_esp32`**  
+  - Definovat feature `hal_esp32` v root `Cargo.toml` a `output/Cargo.toml`, nebo odstranit podmíněné bloky v `output/src/lib.rs`.
+* **Unreachable Code**  
+  - `rtp_midi_node/src/main.rs`: Výpis URL přesunout před blokující `listen()`.
+* **Vytvořit CI job „cargo fix --workspace --allow-dirty --allow-staged"**, commitnout změny do PR.
+* **Dokumentace Clippy pravidel**  
+  - Přidat sekci do `CONTRIBUTING.md` jak lokálně spouštět linter.
+
+### 8. Refaktor kódu
+* **Metoda `matches_midi_command` přemístit** do `impl Mapping` v `core/src/lib.rs`, aby bylo možné volat `mapping.matches(&cmd)`.
+* **Centralizovat `Config`**  
+  - Přesunout `Config` do samostatného crate `config`, reexportovat v `rtp_midi_core`.
+* **Modularizace Audio**  
+  - Přesunout `audio_input` modul z binárky do crate `audio` pro sdílení.
+* **Dokončit jednotný shutdown**  
+  - Implementovat `tokio::sync::watch::Receiver` pro signalizaci.
+
+### 9. Dokumentace & README zlepšení
+* Přidat odkaz na Docker build.
+* Vytvořit tabulku podporovaných platforem + stav.
+* Přidat diagram datových toků (Rust -> FFI -> Qt, Rust -> WebRTC, Rust -> WLED).
+* Přidat sekci „FAQ“ pro časté dotazy.
+
+---
+

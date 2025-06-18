@@ -1,4 +1,8 @@
 use std::env;
+use tokio::sync::watch;
+use log::info;
+#[cfg(feature = "ctrlc")]
+use ctrlc;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -7,10 +11,18 @@ fn main() {
     match role {
         Some("server") => {
             println!("[rtp-midi-node] Spouštím v režimu SERVER");
-            rtp_midi_lib::run_service_loop(
-                rtp_midi_lib::Config::load_from_file("config.toml").expect("config.toml načtení selhalo"),
-                std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true))
-            );
+            let config = rtp_midi_lib::Config::load_from_file("config.toml").expect("config.toml načtení selhalo");
+            let (shutdown_tx, shutdown_rx) = watch::channel(false);
+            #[cfg(feature = "ctrlc")]
+            ctrlc::set_handler(move || {
+                info!("Ctrl+C signal received, initiating shutdown...");
+                let _ = shutdown_tx.send(true);
+            }).expect("Error setting Ctrl-C handler");
+            #[cfg(not(feature = "ctrlc"))]
+            println!("Ctrl+C handler not available; shutdown must be triggered manually.");
+            let service = tokio::spawn(async move {
+                rtp_midi_lib::run_service_loop(config, shutdown_rx).await;
+            });
         }
         Some("client") => {
             println!("[rtp-midi-node] Spouštím v režimu CLIENT");

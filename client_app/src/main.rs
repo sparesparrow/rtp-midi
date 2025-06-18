@@ -1,5 +1,4 @@
-use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use tokio::sync::watch;
 use log::{info, error};
 use rtp_midi_lib::{Config, run_service_loop};
 use tokio::runtime::Runtime;
@@ -23,23 +22,19 @@ fn main() {
     // Create a new Tokio runtime for the main application
     let rt = Runtime::new().expect("Failed to create Tokio runtime");
 
-    // Create an atomically-shared boolean flag to signal the service to stop.
-    // This allows the Ctrl+C handler to communicate with the main service loop.
-    let running = Arc::new(AtomicBool::new(true));
-    let r = running.clone();
-
-    // Set up a handler to listen for Ctrl+C.
-    // When the signal is received, it sets the `running` flag to false.
+    // Set up a unified shutdown channel
+    let (shutdown_tx, shutdown_rx) = watch::channel(false);
+    // Set up a handler to listen for Ctrl+C and send shutdown signal
     ctrlc::set_handler(move || {
         info!("Ctrl+C signal received, initiating shutdown...");
-        r.store(false, Ordering::SeqCst);
+        let _ = shutdown_tx.send(true);
     }).expect("Error setting Ctrl-C handler");
 
     info!("Service starting. Press Ctrl+C to stop.");
 
     // Pass the runtime handle to the service loop
     rt.block_on(async {
-        run_service_loop(config, running).await;
+        run_service_loop(config, shutdown_rx).await;
     });
 
     info!("Service has shut down gracefully.");
