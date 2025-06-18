@@ -56,7 +56,7 @@ pub fn create_ddp_sender(ip: &str, port: u16, _led_count: usize, _rgbw: bool) ->
 /// let mut buf = [0u8; 512];
 /// if let Some((ts, len)) = rx.poll(&mut buf)? { /* ... */ }
 pub struct DdpReceiver {
-    // zde bude např. socket nebo jiný zdroj
+    socket: Option<std::net::UdpSocket>,
 }
 
 impl Default for DdpReceiver {
@@ -67,18 +67,36 @@ impl Default for DdpReceiver {
 
 impl DdpReceiver {
     pub fn new() -> Self {
-        Self { }
+        Self { socket: None }
     }
 }
 
 impl DataStreamNetReceiver for DdpReceiver {
     fn init(&mut self) -> Result<(), StreamError> {
-        // TODO: Inicializace přijímače (např. otevření socketu)
+        // Inicializace přijímače (otevření socketu na DDP portu 4048)
+        let socket = std::net::UdpSocket::bind("0.0.0.0:4048")
+            .map_err(|e| StreamError::Other(format!("Failed to bind DDP socket: {}", e)))?;
+        socket.set_nonblocking(true)
+            .map_err(|e| StreamError::Other(format!("Failed to set non-blocking: {}", e)))?;
+        self.socket = Some(socket);
         Ok(())
     }
-    fn poll(&mut self, _buf: &mut [u8]) -> Result<Option<(u64, usize)>, StreamError> {
-        // TODO: Čtení dat z DDP streamu
-        Ok(None)
+    fn poll(&mut self, buf: &mut [u8]) -> Result<Option<(u64, usize)>, StreamError> {
+        if let Some(socket) = &self.socket {
+            match socket.recv(buf) {
+                Ok(len) => {
+                    let ts = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .map_err(|e| StreamError::Other(format!("Time error: {}", e)))?
+                        .as_millis() as u64;
+                    Ok(Some((ts, len)))
+                },
+                Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => Ok(None),
+                Err(e) => Err(StreamError::Other(format!("DDP recv error: {}", e))),
+            }
+        } else {
+            Err(StreamError::Other("DDP receiver socket not initialized".to_string()))
+        }
     }
 }
 
