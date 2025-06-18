@@ -13,6 +13,9 @@ audio_buffer_size = 1024
 audio_smoothing_factor = 0.5
 webrtc_ice_servers = ["stun:stun.l.google.com:19302"]
 
+# LED mapping preset: "spectrum" or "vumeter"
+mapping_preset = "spectrum"
+
 # Example mapping (uncomment and modify as needed)
 # [[mappings]]
 # input.AudioBand = { band = "bass", threshold = 0.7 }

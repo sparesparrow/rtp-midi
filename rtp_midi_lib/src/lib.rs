@@ -15,6 +15,7 @@ use network::midi::rtp::message::MidiMessage;
 use network::midi::rtp::session::RtpMidiSession;
 use output::wled_control::WledSender;
 use tokio::sync::Mutex;
+use output::light_mapper::{MappingPreset, map_leds_with_preset};
 
 // --- Structs defined at the library root ---
 #[derive(Debug, serde::Deserialize, Clone, PartialEq)]
@@ -33,6 +34,7 @@ pub struct Config {
     pub audio_buffer_size: usize,
     pub audio_smoothing_factor: f32,
     pub webrtc_ice_servers: Option<Vec<String>>,
+    pub mapping_preset: Option<String>,
 }
 
 // --- Implementation for Config ---
@@ -150,6 +152,10 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
     // --- Main Processing Loop ---
     let mut prev_mags = Vec::new();
     let mut bass_preset_triggered = false;
+    let mapping_preset = match config.mapping_preset.as_deref() {
+        Some("vumeter") => MappingPreset::VuMeter,
+        _ => MappingPreset::Spectrum,
+    };
 
     while running.load(Ordering::SeqCst) {
         // --- Audio Processing ---
@@ -158,6 +164,8 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
                 let magnitudes = compute_fft_magnitudes(&audio_buffer, &mut prev_mags, 0.5);
                 let band_size = magnitudes.len() / 3;
                 let bass_level = magnitudes.iter().take(band_size).cloned().fold(0.0, f32::max);
+                let led_data = map_leds_with_preset(&magnitudes, config.led_count, mapping_preset);
+                // TODO: Send led_data to output (WLED/DDP) as appropriate
 
                 if let Some(mappings) = &mappings {
                     for mapping in mappings {

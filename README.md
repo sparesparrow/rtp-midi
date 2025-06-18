@@ -130,19 +130,22 @@ Below is a summary of outstanding TODOs and technical issues found in the codeba
 
 ---
 
+## LED Mapping Presets
+
+The system supports multiple LED mapping modes, selectable at runtime via the config file:
+
+- `mapping_preset = "spectrum"` (default): Maps audio spectrum to LED colors using a hue gradient.
+- `mapping_preset = "vumeter"`: Lights up LEDs as a VU meter based on average audio level.
+
+To change the mapping mode, set the `mapping_preset` field in `config.toml` to either `spectrum` or `vumeter`.
+
+---
+
 ## Planned TODOs for Future Development
 
 Below are prioritized tasks for future development. Each TODO includes clear instructions and acceptance criteria.
 
-### 1. Advanced LED Mapping Presets
-- **Instructions:**
-  - Add support for multiple LED mapping presets (e.g., spectrum, vu-meter, custom patterns).
-  - Allow runtime switching of presets via config or UI.
-- **Acceptance Criteria:**
-  - At least two new mapping modes are implemented and selectable.
-  - Switching presets updates LED output in real time.
-
-### 2. Automated End-to-End Integration Tests
+### 1. Automated End-to-End Integration Tests
 - **Instructions:**
   - Implement tests that simulate a full workflow: audio input → MIDI processing → LED output (mocked or in hardware-in-the-loop).
   - Use CI to run these tests automatically.
@@ -150,7 +153,7 @@ Below are prioritized tasks for future development. Each TODO includes clear ins
   - Tests cover all major data flows and error cases.
   - CI fails if any integration test fails.
 
-### 3. User-Configurable Settings in UI
+### 2. User-Configurable Settings in UI
 - **Instructions:**
   - Add a settings panel to the UI for configuring server address, LED count, mapping mode, etc.
   - Persist settings in local storage.
@@ -158,7 +161,7 @@ Below are prioritized tasks for future development. Each TODO includes clear ins
   - User can update and save settings via the UI.
   - Settings persist across reloads.
 
-### 4. Documentation Polish & Examples
+### 3. Documentation Polish & Examples
 - **Instructions:**
   - Expand documentation with usage examples, diagrams, and troubleshooting.
   - Add a 'Getting Started' section and advanced configuration tips.
@@ -166,7 +169,7 @@ Below are prioritized tasks for future development. Each TODO includes clear ins
   - README and docs/ contain clear, up-to-date guides and diagrams.
   - New users can set up and run the project using only the documentation.
 
-### 5. Release Automation & Packaging
+### 4. Release Automation & Packaging
 - **Instructions:**
   - Add scripts and CI jobs for building, packaging, and releasing binaries for all supported platforms.
   - Automate changelog generation and version bumping.

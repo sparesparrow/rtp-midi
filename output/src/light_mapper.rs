@@ -1,5 +1,26 @@
-/// Maps FFT magnitudes to LED RGB values.
-pub fn map_audio_to_leds(magnitudes: &[f32], led_count: usize) -> Vec<u8> {
+use std::cmp::min;
+
+/// LED mapping presets
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MappingPreset {
+    Spectrum,
+    VuMeter,
+}
+
+/// Main entry: map magnitudes to LED RGB values using the selected preset
+pub fn map_leds_with_preset(
+    magnitudes: &[f32],
+    led_count: usize,
+    preset: MappingPreset,
+) -> Vec<u8> {
+    match preset {
+        MappingPreset::Spectrum => map_audio_to_leds_spectrum(magnitudes, led_count),
+        MappingPreset::VuMeter => map_audio_to_leds_vumeter(magnitudes, led_count),
+    }
+}
+
+/// Spectrum: original hue-based mapping
+pub fn map_audio_to_leds_spectrum(magnitudes: &[f32], led_count: usize) -> Vec<u8> {
     let mut leds = Vec::with_capacity(led_count * 3);
     for i in 0..led_count {
         let hue = i as f32 / led_count as f32;
@@ -9,6 +30,29 @@ pub fn map_audio_to_leds(magnitudes: &[f32], led_count: usize) -> Vec<u8> {
         leds.push(r);
         leds.push(g);
         leds.push(b);
+    }
+    leds
+}
+
+/// VuMeter: fill LEDs from start based on average magnitude
+pub fn map_audio_to_leds_vumeter(magnitudes: &[f32], led_count: usize) -> Vec<u8> {
+    let avg = if magnitudes.is_empty() {
+        0.0
+    } else {
+        magnitudes.iter().copied().sum::<f32>() / magnitudes.len() as f32
+    };
+    let lit_leds = min(led_count, (avg * led_count as f32).round() as usize);
+    let mut leds = Vec::with_capacity(led_count * 3);
+    for i in 0..led_count {
+        if i < lit_leds {
+            leds.push(0);
+            leds.push(255);
+            leds.push(0); // Green for active
+        } else {
+            leds.push(10);
+            leds.push(10);
+            leds.push(10); // Dim for inactive
+        }
     }
     leds
 }
@@ -38,23 +82,32 @@ mod mapping_tests {
     use super::*;
 
     #[test]
-    fn test_map_audio_to_leds_bass() {
+    fn test_map_audio_to_leds_spectrum_bass() {
         let mags = vec![1.0, 0.0, 0.0]; // Only bass
-        let leds = map_audio_to_leds(&mags, 2);
+        let leds = map_audio_to_leds_spectrum(&mags, 2);
         assert_eq!(leds, vec![255, 0, 0, 0, 0, 0]);
     }
 
     #[test]
-    fn test_map_audio_to_leds_mid() {
-        let mags = vec![0.0, 1.0, 0.0]; // Only mid
-        let leds = map_audio_to_leds(&mags, 1);
-        assert_eq!(leds, vec![0, 0, 0]);
+    fn test_map_audio_to_leds_vumeter() {
+        let mags = vec![0.5, 0.5, 0.5];
+        let leds = map_audio_to_leds_vumeter(&mags, 4);
+        // Should light up 2 LEDs (rounded)
+        assert_eq!(leds[0..6], [0,255,0,0,255,0]);
+        assert_eq!(leds[6..], [10,10,10,10,10,10]);
     }
 
     #[test]
-    fn test_map_audio_to_leds_treble() {
-        let mags = vec![0.0, 0.0, 1.0]; // Only treble
-        let leds = map_audio_to_leds(&mags, 1);
-        assert_eq!(leds, vec![0, 0, 0]);
+    fn test_map_leds_with_preset_spectrum() {
+        let mags = vec![1.0, 0.0, 0.0];
+        let leds = map_leds_with_preset(&mags, 2, MappingPreset::Spectrum);
+        assert_eq!(leds, vec![255, 0, 0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn test_map_leds_with_preset_vumeter() {
+        let mags = vec![1.0, 1.0, 1.0];
+        let leds = map_leds_with_preset(&mags, 3, MappingPreset::VuMeter);
+        assert_eq!(leds, vec![0,255,0,0,255,0,0,255,0]);
     }
 } 
