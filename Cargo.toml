@@ -12,7 +12,11 @@ members = [
     "output",
     "platform",
     "utils", "ui-frontend",
-    "rtp_midi_node"
+    "rtp_midi_node",
+    "crates/hal-pc",
+    "crates/hal-esp32",
+    "crates/hal-android",
+    "crates/service-bus"
 ]
 resolver = "2" # Recommended for workspaces
 

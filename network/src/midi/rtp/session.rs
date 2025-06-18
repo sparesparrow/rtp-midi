@@ -7,7 +7,6 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use rtp_midi_core::{DataStreamNetSender, DataStreamNetReceiver, StreamError, JournalData, JournalEntry};
-use async_trait::async_trait;
 
 use super::message::{MidiMessage, RtpMidiPacket};
 use utils::parse_rtp_packet;
@@ -140,7 +139,7 @@ impl RtpMidiSession {
         
         let current_timestamp = (tokio::time::Instant::now().elapsed().as_secs_f64() * MIDI_CLOCK_HZ) as u32;
         let delta_time_is_zero = commands.iter().all(|cmd| cmd.delta_time == 0);
-        let is_sysex_start = commands.first().map_or(false, |cmd| cmd.command.first().map_or(false, |&b| b == 0xF0));
+        let is_sysex_start = commands.first().is_some_and(|cmd| cmd.command.first().is_some_and(|&b| b == 0xF0));
 
         let mut packet = RtpMidiPacket::new(self.ssrc, *seq_num_lock, current_timestamp);
         packet.midi_commands = commands.clone();

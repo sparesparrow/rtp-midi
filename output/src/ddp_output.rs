@@ -59,6 +59,12 @@ pub struct DdpReceiver {
     // zde bude např. socket nebo jiný zdroj
 }
 
+impl Default for DdpReceiver {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DdpReceiver {
     pub fn new() -> Self {
         Self { }

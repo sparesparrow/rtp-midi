@@ -1,4 +1,4 @@
-use utils::{InputEvent, WledOutputAction, Mapping, MidiCommand};
+use utils::{InputEvent, Mapping, MidiCommand};
 
 pub fn matches_midi_command(mapping: &Mapping, command: &MidiCommand) -> bool {
     match (&mapping.input, command) {

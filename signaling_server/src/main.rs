@@ -58,6 +58,12 @@ pub struct Clients {
     peers: Arc<Mutex<HashMap<String, (PeerType, mpsc::Sender<Result<Message, tokio_tungstenite::tungstenite::Error>>)>>>,
 }
 
+impl Default for Clients {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Clients {
     pub fn new() -> Self {
         Self {

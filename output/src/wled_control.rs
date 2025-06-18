@@ -2,12 +2,8 @@ use anyhow::Result;
 use reqwest::Client;
 use serde_json::json;
 use log::{error, info};
-use utils::Event;
 // use utils::NetworkInterface; // Removed to break dependency cycle
 use utils::WledOutputAction;
-use std::sync::Arc;
-use tokio::sync::broadcast;
-use std::net::SocketAddr;
 use rtp_midi_core::{DataStreamNetSender, StreamError};
 
 /// Wrapper pro WLED JSON API odesílač implementující sjednocené API.

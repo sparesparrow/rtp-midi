@@ -1,7 +1,6 @@
 // rtp_midi_lib/src/journal_engine.rs
 
 use anyhow::{anyhow, Result};
-use log::{info, warn};
 use std::collections::BTreeSet;
 
 use utils::{midi_command_length, MidiCommand};
@@ -76,7 +75,7 @@ impl JournalEntry {
                 return Err(anyhow!("Not enough data for MIDI command in journal entry"));
             }
             let command_bytes = data.copy_to_bytes(command_len);
-            let mut command_reader = Bytes::from(command_bytes.clone());
+            let mut command_reader = command_bytes.clone();
             let command = MidiCommand::parse(&mut command_reader)?;
             commands.push(TimedMidiCommand { delta_time, command });
         }

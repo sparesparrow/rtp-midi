@@ -5,7 +5,6 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 use serde::{Deserialize, Serialize};
 use utils::midi_command_length;
 use utils::ParsedPacket;
-use rtp_midi_core::JournalData;
 
 /// Represents a single MIDI message with its delta-time.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -106,8 +105,7 @@ impl RtpMidiPacket {
         // --- RTP Header ---
         let byte0 = (self.version << 6)
             | ((self.padding as u8) << 5)
-            | ((self.extension as u8) << 4)
-            | 0; // No CSRC for now
+            | ((self.extension as u8) << 4); // No CSRC for now
         buf.put_u8(byte0);
 
         let byte1 = ((self.marker as u8) << 7) | (self.payload_type & 0x7F);

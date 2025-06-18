@@ -1591,6 +1591,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "hal-android"
+version = "0.1.0"
+dependencies = [
+ "rtp_midi_core",
+]
+
+[[package]]
+name = "hal-esp32"
+version = "0.1.0"
+dependencies = [
+ "rtp_midi_core",
+]
+
+[[package]]
+name = "hal-pc"
+version = "0.1.0"
+dependencies = [
+ "rtp_midi_core",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3920,6 +3941,13 @@ dependencies = [
  "itoa 1.0.15",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "service-bus"
+version = "0.1.0"
+dependencies = [
+ "tokio",
 ]
 
 [[package]]

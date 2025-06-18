@@ -12,8 +12,6 @@ use rtp_midi_core::{event_bus, DataStreamNetSender};
 use utils::{Event, MidiCommand, parse_midi_message, InputEvent, Mapping};
 use network::midi::rtp::message::MidiMessage;
 use network::midi::rtp::session::RtpMidiSession;
-use output as wled;
-use output::ddp_output::{DdpSender, create_ddp_sender};
 use output::wled_control::WledSender;
 use tokio::sync::Mutex;
 
@@ -73,7 +71,7 @@ pub async fn run_service_loop(config: Config, running: Arc<AtomicBool>) {
     // --- Event Bus Setup ---
     let (event_tx, mut audio_event_rx) = event_bus::create_event_bus();
     let mut midi_event_rx = event_tx.subscribe();
-    let mut network_send_rx = event_tx.subscribe();
+    let network_send_rx = event_tx.subscribe();
     let network_recv_tx = event_tx.clone();
 
     // --- Start Network Interface Task ---

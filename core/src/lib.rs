@@ -84,6 +84,12 @@ pub struct MockSender {
     pub sent: Vec<(u64, Vec<u8>)>,
 }
 
+impl Default for MockSender {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MockSender {
     pub fn new() -> Self {
         Self { sent: Vec::new() }

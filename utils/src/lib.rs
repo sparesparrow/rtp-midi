@@ -104,7 +104,7 @@ pub fn parse_midi_message(data: &[u8]) -> Result<(MidiCommand, usize)> {
     }
 
     let command_slice = reader.copy_to_bytes(command_length);
-    let mut command_reader = Bytes::from(command_slice);
+    let mut command_reader = command_slice;
     let command = MidiCommand::parse(&mut command_reader)?;
     Ok((command, command_length))
 }
@@ -196,7 +196,7 @@ impl MidiCommand {
                 })
             }
             0xC0 => {
-                if data.len() < 1 {
+                if data.is_empty() {
                     return Err(anyhow!("Incomplete Program Change message"));
                 }
                 let program = data.get_u8();
@@ -206,7 +206,7 @@ impl MidiCommand {
                 })
             }
             0xD0 => {
-                if data.len() < 1 {
+                if data.is_empty() {
                     return Err(anyhow!("Incomplete Channel Pressure message"));
                 }
                 let value = data.get_u8();
@@ -242,7 +242,7 @@ impl MidiCommand {
                     }
                     0xF1 => {
                         // MTC Quarter Frame (1 data byte)
-                        if data.len() < 1 { return Err(anyhow!("Incomplete MTC Quarter Frame")); }
+                        if data.is_empty() { return Err(anyhow!("Incomplete MTC Quarter Frame")); }
                         Ok(MidiCommand::Unknown { status: status_byte, data: vec![data.get_u8()] })
                     }
                     0xF2 => {
@@ -252,7 +252,7 @@ impl MidiCommand {
                     }
                     0xF3 => {
                         // Song Select (1 data byte)
-                        if data.len() < 1 { return Err(anyhow!("Incomplete Song Select")); }
+                        if data.is_empty() { return Err(anyhow!("Incomplete Song Select")); }
                         Ok(MidiCommand::Unknown { status: status_byte, data: vec![data.get_u8()] })
                     }
                     0xF6 => Ok(MidiCommand::TuneRequest),
