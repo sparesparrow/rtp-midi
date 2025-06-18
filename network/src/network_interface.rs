@@ -6,7 +6,7 @@ use tokio::sync::broadcast;
 use log::{error, info};
 use std::sync::Arc;
 
-use utils::Event;
+use rtp_midi_core::event_bus::Event;
 
 pub async fn start_network_interface(
     mut receiver: broadcast::Receiver<Event>,
@@ -23,9 +23,9 @@ pub async fn start_network_interface(
         loop {
             match r_socket.recv_from(&mut buf).await {
                 Ok((len, addr)) => {
-                    if let Err(e) = r_sender.send(Event::RawPacketReceived { 
-                        source: addr.to_string(), 
-                        data: buf[..len].to_vec() 
+                    if let Err(e) = r_sender.send(Event::RawPacketReceived {
+                        payload: buf[..len].to_vec(),
+                        source_addr: addr,
                     }) {
                         error!("Failed to send RawPacketReceived event: {}", e);
                     }
@@ -36,10 +36,10 @@ pub async fn start_network_interface(
     });
 
     while let Ok(event) = receiver.recv().await {
-        if let Event::SendPacket { destination, port, data } = event {
-            match socket.send_to(&data, format!("{}:{}", destination, port)).await {
-                Ok(len) => info!("Sent {} bytes to {}:{}", len, destination, port),
-                Err(e) => error!("Failed to send UDP packet to {}:{}: {}", destination, port, e),
+        if let Event::SendPacket { payload, dest_addr } = event {
+            match socket.send_to(&payload, dest_addr).await {
+                Ok(len) => info!("Sent {} bytes to {}", len, dest_addr),
+                Err(e) => error!("Failed to send UDP packet to {}: {}", dest_addr, e),
             }
         }
     }

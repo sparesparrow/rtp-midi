@@ -14,6 +14,8 @@ mod tests {
 }
 
 pub mod event_bus;
+pub mod network_interface;
+pub mod session_manager;
 pub mod mapping;
 pub mod packet_processor;
 pub mod journal_engine;

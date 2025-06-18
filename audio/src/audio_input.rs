@@ -3,7 +3,7 @@ use cpal::traits::{DeviceTrait, HostTrait};
 use cpal::{Sample, SampleFormat};
 use tokio::sync::broadcast;
 use rustfft::num_traits;
-use utils::Event;
+use rtp_midi_core::event_bus::Event;
 
 /// Starts audio capture from the specified device (or default if None).
 /// Sends audio buffers (Vec<f32>) to the provided channel sender.
