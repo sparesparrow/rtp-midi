@@ -16,7 +16,7 @@ Tento projekt využívá idiomatickou architekturu Rust workspace s oddělením 
 2.  [Getting Started](#getting-started)
 3.  [Platform Support & Building](#platform-support--building)
 4.  [Architektura a design](#architektura-a-design)
-5.  [TODO Roadmap](#8-todo-roadmap)
+5.  [TODO Roadmap](#5-todo-roadmap)
 6.  [Troubleshooting](#troubleshooting)
 7.  [Contributing](#contributing)
 
@@ -101,22 +101,107 @@ docker run -it --rm -p 5004:5004/udp rtp-midi-local
     - Publikaci Docker image do GHCR (`docker-publish.yml`).
 
 ---
+## 5. TODO Roadmap
+
+Následující seznam obsahuje hlavní úkoly pro budoucí vývoj, rozdělené do kategorií.
+
+### 1. Core Logic & Protokoly
+- **Dokončit AppleMIDI Handshake & Clock Sync**:
+  - *Stav*: 🟡 Částečně hotovo.
+  - *Popis*: Základní logika pro IN/OK/CK zprávy je v `rtp/session.rs`. Je potřeba dokončit stavový stroj v `core/src/session_manager.rs` a plně obě části propojit.
+- **Mapování `MidiMessage` na `TimedMidiCommand`**:
+  - *Místo*: `network/src/midi/rtp/session.rs`.
+  - *Popis*: Implementovat konverzi pro účely žurnálování.
+
+### 2. Kvalita kódu & Údržba
+- **Zero-Warning Policy**:
+  - *Popis*: Aktivovat `#![deny(warnings)]` v CI a opravit všechna stávající varování (nepoužívané proměnné, importy, `unreachable_code`).
+  - *Soubory*: `core/src/event_bus.rs`, `core/src/network_interface.rs`, `network/src/midi/rtp/session.rs`, `audio_server/src/main.rs`, `rtp_midi_lib/src/lib.rs`, `rtp_midi_node/src/main.rs`.
+- **Opravit `cfg` pro `hal_esp32`**:
+  - *Popis*: Chybějící definice feature `hal_esp32` v `output/Cargo.toml` způsobuje varování. Je potřeba ji přidat nebo odstranit `#[cfg]`.
+- **CI Job pro `cargo fix`**:
+  - *Popis*: Vytvořit CI job, který automaticky navrhne opravy přes `cargo fix` a commitne je do PR.
+- **Robustnější audio input**:
+  - *Místo*: `audio/src/audio_input.rs`.
+  - *Popis*: Nahradit `todo!()` pro nepodporované audio formáty za robustní fallback nebo jasnou chybovou hlášku.
+
+### 3. Architektura & Refaktoring
+- **Jednotný shutdown**:
+  - *Popis*: Dokončit implementaci graceful shutdown pomocí `tokio::sync::watch` kanálu, aby se všechny služby ukončovaly čistě.
+- **Refaktor build skriptů**:
+  - *Popis*: Sjednotit logiku v `build_*.sh` skriptech, zejména co se týče práce s `.cargo/config.toml`, aby nedocházelo k přepisování.
+- **Přesun `matches_midi_command`**:
+  - *Popis*: Přesunout metodu do `impl Mapping` v `core/src/lib.rs` pro lepší zapouzdření (`mapping.matches(&cmd)`).
+
+### 4. Frontend & UI
+- **Dokončit WebRTC Data Channel**:
+  - *Místo*: `frontend/script.js`.
+  - *Popis*: Implementovat TODOs pro signalizaci připravenosti kanálu, zpracování příchozích MIDI zpráv a odesílání změn konfigurace z UI do backendu.
+- **Vylepšit Entrypoint pro UI**:
+  - *Místo*: `rtp_midi_node/src/main.rs`.
+  - *Popis*: Nahradit základní webserver za robustnější řešení nebo integraci s Tauri.
+
+### 5. Build, Release & Dokumentace
+- **Finalizovat Release Automation**:
+  - *Místo*: `.github/workflows/release.yml`.
+  - *Popis*: Automatizovat generování release notes.
+- **Vylepšit README**:
+  - *Popis*: Vložit hlavní diagram architektury přímo do README a přidat sekci FAQ.
+- **Automatizovat generování `dep-graph.txt`**:
+  - *Popis*: Přidat do CI krok, který aktualizuje graf závislostí.
+
+---
+
+## Troubleshooting
+- **No LEDs light up:** Check WLED IP, LED count, and power.
+- **Audio not detected:** Verify audio device in config and permissions.
+- **MIDI not working:** Ensure correct ports and network visibility.
+- **Build errors (ESP32/Android):** See platform-specific docs in `docs/` and `build_*.sh` scripts.
+- **UI not updating:** Reload page, check browser console for errors.
+
+---
+
+## Contributing
+- See ADRs and architecture docs before major changes.
+- Follow modular, testable, idiomatic Rust practices.
+- All config should be externalized; document new options.
+
+---
+
 ## 8. TODO Roadmap
 
-### 7. Kvalita kódu & údržba
-* **Static Lint Zero-Warning Policy**: Zapnout `#![deny(warnings)]` ve workspace pro CI.
-* **Opravit všechna varování kompilátoru**: Odstranit nepoužívané importy, proměnné a `unreachable_code`.
-* **CI job pro `cargo fix`**: Vytvořit CI job, který navrhne opravy a commitne je do PR.
-* **Vyčistit Git od artefaktů**: Odstranit `dist/` adresář z historie a přidat ho do `.gitignore`.
+### 7. Kvalita kódu & údržba (nová)
+* **Static Lint Zero-Warning Policy**  
+  - Zapnout `#![deny(warnings)]` ve workspace pro CI;
+  - Spustit `cargo clippy --all-targets -- -D warnings` v GitHub Actions.
+* **Odstranit nepoužívané importy a proměnné**  
+  - `core/src/event_bus.rs`: nepoužívaný `Receiver`.
+  - `core/src/network_interface.rs`: nepoužívaný `EventBus`.
+  - `network/src/midi/rtp/session.rs`: proměnné `_cmd`, `_ts`, `_buf`.
+  - `audio_server/src/main.rs`: proměnné `_pc_clone`, `_dc_clone`, `_receiver`, `_transceiver`.
+  - `rtp_midi_lib/src/lib.rs`: `_timestamp`, `_peer`, `_event_tx_clone_midi1`, `_session_clone`.
+* **Unexpected cfg feature `hal_esp32`**  
+  - Definovat feature `hal_esp32` v root `Cargo.toml` a `output/Cargo.toml`, nebo odstranit podmíněné bloky v `output/src/lib.rs`.
+* **Unreachable Code**  
+  - `rtp_midi_node/src/main.rs`: Výpis URL přesunout před blokující `listen()`.
+* **Vytvořit CI job „cargo fix --workspace --allow-dirty --allow-staged"**, commitnout změny do PR.
+* **Dokumentace Clippy pravidel**  
+  - Přidat sekci do `CONTRIBUTING.md` jak lokálně spouštět linter.
 
 ### 8. Refaktor kódu
-* **Metoda `matches_midi_command`**: Přesunout do `impl Mapping` v `core/src/lib.rs`.
-* **Jednotný shutdown**: Dokončit implementaci graceful shutdown pomocí `tokio::sync::watch`.
-* **Refaktor build skriptů**: Sjednotit logiku v `build_*.sh` skriptech.
+* **Metoda `matches_midi_command` přemístit** do `impl Mapping` v `core/src/lib.rs`, aby bylo možné volat `mapping.matches(&cmd)`.
+* **Centralizovat `Config`**  
+  - Přesunout `Config` do samostatného crate `config`, reexportovat v `rtp_midi_core`.
+* **Modularizace Audio**  
+  - Přesunout `audio_input` modul z binárky do crate `audio` pro sdílení.
+* **Dokončit jednotný shutdown**  
+  - Implementovat `tokio::sync::watch::Receiver` pro signalizaci.
 
 ### 9. Dokumentace & README zlepšení
-* **Vložit diagram architektury**: Přidat hlavní komponentový diagram přímo do README.
-* **FAQ sekce**: Vytvořit sekci s častými dotazy a řešeními.
+* Přidat odkaz na Docker build.
+* Vytvořit tabulku podporovaných platforem + stav.
+* Přidat diagram datových toků (Rust -> FFI -> Qt, Rust -> WebRTC, Rust -> WLED).
+* Přidat sekci „FAQ“ pro časté dotazy.
 
 ---
 
@@ -222,16 +307,15 @@ Below is a summary of outstanding TODOs and technical issues found in the codeba
   - Process incoming MIDI data on the data channel.
   - Handle data channel closure events.
 
-- **AppleMIDI Handshake and Clock Sync** (`core/src/session_manager.rs`):
-  - Implement the full AppleMIDI handshake and clock synchronization state machine.
+- **AppleMIDI Handshake and Clock Sync** (`core/src/session_manager.rs` a `network/src/midi/rtp/session.rs`):
+  - 🟡 Částečně hotovo. Základní logika pro IN/OK/CK zprávy je v `rtp/session.rs`, ale je potřeba dokončit stavový stroj v `session_manager.rs` a plně je propojit.
 
 - **RTP-MIDI Session** (`network/src/midi/rtp/session.rs`):
   - Map `MidiMessage` to `TimedMidiCommand` for journaling.
   - Implement parsing/handling according to the specific format.
 
 - **DDP Receiver Implementation** (`output/src/ddp_output.rs`):
-  - Initialize the DDP receiver (e.g., open socket).
-  - Implement reading data from the DDP stream.
+  - ✅ Hotovo – `DdpReceiver` je plně funkční, otevírá neblokující UDP socket (port 4048) a vrací přijaté pakety přes metodu `poll()`.
 
 - **Release Automation** (`.github/workflows/release.yml`):
   - Add release notes and finalize the release workflow.
@@ -287,12 +371,12 @@ Settings are saved in your browser's local storage and persist across reloads. C
  * Instructions:
    * [x] Implement the full AppleMIDI handshake and clock synchronization state machine in network/src/midi/rtp/session.rs and core/src/session_manager.rs. The current implementation is a placeholder. The session should not be considered "established" until both sides have completed the IN, OK, and CK message exchange.
    * [x] Implement the recovery journal retransmission logic. The session now detects gaps in sequence numbers in RtpMidiSession::handle_incoming_packet and attempts to recover missing packets using the journal mechanism, logging the outcome for each gap.
-   * Complete the DDP (Distributed Display Protocol) receiver implementation in output/src/ddp_output.rs. The DdpReceiver struct is currently a stub and its poll method should be implemented to read data from a UDP socket.
+   * [x] Complete the DDP (Distributed Display Protocol) receiver implementation in output/src/ddp_output.rs. The DdpReceiver struct is currently a stub and its poll method should be implemented to read data from a UDP socket.
    * [x] Fully integrate audio analysis with the output modules in rtp_midi_lib/src/lib.rs. The main service loop now sends led_data to the active DDP sender, so LED output reflects real-time audio analysis.
  * Acceptance Criteria:
    * [x] A new RTP-MIDI peer connection correctly performs the two-way handshake (IN/OK) and clock synchronization (CK0, CK1, CK2) before processing MIDI data.
    * [x] The system can detect and recover from lost packets using the recovery journal mechanism.
-   * The application can receive and process incoming DDP data.
+   * [x] The application can receive and process incoming DDP data.
    * Real-time audio analysis is visibly reflected on the configured LED output (WLED or DDP).
 
 2. Architecture & Refactoring
@@ -438,43 +522,6 @@ UI settings (LED count, mapping) are stored in your browser and override config 
 - See ADRs and architecture docs before major changes.
 - Follow modular, testable, idiomatic Rust practices.
 - All config should be externalized; document new options.
-
----
-
-## 8. TODO Roadmap
-
-### 7. Kvalita kódu & údržba (nová)
-* **Static Lint Zero-Warning Policy**  
-  - Zapnout `#![deny(warnings)]` ve workspace pro CI;
-  - Spustit `cargo clippy --all-targets -- -D warnings` v GitHub Actions.
-* **Odstranit nepoužívané importy a proměnné**  
-  - `core/src/event_bus.rs`: nepoužívaný `Receiver`.
-  - `core/src/network_interface.rs`: nepoužívaný `EventBus`.
-  - `network/src/midi/rtp/session.rs`: proměnné `_cmd`, `_ts`, `_buf`.
-  - `audio_server/src/main.rs`: proměnné `_pc_clone`, `_dc_clone`, `_receiver`, `_transceiver`.
-  - `rtp_midi_lib/src/lib.rs`: `_timestamp`, `_peer`, `_event_tx_clone_midi1`, `_session_clone`.
-* **Unexpected cfg feature `hal_esp32`**  
-  - Definovat feature `hal_esp32` v root `Cargo.toml` a `output/Cargo.toml`, nebo odstranit podmíněné bloky v `output/src/lib.rs`.
-* **Unreachable Code**  
-  - `rtp_midi_node/src/main.rs`: Výpis URL přesunout před blokující `listen()`.
-* **Vytvořit CI job „cargo fix --workspace --allow-dirty --allow-staged"**, commitnout změny do PR.
-* **Dokumentace Clippy pravidel**  
-  - Přidat sekci do `CONTRIBUTING.md` jak lokálně spouštět linter.
-
-### 8. Refaktor kódu
-* **Metoda `matches_midi_command` přemístit** do `impl Mapping` v `core/src/lib.rs`, aby bylo možné volat `mapping.matches(&cmd)`.
-* **Centralizovat `Config`**  
-  - Přesunout `Config` do samostatného crate `config`, reexportovat v `rtp_midi_core`.
-* **Modularizace Audio**  
-  - Přesunout `audio_input` modul z binárky do crate `audio` pro sdílení.
-* **Dokončit jednotný shutdown**  
-  - Implementovat `tokio::sync::watch::Receiver` pro signalizaci.
-
-### 9. Dokumentace & README zlepšení
-* Přidat odkaz na Docker build.
-* Vytvořit tabulku podporovaných platforem + stav.
-* Přidat diagram datových toků (Rust -> FFI -> Qt, Rust -> WebRTC, Rust -> WLED).
-* Přidat sekci „FAQ“ pro časté dotazy.
 
 ---
 

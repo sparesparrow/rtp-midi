@@ -143,7 +143,7 @@ async fn handle_offer(
     }];
     let peer_connection: Arc<RTCPeerConnection> = Arc::new(api.new_peer_connection(rtc_config).await?);
     
-    let pc_clone = Arc::clone(&peer_connection);
+    let _pc_clone = Arc::clone(&peer_connection);
     let ws_write_clone = Arc::clone(&ws_write);
     let server_id_clone = server_id.to_string();
     let client_id_clone = client_id.to_string();
@@ -181,7 +181,7 @@ async fn handle_offer(
     
         Box::pin(async move {
             info!("[AudioServer] Přijat data channel od klienta: {}", client_id);
-            let dc_clone = Arc::clone(&data_channel);
+            let _dc_clone = Arc::clone(&data_channel);
             let client_id_clone = client_id.clone();
     
             data_channel.on_message(Box::new(move |msg| {
@@ -203,7 +203,7 @@ async fn handle_offer(
     }));
     
     let client_id_on_track = client_id.to_string();
-    peer_connection.on_track(Box::new(move |track: Arc<TrackRemote>, receiver: Arc<RTCRtpReceiver>, transceiver: Arc<RTCRtpTransceiver>| {
+    peer_connection.on_track(Box::new(move |track: Arc<TrackRemote>, _receiver: Arc<RTCRtpReceiver>, _transceiver: Arc<RTCRtpTransceiver>| {
         let track_client_id = client_id_on_track.clone();
         Box::pin(async move {
             info!(

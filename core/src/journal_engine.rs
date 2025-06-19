@@ -86,21 +86,18 @@ impl JournalEntry {
 
 impl JournalData {
     pub fn serialize_enhanced(&self) -> Result<Bytes> {
-        if let JournalData::Enhanced { a_bit, ch_bits, checkpoint_sequence_number, entries } = self {
-            let mut buf = BytesMut::new();
-            let s_bit = 0b1000_0000; // S=1 (enhanced)
-            let a_ch_bits = ((*a_bit as u8) << 6) | (*ch_bits & 0b0011_1111);
-            buf.put_u8(s_bit | a_ch_bits);
-            buf.put_u8(*checkpoint_sequence_number);
-            buf.put_u16(entries.len() as u16); // Count of packets in journal
+        let JournalData::Enhanced { a_bit, ch_bits, checkpoint_sequence_number, entries } = self;
+        let mut buf = BytesMut::new();
+        let s_bit = 0b1000_0000; // S=1 (enhanced)
+        let a_ch_bits = ((*a_bit as u8) << 6) | (*ch_bits & 0b0011_1111);
+        buf.put_u8(s_bit | a_ch_bits);
+        buf.put_u8(*checkpoint_sequence_number);
+        buf.put_u16(entries.len() as u16); // Count of packets in journal
 
-            for entry in entries {
-                buf.put_slice(&entry.serialize()?);
-            }
-            Ok(buf.freeze())
-        } else {
-            Err(anyhow!("Only Enhanced JournalData can be serialized currently"))
+        for entry in entries {
+            buf.put_slice(&entry.serialize()?);
         }
+        Ok(buf.freeze())
     }
 
     pub fn parse_enhanced(data: &mut Bytes) -> Result<Self> {
@@ -180,9 +177,6 @@ fn encode_variable_length_quantity(value: u32, buf: &mut [u8; 4]) -> Result<usiz
 
     while temp > 0 {
         idx -= 1;
-        if idx < 0 {
-            return Err(anyhow!("VLQ encoding overflow"));
-        }
         buf[idx] = ((temp & 0x7F) | 0x80) as u8;
         temp >>= 7;
     }

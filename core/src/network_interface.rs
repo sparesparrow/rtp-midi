@@ -26,7 +26,7 @@ impl NetworkInterface {
                     };
                     let _ = self.event_sender.send(event).await;
                 }
-                Err(e) => {
+                Err(_e) => {
                     // Log error or handle as needed
                     break;
                 }

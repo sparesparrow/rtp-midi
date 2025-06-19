@@ -7,14 +7,14 @@ use log::{error, info};
 // --- Modular Crate Imports ---
 use audio::audio_analysis::compute_fft_magnitudes;
 use audio::audio_input;
-use rtp_midi_core::{event_bus, DataStreamNetSender};
+use rtp_midi_core::{event_bus, DataStreamNetSender, DataStreamNetReceiver};
 use rtp_midi_core::{MidiCommand, parse_midi_message, InputEvent, Mapping, MappingOutput};
 use network::midi::rtp::message::MidiMessage;
 use network::midi::rtp::session::RtpMidiSession;
 use output::wled_control::WledSender;
 use tokio::sync::Mutex;
 use output::light_mapper::{MappingPreset, map_leds_with_preset};
-use output::ddp_output::{DdpSender, create_ddp_sender};
+use output::ddp_output::{DdpSender, create_ddp_sender, DdpReceiver};
 use tokio::sync::watch;
 
 // --- Structs defined at the library root ---
@@ -49,6 +49,32 @@ pub async fn run_service_loop(config: Config, mut shutdown_rx: watch::Receiver<b
             panic!("Failed to create DDP sender: {}", e);
         }
     };
+
+    // --- DDP Receiver Thread ---
+    let ddp_shutdown_rx = shutdown_rx.clone();
+    std::thread::spawn(move || {
+        let mut receiver = DdpReceiver::new();
+        if let Err(e) = receiver.init() {
+            error!("Failed to initialize DDP receiver: {}", e);
+            return;
+        }
+        let mut buf = [0u8; 2048];
+        while !*ddp_shutdown_rx.borrow() {
+            match receiver.poll(&mut buf) {
+                Ok(Some((ts, len))) => {
+                    info!("Received DDP frame: timestamp={}ms, len={}", ts, len);
+                }
+                Ok(None) => {
+                    std::thread::sleep(std::time::Duration::from_millis(5));
+                }
+                Err(e) => {
+                    error!("DDP receiver error: {}", e);
+                    std::thread::sleep(std::time::Duration::from_millis(100));
+                }
+            }
+        }
+        info!("DDP receiver thread shutting down.");
+    });
 
     // --- Event Bus Setup ---
     let event_bus = event_bus::EventBus::new(32);
@@ -190,7 +216,7 @@ pub async fn run_service_loop(config: Config, mut shutdown_rx: watch::Receiver<b
                 if let Ok((parsed_command, _)) = parse_midi_message(&commands) {
                     if let Some(mappings) = &mappings {
                         for mapping in mappings {
-                            if Mapping::matches_midi_command(mapping, &parsed_command) {
+                            if mapping.matches_midi_command(&parsed_command) {
                                 match parsed_command {
                                     MidiCommand::NoteOn { key, .. } => info!("MIDI NoteOn {} matched a mapping.", key),
                                     MidiCommand::ControlChange { control, value, ..} => info!("MIDI CC {} ({}) matched a mapping.", control, value),

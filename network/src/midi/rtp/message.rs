@@ -212,9 +212,6 @@ fn encode_variable_length_quantity(value: u32, buf: &mut [u8; 4]) -> Result<usiz
 
     while temp > 0 {
         idx -= 1;
-        if idx < 0 {
-            return Err(anyhow!("VLQ encoding overflow"));
-        }
         buf[idx] = ((temp & 0x7F) | 0x80) as u8;
         temp >>= 7;
     }

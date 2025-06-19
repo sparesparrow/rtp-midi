@@ -1,3 +1,5 @@
+#![deny(warnings)]
+
 pub fn add(left: u64, right: u64) -> u64 {
     left + right
 }
@@ -395,7 +397,7 @@ impl MidiCommand {
                     0xF0 => {
                         // SysEx Start (variable length, not fully handled here)
                         let mut sysex = Vec::new();
-                        while let Some(&b) = data.chunk().first() {
+                        while let Some(&_b) = data.chunk().first() {
                             let b = data.get_u8();
                             sysex.push(b);
                             if b == 0xF7 {

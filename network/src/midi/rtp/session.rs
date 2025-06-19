@@ -1,3 +1,4 @@
+#![deny(warnings)]
 // src/midi/rtp/session.rs
 
 use anyhow::{anyhow, Result};
@@ -12,8 +13,8 @@ use rtp_midi_core::event_bus::Event;
 
 use super::message::{MidiMessage, RtpMidiPacket};
 use rtp_midi_core::parse_rtp_packet;
-use super::control_message::{AppleMidiMessage, Invitation, InvitationAccepted, InvitationRejected, Exit, Sync as AppleMidiSync, ReceiverFeedback};
-use tokio::time::{Instant, Duration, Sleep};
+use super::control_message::{AppleMidiMessage, Invitation, InvitationAccepted, Sync as AppleMidiSync};
+use tokio::time::{Duration, Sleep, sleep};
 use std::pin::Pin;
 
 // The listener now receives only the MIDI commands, not the whole packet, for cleaner separation.
@@ -301,7 +302,7 @@ impl RtpMidiSession {
         recovered
     }
 
-    /// Initiates the AppleMIDI handshake by sending an IN (invitation) message.
+    /// Initiates the AppleMIDI handshake by sending an IN (invitation) message with retries and timeout.
     pub async fn initiate_handshake(&self, peer_addr: SocketAddr, name: &str) -> Result<()> {
         let mut state = self.session_state.lock().await;
         if *state != SessionState::Idle {
@@ -317,12 +318,39 @@ impl RtpMidiSession {
             self.ssrc,
             self.name.clone(),
         ));
-        
-        self.send_control_message(&invitation).await?;
 
-        // TODO: Start a timer here to re-send the invitation if no OK is received.
-        // For now, we just wait.
-        
+        let mut attempts = 0;
+        let max_attempts = 3;
+        let timeout = Duration::from_secs(2);
+        while attempts < max_attempts {
+            self.send_control_message(&invitation).await?;
+            info!("Sent IN (invitation), attempt {}", attempts + 1);
+            // Wait for OK or timeout
+            let mut ok_received = false;
+            for _ in 0..20 {
+                sleep(timeout / 20).await;
+                let state_now = self.session_state.lock().await.clone();
+                if state_now == SessionState::Established {
+                    ok_received = true;
+                    break;
+                } else if state_now == SessionState::Terminated {
+                    warn!("Session terminated during handshake");
+                    return Err(anyhow!("Session terminated during handshake"));
+                }
+            }
+            if ok_received {
+                info!("Handshake OK received, session established.");
+                // Emit event: SessionEstablished (add your event bus logic here)
+                break;
+            }
+            attempts += 1;
+        }
+        if *self.session_state.lock().await != SessionState::Established {
+            warn!("Handshake failed after {} attempts.", max_attempts);
+            *self.session_state.lock().await = SessionState::Idle;
+            // Emit event: SessionRejected (add your event bus logic here)
+            return Err(anyhow!("Handshake failed: no OK received"));
+        }
         Ok(())
     }
 
@@ -354,12 +382,6 @@ impl RtpMidiSession {
                     self.initiate_clock_sync(peer_addr).await?;
                 }
             }
-            AppleMidiMessage::InvitationRejected(_no) => {
-                if *state == SessionState::AwaitingOK {
-                    warn!("Invitation rejected by peer.");
-                    *state = SessionState::Idle;
-                }
-            }
             AppleMidiMessage::Sync(sync) => {
                 // This is a simplified clock sync. A full implementation would handle CK0, CK1, CK2.
                 if *state == SessionState::Established || *state == SessionState::ClockSync {
@@ -386,11 +408,6 @@ impl RtpMidiSession {
                     }
                 }
             }
-            AppleMidiMessage::Exit(_exit) => {
-                info!("Peer requested to end the session.");
-                *state = SessionState::Terminated;
-                // Clean up resources, etc.
-            }
             _ => warn!("Received unexpected control message in state {:?}: {:?}", *state, msg),
         }
         Ok(())
@@ -410,7 +427,7 @@ impl RtpMidiSession {
         }
     }
 
-    /// Initiates the CK (clock sync) exchange.
+    /// Initiates the CK (clock sync) exchange with retries and timeout.
     pub async fn initiate_clock_sync(&self, peer_addr: SocketAddr) -> Result<()> {
         let mut state = self.session_state.lock().await;
         if *state != SessionState::Established {
@@ -426,10 +443,38 @@ impl RtpMidiSession {
             [0, 0, 0], // Timestamps are filled by the receiver
         ));
 
-        self.send_control_message(&sync_msg).await?;
-
-        // TODO: Start a timer. If CK1 is not received, retry or fail the sync.
-        
+        let mut attempts = 0;
+        let max_attempts = 3;
+        let timeout = Duration::from_secs(2);
+        while attempts < max_attempts {
+            self.send_control_message(&sync_msg).await?;
+            info!("Sent CK0 (clock sync), attempt {}", attempts + 1);
+            // Wait for CK1 or timeout
+            let mut ck1_received = false;
+            for _ in 0..20 {
+                sleep(timeout / 20).await;
+                let state_now = self.session_state.lock().await.clone();
+                if state_now == SessionState::Established {
+                    ck1_received = true;
+                    break;
+                } else if state_now == SessionState::Terminated {
+                    warn!("Session terminated during clock sync");
+                    return Err(anyhow!("Session terminated during clock sync"));
+                }
+            }
+            if ck1_received {
+                info!("Clock sync complete.");
+                // Emit event: SyncStatusChanged (add your event bus logic here)
+                break;
+            }
+            attempts += 1;
+        }
+        if *self.session_state.lock().await != SessionState::Established {
+            warn!("Clock sync failed after {} attempts.", max_attempts);
+            *self.session_state.lock().await = SessionState::Idle;
+            // Emit event: SyncFailed (add your event bus logic here)
+            return Err(anyhow!("Clock sync failed: no CK1/CK2 received"));
+        }
         Ok(())
     }
 
@@ -452,14 +497,14 @@ impl DataStreamNetSender for RtpMidiSession {
         // Zde lze inicializovat síťové zdroje, pokud je potřeba
         Ok(())
     }
-    fn send(&mut self, ts: u64, payload: &[u8]) -> Result<(), StreamError> {
+    fn send(&mut self, _ts: u64, payload: &[u8]) -> Result<(), StreamError> {
         // Odeslání raw MIDI packetu (payload) s timestampem ts
         // Zde by bylo potřeba převést payload na MidiMessage a zavolat send_midi
         // Pro jednoduchost předpokládáme, že payload je již správně připravený
         // (v praxi by zde byla serializace/deserializace)
         // TODO: Implementace podle konkrétního formátu
         match rtp_midi_core::parse_midi_message(payload) {
-            Ok((cmd, _)) => {
+            Ok((_cmd, _)) => {
                 // Wrap in MidiMessage with delta_time = 0 for now
                 let midi_msg = MidiMessage { delta_time: 0, command: payload.to_vec() };
                 // This is a sync function, but send_midi is async, so we just log for now
@@ -480,7 +525,7 @@ impl DataStreamNetReceiver for RtpMidiSession {
     fn init(&mut self) -> Result<(), StreamError> {
         Ok(())
     }
-    fn poll(&mut self, buf: &mut [u8]) -> Result<Option<(u64, usize)>, StreamError> {
+    fn poll(&mut self, _buf: &mut [u8]) -> Result<Option<(u64, usize)>, StreamError> {
         // Zde by se zpracovával příchozí packet a naplnil buf
         // Prozatím pouze stub
         Ok(None)

@@ -24,7 +24,10 @@ pub fn start_audio_input(device_name: Option<&str>, tx: broadcast::Sender<Event>
         SampleFormat::F32 => build_input_stream::<f32>(&device, &config, tx.clone(), err_fn)?,
         SampleFormat::I16 => build_input_stream::<i16>(&device, &config, tx.clone(), err_fn)?,
         SampleFormat::U16 => build_input_stream::<u16>(&device, &config, tx.clone(), err_fn)?,
-        _ => todo!("Unsupported sample format"),
+        _ => {
+            log::error!("Unsupported sample format: {:?}", sample_format);
+            return Err(anyhow::anyhow!("Unsupported sample format: {:?}", sample_format));
+        }
     };
     Ok(stream)
 }

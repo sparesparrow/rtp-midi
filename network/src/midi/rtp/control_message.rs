@@ -1,6 +1,5 @@
 use anyhow::{anyhow, Result};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
-use std::net::SocketAddr;
 
 // Common header for all AppleMIDI control messages
 #[derive(Debug, Clone, PartialEq)]
@@ -296,7 +295,7 @@ pub enum AppleMidiMessage {
 
 impl AppleMidiMessage {
     pub fn parse(data: &[u8]) -> Result<Self> {
-        let mut reader = Bytes::copy_from_slice(data);
+        let reader = Bytes::copy_from_slice(data);
         if reader.len() < 4 {
             return Err(anyhow!("Message too short for command detection"));
         }

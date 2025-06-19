@@ -1,3 +1,4 @@
+#![deny(warnings)]
 use anyhow::Result;
 use ddp_rs::connection::DDPConnection;
 use rtp_midi_core::{DataStreamNetSender, StreamError, DataStreamNetReceiver};

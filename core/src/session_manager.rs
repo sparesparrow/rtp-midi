@@ -85,7 +85,7 @@ impl SessionManager {
                 if payload.len() < 16 {
                     return None;
                 }
-                let protocol_version = u16::from_be_bytes([payload[2], payload[3]]);
+                let _protocol_version = u16::from_be_bytes([payload[2], payload[3]]);
                 let initiator_token = u32::from_be_bytes([payload[4], payload[5], payload[6], payload[7]]);
                 let ssrc = u32::from_be_bytes([payload[8], payload[9], payload[10], payload[11]]);
                 // Name is optional and null-terminated
@@ -136,7 +136,7 @@ impl SessionManager {
     }
 
     // Placeholder: handle invitation (IN)
-    async fn handle_invitation(&mut self, initiator_token: u32, ssrc: u32, name: Option<String>, source_addr: SocketAddr) {
+    async fn handle_invitation(&mut self, initiator_token: u32, ssrc: u32, _name: Option<String>, source_addr: SocketAddr) {
         // AppleMIDI handshake responder logic
         match self.state {
             SessionState::Disconnected => {
@@ -153,7 +153,7 @@ impl SessionManager {
                 // Our SSRC (for now, just echo peer's SSRC; in real impl, generate unique)
                 payload.extend_from_slice(&ssrc.to_be_bytes());
                 // Name (optional, null-terminated)
-                if let Some(ref n) = name {
+                if let Some(ref n) = _name {
                     payload.extend_from_slice(n.as_bytes());
                     payload.push(0);
                 }
@@ -181,7 +181,7 @@ impl SessionManager {
     }
 
     // Placeholder: handle invitation accepted (OK)
-    async fn handle_invitation_accepted(&mut self, initiator_token: u32, ssrc: u32, name: Option<String>, source_addr: SocketAddr) {
+    async fn handle_invitation_accepted(&mut self, initiator_token: u32, ssrc: u32, _name: Option<String>, source_addr: SocketAddr) {
         // AppleMIDI handshake: handle OK response
         match self.state {
             SessionState::Handshaking => {
@@ -230,7 +230,7 @@ impl SessionManager {
     }
 
     // Placeholder: handle clock sync (CK)
-    async fn handle_clock_sync(&mut self, count: u8, mut timestamps: [u64; 3], ssrc: u32, source_addr: SocketAddr) {
+    async fn handle_clock_sync(&mut self, count: u8, timestamps: [u64; 3], ssrc: u32, source_addr: SocketAddr) {
         // AppleMIDI CK three-way exchange
         match self.state {
             SessionState::Syncing => {
