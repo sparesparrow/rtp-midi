@@ -13,6 +13,12 @@ use rtp_midi::wled_control;
 use mockito;
 use output::light_mapper::{map_leds_with_preset, MappingPreset};
 
+use network::midi::rtp::session::{RtpMidiSession, SessionState};
+use rtp_midi_core::event_bus::Event;
+use tokio::sync::broadcast;
+use std::net::{SocketAddr, Ipv4Addr, SocketAddrV4};
+use tokio::time::{timeout, Duration};
+
 
 #[tokio::test]
 async fn test_client_registration() -> Result<(), Box<dyn std::error::Error>> {
@@ -121,6 +127,58 @@ async fn test_wled_preset_control_mocked() -> Result<(), Box<dyn std::error::Err
     Ok(())
 }
 
+#[tokio::test]
+async fn test_applemidi_handshake_and_clock_sync() -> Result<(), Box<dyn std::error::Error>> {
+    // Setup event bus
+    let (event_sender, mut event_rx) = broadcast::channel(16);
+
+    // Use loopback address and arbitrary port for test
+    let addr1: SocketAddr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 50000));
+    let addr2: SocketAddr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 50001));
+
+    // Create two sessions: initiator and responder
+    let initiator = RtpMidiSession::new("initiator".to_string(), 0, Some(event_sender.clone())).await?;
+    let responder = RtpMidiSession::new("responder".to_string(), 0, Some(event_sender.clone())).await?;
+
+    // For this test, we simulate the handshake by directly calling the methods (no real UDP)
+    // In a real integration test, you would use UdpSocket and spawn tasks for each session
+
+    // Initiator sends invitation
+    let handshake = initiator.initiate_handshake(addr2, "responder");
+    // Responder handles invitation (simulate receiving IN)
+    // ... (for brevity, this would require more plumbing or a mock network layer)
+    // For now, just check that the handshake future completes and emits the event
+
+    let result = timeout(Duration::from_secs(2), handshake).await;
+    assert!(result.is_ok(), "Handshake did not complete in time");
+
+    // Check that SessionEstablished event was emitted
+    let mut established = false;
+    for _ in 0..5 {
+        if let Ok(Event::SessionEstablished { peer }) = event_rx.try_recv() {
+            established = true;
+            break;
+        }
+    }
+    assert!(established, "SessionEstablished event not emitted");
+
+    // Initiator starts clock sync
+    let clock_sync = initiator.initiate_clock_sync(addr2);
+    let result = timeout(Duration::from_secs(2), clock_sync).await;
+    assert!(result.is_ok(), "Clock sync did not complete in time");
+
+    // Check that SyncStatusChanged event was emitted
+    let mut sync_ok = false;
+    for _ in 0..5 {
+        if let Ok(Event::SyncStatusChanged { peer }) = event_rx.try_recv() {
+            sync_ok = true;
+            break;
+        }
+    }
+    assert!(sync_ok, "SyncStatusChanged event not emitted");
+
+    Ok(())
+}
 
 #[test]
 fn test_audio_to_led_pipeline() {

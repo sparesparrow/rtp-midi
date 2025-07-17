@@ -50,6 +50,10 @@ midir = "0.10.0"
 opus = "0.3.0"
 webrtc = "0.9"
 
+# --- OSC a mDNS ---
+rosc = "0.8"
+mdns-sd = "0.6"
+
 # --- Android a FFI ---
 libc = "0.2"
 jni = "0.21.1"

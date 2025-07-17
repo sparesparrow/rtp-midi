@@ -438,6 +438,11 @@ pub struct Config {
     pub audio_smoothing_factor: f32,
     pub webrtc_ice_servers: Option<Vec<String>>,
     pub mapping_preset: Option<String>,
+    // Android Hub specific fields
+    pub esp32_ip: Option<String>,
+    pub esp32_port: Option<u16>,
+    pub daw_ip: Option<String>,
+    pub daw_port: Option<u16>,
 }
 
 impl Config {

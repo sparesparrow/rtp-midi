@@ -1,0 +1,110 @@
+# Audio-Visual System Architecture
+
+## Project Overview
+This is a real-time audio-visual instrument system that connects a Native Instruments Maschine controller to an Android phone, which acts as a hub routing MIDI data to both a DAW (via RTP-MIDI) and an ESP32 LED visualizer (via OSC).
+
+## Core Architecture Components
+
+### 1. Android Hub (Central Controller)
+- **Location**: [android_hub/](mdc:android_hub/) - Main Android application
+- **Key Files**: 
+  - [MainActivity.kt](mdc:android_hub/app/src/main/java/com/example/rtpmidi/MainActivity.kt) - Main UI
+  - [MidiHubViewModel.kt](mdc:android_hub/app/src/main/java/com/example/rtpmidi/MidiHubViewModel.kt) - Business logic
+  - [MidiHubService.kt](mdc:android_hub/app/src/main/java/com/example/rtpmidi/MidiHubService.kt) - Foreground service
+- **Responsibilities**:
+  - USB MIDI input from Maschine controller
+  - RTP-MIDI routing to DAW
+  - OSC translation and routing to ESP32
+  - mDNS service discovery
+  - Real-time data processing
+
+### 2. ESP32 Visualizer (LED Controller)
+- **Location**: [firmware/esp32_visualizer/](mdc:firmware/esp32_visualizer/) - ESP32 firmware
+- **Key Files**:
+  - [main.cpp](mdc:firmware/esp32_visualizer/src/main.cpp) - Main firmware
+  - [board_config.h](mdc:firmware/esp32_visualizer/src/board_config.h) - Hardware configuration
+  - [platformio.ini](mdc:firmware/esp32_visualizer/platformio.ini) - Build configuration
+- **Responsibilities**:
+  - OSC message reception
+  - LED strip control (23 WS2812B LEDs)
+  - Real-time visualization rendering
+  - mDNS service advertisement
+
+### 3. Rust Core Library
+- **Location**: [rtp_midi_lib/](mdc:rtp_midi_lib/) - Core Rust implementation
+- **Key Components**:
+  - [network/](mdc:network/) - Network protocols (RTP-MIDI, OSC, mDNS)
+  - [output/](mdc:output/) - Output systems (OSC, DDP, WLED)
+  - [core/](mdc:core/) - Core logic and data structures
+  - [platform/](mdc:platform/) - Platform abstraction and FFI
+
+## Protocol Stack
+
+### RTP-MIDI (Android → DAW)
+- **Implementation**: [network/src/midi/rtp/session.rs](mdc:network/src/midi/rtp/session.rs)
+- **Purpose**: Professional MIDI routing to DAWs (Logic Pro, Ableton Live)
+- **Features**: AppleMIDI handshake, clock synchronization, recovery journal
+
+### OSC (Android → ESP32)
+- **Implementation**: [output/src/osc_output.rs](mdc:output/src/osc_output.rs)
+- **Purpose**: Low-latency visual commands to ESP32
+- **Message Schema**:
+  - `/noteOn <note> <velocity>`
+  - `/noteOff <note>`
+  - `/cc <controller> <value>`
+  - `/pitchBend <value>`
+  - `/config/setEffect <id>`
+
+### mDNS Service Discovery
+- **Implementation**: [network/src/discovery.rs](mdc:network/src/discovery.rs)
+- **Purpose**: Zero-configuration device discovery
+- **Services**: `_apple-midi._udp` (DAW), `_osc._udp` (ESP32)
+
+## Development Phases
+
+### Phase 1: Foundational Enhancements ✅
+- Complete AppleMIDI handshake implementation
+- Implement OSC protocol layer
+- Integrate mDNS service discovery
+- Unified shutdown mechanism
+
+### Phase 2: ESP32 Firmware Development ✅
+- Arduino Core + FastLED setup
+- Dual-core FreeRTOS architecture
+- OSC server implementation
+- LED visualization logic
+
+### Phase 3: Android Hub Development ✅
+- Hybrid Kotlin + Rust NDK architecture
+- Foreground service implementation
+- MIDI device integration
+- UI with Jetpack Compose
+
+### Phase 4: Integration & Testing 🔄
+- End-to-end testing
+- Latency optimization
+- Documentation updates
+
+## Key Design Principles
+
+1. **Dual-Protocol Architecture**: RTP-MIDI for DAW, OSC for ESP32
+2. **Real-Time Performance**: <10ms end-to-end latency target
+3. **Modular Design**: Separate concerns across platforms
+4. **Zero-Configuration**: mDNS for automatic device discovery
+5. **Professional Compatibility**: Full AppleMIDI compliance
+
+## Configuration Files
+- [Cargo.toml](mdc:Cargo.toml) - Rust workspace dependencies
+- [config.toml](mdc:config.toml) - Application configuration
+- [platformio.ini](mdc:firmware/esp32_visualizer/platformio.ini) - ESP32 build config
+- [build_android.sh](mdc:build_android.sh) - Android build script
+
+## Testing Strategy
+- Unit tests for protocol implementations
+- Integration tests for end-to-end workflows
+- Hardware-in-the-loop testing for ESP32
+- Latency measurement and optimization
+description:
+globs:
+alwaysApply: false
+---

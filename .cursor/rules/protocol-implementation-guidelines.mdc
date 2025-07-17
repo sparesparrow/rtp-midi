@@ -1,0 +1,171 @@
+# Protocol Implementation Guidelines
+
+## RTP-MIDI (AppleMIDI) Protocol
+
+### Implementation Location
+- **Session Management**: [network/src/midi/rtp/session.rs](mdc:network/src/midi/rtp/session.rs)
+- **Control Messages**: [network/src/midi/rtp/control_message.rs](mdc:network/src/midi/rtp/control_message.rs)
+- **Message Parsing**: [network/src/midi/rtp/message.rs](mdc:network/src/midi/rtp/message.rs)
+
+### Key Features
+- **Two-Port Handshake**: Control port (5004) and data port (5005)
+- **Clock Synchronization**: CK0/CK1/CK2 sequence for latency calculation
+- **Recovery Journal**: Packet loss recovery mechanism
+- **Session State Management**: Proper state transitions
+
+### Handshake Sequence
+1. **IN (Invitation)**: Session initiator sends invitation
+2. **OK/NO (Response)**: Participant accepts or rejects
+3. **CK0/CK1/CK2**: Clock synchronization for latency calculation
+4. **Data Exchange**: MIDI data with recovery journal
+
+### Implementation Requirements
+```rust
+// Session state management
+pub enum SessionState {
+    Idle,
+    Inviting,
+    AwaitingOK,
+    ClockSync,
+    Established,
+    Terminated,
+}
+
+// Clock synchronization
+pub struct Sync {
+    pub ssrc: u32,
+    pub count: u8,
+    pub timestamps: [u64; 3],
+}
+```
+
+## OSC (Open Sound Control) Protocol
+
+### Implementation Location
+- **OSC Sender**: [output/src/osc_output.rs](mdc:output/src/osc_output.rs)
+- **Dependencies**: `rosc = "0.8"` in [output/Cargo.toml](mdc:output/Cargo.toml)
+
+### Message Schema
+```rust
+// MIDI to OSC mapping
+"/noteOn" -> (note: i32, velocity: i32)
+"/noteOff" -> (note: i32)
+"/cc" -> (controller: i32, value: i32)
+"/pitchBend" -> (bendValue: f32)
+"/config/setEffect" -> (effectId: i32)
+```
+
+### Implementation Features
+- **UDP Transport**: Low-latency, connectionless
+- **Message Serialization**: Using rosc library
+- **Error Handling**: Network error recovery
+- **DataStreamNetSender Trait**: Unified interface
+
+### Usage Example
+```rust
+let mut osc_sender = OscSender::new("192.168.1.100:8000")?;
+osc_sender.send_note_on(60, 127); // Middle C, full velocity
+osc_sender.send_cc(64, 127); // Sustain pedal on
+```
+
+## mDNS Service Discovery
+
+### Implementation Location
+- **Discovery Service**: [network/src/discovery.rs](mdc:network/src/discovery.rs)
+- **Dependencies**: `mdns-sd = "0.6"` in [network/Cargo.toml](mdc:network/Cargo.toml)
+
+### Service Types
+- **AppleMIDI**: `_apple-midi._udp.local.` for DAW discovery
+- **OSC**: `_osc._udp.local.` for ESP32 discovery
+
+### Implementation Features
+- **Service Advertisement**: Register local services
+- **Service Discovery**: Browse for remote services
+- **Service Resolution**: Resolve service addresses
+- **Service Monitoring**: Track service availability
+
+### Usage Example
+```rust
+let mdns = MdnsDiscovery::new();
+
+// Advertise AppleMIDI service
+mdns.advertise_apple_midi("AndroidHub", 5004, ip_addr);
+
+// Browse for OSC services
+mdns.browse_osc_services(|name, addr, port| {
+    println!("Found OSC service: {} at {}:{}", name, addr, port);
+});
+```
+
+## Protocol Integration
+
+### Event Bus Integration
+All protocols integrate with the event bus system:
+- **Incoming Events**: Network packets → Event bus → Processing
+- **Outgoing Events**: Processing → Event bus → Network packets
+
+### Error Handling
+- **Network Errors**: Retry with exponential backoff
+- **Protocol Errors**: Log and continue operation
+- **Service Errors**: Graceful degradation
+
+### Performance Requirements
+- **Latency**: <10ms end-to-end for real-time operation
+- **Throughput**: Handle dense MIDI streams
+- **Reliability**: Packet loss recovery mechanisms
+
+## Testing Guidelines
+
+### Unit Testing
+- **Protocol Parsing**: Test message parsing independently
+- **State Machines**: Test session state transitions
+- **Error Conditions**: Test error handling paths
+
+### Integration Testing
+- **End-to-End**: Test complete protocol flows
+- **Interoperability**: Test with real DAWs and devices
+- **Performance**: Measure latency and throughput
+
+### Mock Testing
+- **Network Simulation**: Mock network conditions
+- **Device Simulation**: Mock MIDI devices
+- **Service Simulation**: Mock mDNS services
+
+## Configuration
+
+### Network Configuration
+```toml
+# config.toml
+[midi]
+port = 5004
+discovery_enabled = true
+
+[osc]
+default_port = 8000
+target_address = "192.168.1.100"
+
+[mdns]
+enabled = true
+service_name = "AndroidHub"
+```
+
+### Platform-Specific Configuration
+- **Android**: Service discovery via NsdManager
+- **ESP32**: mDNS service advertisement
+- **Desktop**: Standard mDNS/Bonjour
+
+## Security Considerations
+
+### Network Security
+- **Input Validation**: Validate all incoming messages
+- **Address Validation**: Verify source addresses
+- **Rate Limiting**: Prevent DoS attacks
+
+### Service Security
+- **Service Validation**: Verify service authenticity
+- **Access Control**: Limit service access
+- **Privacy**: Minimize information disclosure
+description:
+globs:
+alwaysApply: false
+---

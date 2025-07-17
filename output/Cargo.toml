@@ -13,6 +13,7 @@ rtp_midi_core = { path = "../core" }
 serde_json = "1.0"
 reqwest = { version = "0.11", features = ["json", "blocking"] }
 ddp-rs = "1.0.0"
+rosc = "0.8"
 
 [features]
 hal_esp32 = []

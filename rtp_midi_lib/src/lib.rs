@@ -52,28 +52,38 @@ pub async fn run_service_loop(config: Config, mut shutdown_rx: watch::Receiver<b
 
     // --- DDP Receiver Thread ---
     let ddp_shutdown_rx = shutdown_rx.clone();
-    std::thread::spawn(move || {
+    let ddp_task = tokio::spawn(async move {
         let mut receiver = DdpReceiver::new();
         if let Err(e) = receiver.init() {
             error!("Failed to initialize DDP receiver: {}", e);
             return;
         }
         let mut buf = [0u8; 2048];
-        while !*ddp_shutdown_rx.borrow() {
-            match receiver.poll(&mut buf) {
-                Ok(Some((ts, len))) => {
-                    info!("Received DDP frame: timestamp={}ms, len={}", ts, len);
+        let mut shutdown_recv = ddp_shutdown_rx.clone();
+        loop {
+            tokio::select! {
+                _ = shutdown_recv.changed() => {
+                    if *shutdown_recv.borrow() {
+                        info!("DDP receiver thread shutting down.");
+                        break;
+                    }
                 }
-                Ok(None) => {
-                    std::thread::sleep(std::time::Duration::from_millis(5));
-                }
-                Err(e) => {
-                    error!("DDP receiver error: {}", e);
-                    std::thread::sleep(std::time::Duration::from_millis(100));
+                _ = tokio::time::sleep(std::time::Duration::from_millis(5)) => {
+                    match receiver.poll(&mut buf) {
+                        Ok(Some((ts, len))) => {
+                            info!("Received DDP frame: timestamp={}ms, len={}", ts, len);
+                        }
+                        Ok(None) => {
+                            // No data available, continue
+                        }
+                        Err(e) => {
+                            error!("DDP receiver error: {}", e);
+                            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                        }
+                    }
                 }
             }
         }
-        info!("DDP receiver thread shutting down.");
     });
 
     // --- Event Bus Setup ---
@@ -98,10 +108,15 @@ pub async fn run_service_loop(config: Config, mut shutdown_rx: watch::Receiver<b
     // --- Start Audio Input Thread ---
     let audio_input_config = config.clone();
     let event_tx_clone = event_tx.clone();
-    let _audio_input_handle = std::thread::spawn(move || {
-        audio_input::start_audio_input(audio_input_config.audio_device.as_deref(), event_tx_clone)
-            .expect("Failed to start audio input stream");
-    });
+    let audio_stream = match audio_input::start_audio_input(audio_input_config.audio_device.as_deref(), event_tx_clone) {
+        Ok(stream) => stream,
+        Err(e) => {
+            error!("Failed to start audio input stream: {}", e);
+            return;
+        }
+    };
+    // Keep the stream alive by storing it in a variable that will be dropped when the function ends
+    let _audio_stream_guard = audio_stream;
 
     // --- Start RTP-MIDI Session Task ---
     let event_tx_clone_midi = event_tx.clone();
@@ -244,7 +259,9 @@ pub async fn run_service_loop(config: Config, mut shutdown_rx: watch::Receiver<b
         tokio::time::sleep(Duration::from_millis(10)).await;
     }
 
+    // Wait for all tasks to complete
     let _ = network_task.await;
+    let _ = ddp_task.await;
     info!("Service has shut down gracefully.");
 }
 

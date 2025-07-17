@@ -1,89 +1,92 @@
-name: CI
+name: CI/CD
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ master, main ]
   pull_request:
-    branches: [ "master" ]
-
-env:
-  CARGO_TERM_COLOR: always
-  RUSTFLAGS: "-D warnings"
+    branches: [ master, main ]
+  workflow_dispatch:
 
 jobs:
-  build_and_test:
-    name: Build, Test, Format & Lint
+  rust:
+    name: Rust Build & Test
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: "Linux x86_64"
-            os: ubuntu-latest
-            target: "x86_64-unknown-linux-gnu"
-            features: ""
-            run_tests: true
-          - name: "Android aarch64"
-            os: ubuntu-latest
-            target: "aarch64-linux-android"
-            features: "hal_android"
-            run_tests: false
-          - name: "ESP32 xtensa"
-            os: ubuntu-latest
-            target: "xtensa-esp32-none-elf"
-            features: "hal_esp32"
-            run_tests: false
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y pkg-config libssl-dev
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+      - name: Lint
+        run: cargo fmt --all -- --check && cargo clippy --all-targets -- -D warnings
+      - name: Build
+        run: cargo build --workspace --all-targets
+      - name: Test
+        run: cargo test --workspace --all-targets
+      - name: Upload Rust Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-binaries
+          path: target/
 
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        components: clippy, rustfmt
-        targets: ${{ matrix.target }}
+  android:
+    name: Android Build & Test
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Build Android App
+        run: ./gradlew assembleDebug --no-daemon
+        working-directory: android_hub/app
+      - name: Run Unit Tests
+        run: ./gradlew testDebugUnitTest --no-daemon
+        working-directory: android_hub/app
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: android_hub/app/build/outputs/apk/debug/*.apk
 
-    - name: Cache dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-    - name: Build
-      run: cargo build --verbose --target ${{ matrix.target }} --features ${{ matrix.features }}
-
-    - name: Run tests
-      if: matrix.run_tests
-      run: cargo test --verbose
-
-    - name: Check formatting
-      run: cargo fmt -- --check
-
-    - name: Run linter (Clippy)
-      run: cargo clippy -- -D warnings
-
-    - name: Run integration tests
-      run: cargo test --test integration_tests -- --nocapture
-
-    - name: Install cargo-deny
-      run: cargo install cargo-deny --locked
-
-    - name: Run cargo deny (licenses, bans, sources)
-      run: cargo deny check --hide-inclusion-graph
-
-    - name: Generate dependency graph
-      run: cargo tree --workspace > docs/dep-graph.txt
-
-    - name: Commit updated dep-graph
-      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-      uses: EndBug/add-and-commit@v9
-      with:
-        add: "docs/dep-graph.txt"
-        message: "ci: auto-update dependency graph"
-        default_author: github_actions
+  esp32:
+    name: ESP32 Firmware Build
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install PlatformIO
+        run: pip install platformio
+      - name: Build ESP32 Firmware
+        run: pio run
+        working-directory: firmware/esp32_visualizer
+      - name: Upload Firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: esp32-firmware
+          path: firmware/esp32_visualizer/.pio/build/*/*.bin

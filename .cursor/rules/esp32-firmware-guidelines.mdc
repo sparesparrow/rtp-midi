@@ -1,0 +1,184 @@
+# ESP32 Firmware Development Guidelines
+
+## Project Structure
+The ESP32 visualizer firmware is located in [firmware/esp32_visualizer/](mdc:firmware/esp32_visualizer/):
+
+### Core Files
+- [main.cpp](mdc:firmware/esp32_visualizer/src/main.cpp) - Main firmware with dual-core architecture
+- [board_config.h](mdc:firmware/esp32_visualizer/src/board_config.h) - Hardware configuration
+- [platformio.ini](mdc:firmware/esp32_visualizer/platformio.ini) - Build configuration
+
+## Architecture Overview
+
+### Dual-Core FreeRTOS Design
+- **Core 0 (Network Task)**: WiFi, mDNS, OSC server
+- **Core 1 (Animation Task)**: LED rendering, visualization logic
+- **Inter-Core Communication**: FreeRTOS queue for command passing
+
+### Hardware Configuration
+```cpp
+// LED Strip Configuration
+#define LED_PIN       16
+#define NUM_LEDS      23
+#define LED_TYPE      WS2812B
+#define COLOR_ORDER   GRB
+#define BRIGHTNESS    150
+#define MAX_AMPS      1500 // 23 LEDs * 60mA/LED
+```
+
+## Key Components
+
+### OSC Server Implementation
+- **Library**: ArduinoOSC
+- **Port**: 8000 (configurable)
+- **Message Handlers**:
+  - `/noteOn <note> <velocity>`
+  - `/noteOff <note>`
+  - `/cc <controller> <value>`
+  - `/pitchBend <value>`
+  - `/config/setEffect <id>`
+
+### LED Control System
+- **Library**: FastLED
+- **Features**:
+  - Real-time color manipulation
+  - Velocity-based brightness
+  - Fade effects for note off
+  - Sustain pedal support
+  - Polyphonic color blending
+
+### Network Services
+- **WiFi**: Station mode for network connectivity
+- **mDNS**: Service advertisement as `esp32-visualizer`
+- **OSC**: UDP server for real-time commands
+
+## Development Guidelines
+
+### Task Management
+```cpp
+// Network task (Core 0)
+xTaskCreatePinnedToCore(
+    networkTask,
+    "NetworkTask",
+    8192,
+    NULL,
+    2,
+    &networkTaskHandle,
+    0
+);
+
+// Animation task (Core 1)
+xTaskCreatePinnedToCore(
+    animationTask,
+    "AnimationTask",
+    4096,
+    NULL,
+    1,
+    &animationTaskHandle,
+    1
+);
+```
+
+### Memory Management
+- Use static allocation where possible
+- Monitor heap usage
+- Avoid dynamic allocation in real-time tasks
+- Use FreeRTOS queues for inter-task communication
+
+### Performance Optimization
+- **Target FPS**: 60 FPS for smooth animations
+- **Network Priority**: Higher priority for network task
+- **IRAM Usage**: Critical functions in IRAM
+- **Cache Optimization**: Minimize cache misses
+
+## MIDI Visualization Logic
+
+### Note State Tracking
+```cpp
+struct NoteState {
+    bool active;
+    uint8_t velocity;
+    unsigned long startTime;
+    unsigned long fadeStartTime;
+    bool fading;
+};
+```
+
+### Color Mapping
+- **Note-based**: Chromatic color mapping
+- **Velocity-based**: Brightness control
+- **Polyphonic**: Color blending for multiple notes
+- **Sustain**: Extended note holding
+
+### Animation Effects
+- **Fade Out**: Gradual brightness reduction
+- **Sustain Hold**: Extended note duration
+- **Pitch Bend**: Wave-like animations
+- **CC Effects**: Dynamic parameter changes
+
+## Configuration Management
+
+### Board Configuration
+[board_config.h](mdc:firmware/esp32_visualizer/src/board_config.h) contains:
+- Hardware pin definitions
+- LED strip parameters
+- Network settings
+- Animation parameters
+
+### Build Configuration
+[platformio.ini](mdc:firmware/esp32_visualizer/platformio.ini) defines:
+- Platform: espressif32
+- Framework: arduino
+- Libraries: FastLED, ArduinoOSC
+- Build flags and optimization
+
+## Testing and Debugging
+
+### Serial Debugging
+- **Baud Rate**: 115200
+- **Debug Levels**: Configurable via build flags
+- **Status Messages**: Service discovery, MIDI events
+
+### Network Testing
+- **OSC Testing**: Use Python or other OSC clients
+- **mDNS Testing**: Network discovery tools
+- **Latency Testing**: Round-trip time measurement
+
+### Hardware Testing
+- **LED Testing**: Individual LED control
+- **Power Testing**: Current draw measurement
+- **Thermal Testing**: Temperature monitoring
+
+## Deployment Guidelines
+
+### Flashing
+- Use PlatformIO for automated builds
+- Verify checksums after flashing
+- Test on target hardware
+
+### Configuration
+- Update WiFi credentials in board_config.h
+- Verify LED strip parameters
+- Test network connectivity
+
+### Monitoring
+- Monitor serial output for errors
+- Check network connectivity
+- Verify LED functionality
+
+## Troubleshooting
+
+### Common Issues
+- **WiFi Connection**: Check credentials and signal strength
+- **LED Issues**: Verify power supply and data connections
+- **OSC Communication**: Check network connectivity and port settings
+- **Performance**: Monitor task priorities and memory usage
+
+### Debug Commands
+- Serial commands for testing
+- Network diagnostic tools
+- Performance monitoring
+description:
+globs:
+alwaysApply: false
+---

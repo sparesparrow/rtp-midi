@@ -1,0 +1,142 @@
+# Android Development Guidelines
+
+## Project Structure
+The Android Hub application is located in [android_hub/](mdc:android_hub/) with the following structure:
+
+### Kotlin Components
+- [MainActivity.kt](mdc:android_hub/app/src/main/java/com/example/rtpmidi/MainActivity.kt) - Main UI with Jetpack Compose
+- [MidiHubViewModel.kt](mdc:android_hub/app/src/main/java/com/example/rtpmidi/MidiHubViewModel.kt) - Business logic and state management
+- [MidiHubService.kt](mdc:android_hub/app/src/main/java/com/example/rtpmidi/MidiHubService.kt) - Foreground service for background operation
+
+### Configuration Files
+- [build.gradle.kts](mdc:android_hub/app/build.gradle.kts) - Build configuration with NDK support
+- [AndroidManifest.xml](mdc:android_hub/app/src/main/AndroidManifest.xml) - App permissions and service declarations
+
+## Architecture Patterns
+
+### Hybrid Native Architecture
+- **Kotlin Layer**: UI, service management, device discovery
+- **Rust Layer**: Real-time MIDI processing, protocol handling
+- **JNI Bridge**: Communication between Kotlin and Rust
+
+### MVVM with Jetpack Compose
+- ViewModel manages UI state and business logic
+- Compose UI observes state changes
+- Service handles background operations
+
+## Key Features
+
+### MIDI Device Integration
+- USB MIDI input from Maschine controller
+- Android MIDI Manager API integration
+- Real-time MIDI data processing
+
+### Network Service Discovery
+- mDNS for automatic device discovery
+- OSC service discovery for ESP32
+- AppleMIDI service discovery for DAWs
+
+### Foreground Service
+- Continuous operation in background
+- Proper notification management
+- Service lifecycle handling
+
+## Permissions and Features
+
+### Required Permissions
+```xml
+<!-- Network -->
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+<uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+
+<!-- Foreground Service -->
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+
+<!-- USB -->
+<uses-permission android:name="android.permission.USB_PERMISSION" />
+<uses-feature android:name="android.hardware.usb.host" />
+```
+
+### Service Declaration
+```xml
+<service
+    android:name=".MidiHubService"
+    android:enabled="true"
+    android:exported="false"
+    android:foregroundServiceType="connectedDevice" />
+```
+
+## Native Library Integration
+
+### NDK Configuration
+- CMake build system for native code
+- Multiple ABI support (arm64-v8a, armeabi-v7a, x86, x86_64)
+- Rust library integration via JNI
+
+### JNI Functions
+The Rust library exposes these functions:
+- `create_service()` - Initialize service
+- `start_android_hub_service()` - Start with device addresses
+- `stop_service()` - Graceful shutdown
+- `destroy_service()` - Cleanup resources
+
+## UI Guidelines
+
+### Jetpack Compose
+- Material 3 design system
+- Responsive layout with proper spacing
+- Real-time status updates
+- Service control buttons
+
+### State Management
+- `MidiHubUiState` data class for UI state
+- StateFlow for reactive updates
+- Error handling and user feedback
+
+## Development Workflow
+
+### Building
+1. Build Rust library: `./build_android.sh`
+2. Build Android app: `./gradlew assembleDebug`
+3. Install and test on device
+
+### Testing
+- Unit tests for ViewModel logic
+- Integration tests for service functionality
+- UI tests for Compose components
+
+### Debugging
+- Logcat for Android logs
+- Native debugging with LLDB
+- Network debugging with Wireshark
+
+## Performance Considerations
+
+### Real-Time Requirements
+- <10ms end-to-end latency target
+- Background service optimization
+- Memory management for long-running operations
+
+### Battery Optimization
+- Efficient network operations
+- Proper service lifecycle management
+- Background processing limits
+
+## Security Guidelines
+
+### Network Security
+- Validate all network inputs
+- Secure service discovery
+- Proper error handling
+
+### USB Device Security
+- Validate MIDI device permissions
+- Secure device communication
+- Handle device disconnection gracefully
+description:
+globs:
+alwaysApply: false
+---

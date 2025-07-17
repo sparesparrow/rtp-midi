@@ -10,6 +10,7 @@ use tokio::sync::Mutex;
 use rtp_midi_core::{DataStreamNetSender, DataStreamNetReceiver, StreamError, JournalData, JournalEntry};
 use rtp_midi_core::journal_engine::TimedMidiCommand;
 use rtp_midi_core::event_bus::Event;
+use tokio::sync::broadcast::Sender as BroadcastSender;
 
 use super::message::{MidiMessage, RtpMidiPacket};
 use rtp_midi_core::parse_rtp_packet;
@@ -64,11 +65,12 @@ pub struct RtpMidiSession {
     pub last_sync_count: Arc<Mutex<u8>>,
     pub initiator_token: u32,
     pub peer_ssrc: Arc<Mutex<Option<u32>>>,
+    pub event_sender: Option<BroadcastSender<Event>>, // New: event bus sender
 }
 
 impl RtpMidiSession {
     /// Creates a new RTP-MIDI session with handshake state.
-    pub async fn new(name: String, _port: u16) -> Result<Self> {
+    pub async fn new(name: String, _port: u16, event_sender: Option<BroadcastSender<Event>>) -> Result<Self> {
         // The port parameter is now advisory; actual binding is done by network_interface.
         info!("RTP-MIDI session '{}' created.", name);
 
@@ -88,6 +90,7 @@ impl RtpMidiSession {
             last_sync_count: Arc::new(Mutex::new(0)),
             initiator_token: rand::random(),
             peer_ssrc: Arc::new(Mutex::new(None)),
+            event_sender, // New
         })
     }
 
@@ -320,7 +323,9 @@ impl RtpMidiSession {
         ));
 
         let mut attempts = 0;
-        let max_attempts = 3;
+        let max_attempts = 5;
+        let mut backoff = Duration::from_millis(200);
+        let max_backoff = Duration::from_secs(2);
         let timeout = Duration::from_secs(2);
         while attempts < max_attempts {
             self.send_control_message(&invitation).await?;
@@ -335,20 +340,30 @@ impl RtpMidiSession {
                     break;
                 } else if state_now == SessionState::Terminated {
                     warn!("Session terminated during handshake");
+                    if let Some(sender) = &self.event_sender {
+                        let _ = sender.send(Event::SessionTerminated { peer: peer_addr });
+                    }
                     return Err(anyhow!("Session terminated during handshake"));
                 }
             }
             if ok_received {
                 info!("Handshake OK received, session established.");
-                // Emit event: SessionEstablished (add your event bus logic here)
+                if let Some(sender) = &self.event_sender {
+                    let _ = sender.send(Event::SessionEstablished { peer: peer_addr });
+                }
                 break;
             }
             attempts += 1;
+            warn!("Handshake attempt {} failed, retrying after {:?}", attempts, backoff);
+            sleep(backoff).await;
+            backoff = std::cmp::min(backoff * 2, max_backoff); // Exponential backoff
         }
         if *self.session_state.lock().await != SessionState::Established {
             warn!("Handshake failed after {} attempts.", max_attempts);
             *self.session_state.lock().await = SessionState::Idle;
-            // Emit event: SessionRejected (add your event bus logic here)
+            if let Some(sender) = &self.event_sender {
+                let _ = sender.send(Event::SessionTerminated { peer: peer_addr });
+            }
             return Err(anyhow!("Handshake failed: no OK received"));
         }
         Ok(())
@@ -444,7 +459,9 @@ impl RtpMidiSession {
         ));
 
         let mut attempts = 0;
-        let max_attempts = 3;
+        let max_attempts = 5;
+        let mut backoff = Duration::from_millis(200);
+        let max_backoff = Duration::from_secs(2);
         let timeout = Duration::from_secs(2);
         while attempts < max_attempts {
             self.send_control_message(&sync_msg).await?;
@@ -459,20 +476,30 @@ impl RtpMidiSession {
                     break;
                 } else if state_now == SessionState::Terminated {
                     warn!("Session terminated during clock sync");
+                    if let Some(sender) = &self.event_sender {
+                        let _ = sender.send(Event::SessionTerminated { peer: peer_addr });
+                    }
                     return Err(anyhow!("Session terminated during clock sync"));
                 }
             }
             if ck1_received {
                 info!("Clock sync complete.");
-                // Emit event: SyncStatusChanged (add your event bus logic here)
+                if let Some(sender) = &self.event_sender {
+                    let _ = sender.send(Event::SyncStatusChanged { peer: peer_addr });
+                }
                 break;
             }
             attempts += 1;
+            warn!("Clock sync attempt {} failed, retrying after {:?}", attempts, backoff);
+            sleep(backoff).await;
+            backoff = std::cmp::min(backoff * 2, max_backoff); // Exponential backoff
         }
         if *self.session_state.lock().await != SessionState::Established {
             warn!("Clock sync failed after {} attempts.", max_attempts);
             *self.session_state.lock().await = SessionState::Idle;
-            // Emit event: SyncFailed (add your event bus logic here)
+            if let Some(sender) = &self.event_sender {
+                let _ = sender.send(Event::SyncFailed { peer: peer_addr });
+            }
             return Err(anyhow!("Clock sync failed: no CK1/CK2 received"));
         }
         Ok(())

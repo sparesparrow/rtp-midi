@@ -1,28 +1,12 @@
-# --- Builder Stage ---
-FROM rust:1.78 as builder
-
-# Vytvoříme pracovní adresář
-WORKDIR /usr/src/rtp-midi
-
-# Zkopírujeme závislosti a sestavíme je, abychom využili Docker cache
-COPY Cargo.toml Cargo.lock ./
-# Vytvoříme dummy lib.rs, abychom mohli sestavit jen závislosti
-RUN mkdir src && echo "fn main() {}" > src/lib.rs
-RUN cargo build --release --locked
-
-# Zkopírujeme zbytek zdrojových kódů a sestavíme aplikaci
+# Stage 1: Build
+FROM rust:1.77 as builder
+WORKDIR /app
 COPY . .
-RUN cargo build --release --locked --bin rtp_midi_node
+RUN cargo build --release --workspace
 
-# --- Final Stage ---
-FROM debian:bookworm-slim
-
-# Zkopírujeme binárku z builder stage
-COPY --from=builder /usr/src/rtp-midi/target/release/rtp_midi_node /usr/local/bin/rtp_midi_node
-
-# Zkopírujeme konfigurační soubor
-COPY config.toml /etc/rtp-midi/config.toml
-
-# Nastavíme entrypoint
-ENTRYPOINT ["/usr/local/bin/rtp_midi_node"]
-CMD ["--role", "server"] 
+# Stage 2: Runtime
+FROM debian:bullseye-slim
+WORKDIR /app
+COPY --from=builder /app/target/release/rtp_midi_node /app/rtp_midi_node
+EXPOSE 5004/udp
+CMD ["./rtp_midi_node"] 

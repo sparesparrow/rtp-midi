@@ -1,0 +1,144 @@
+# Rust Development Guidelines
+
+## Workspace Structure
+The project uses a Cargo workspace with modular crates:
+
+- [core/](mdc:core/) - Core data structures and traits
+- [network/](mdc:network/) - Network protocols (RTP-MIDI, OSC, mDNS)
+- [output/](mdc:output/) - Output systems (OSC, DDP, WLED)
+- [platform/](mdc:platform/) - Platform abstraction and FFI
+- [rtp_midi_lib/](mdc:rtp_midi_lib/) - Main library crate
+
+## Key Traits and Interfaces
+
+### DataStreamNetSender/Receiver
+All network I/O implements these traits for unified API:
+```rust
+pub trait DataStreamNetSender {
+    fn init(&mut self) -> Result<(), StreamError>;
+    fn send(&mut self, ts: u64, payload: &[u8]) -> Result<(), StreamError>;
+}
+```
+
+**Implementations**:
+- [output/src/osc_output.rs](mdc:output/src/osc_output.rs) - OSC sender
+- [output/src/ddp_output.rs](mdc:output/src/ddp_output.rs) - DDP sender
+- [output/src/wled_control.rs](mdc:output/src/wled_control.rs) - WLED control
+
+### Event Bus System
+Event-driven architecture using [core/src/event_bus.rs](mdc:core/src/event_bus.rs):
+- `Event::MidiCommandsReceived` - MIDI data from network
+- `Event::AudioDataReady` - Audio analysis results
+- `Event::SendPacket` - Outgoing network packets
+
+## Protocol Implementations
+
+### RTP-MIDI (AppleMIDI)
+- **Session Management**: [network/src/midi/rtp/session.rs](mdc:network/src/midi/rtp/session.rs)
+- **Control Messages**: [network/src/midi/rtp/control_message.rs](mdc:network/src/midi/rtp/control_message.rs)
+- **Message Parsing**: [network/src/midi/rtp/message.rs](mdc:network/src/midi/rtp/message.rs)
+
+**Key Features**:
+- Two-port handshake (control + data)
+- Clock synchronization (CK0/CK1/CK2)
+- Recovery journal for packet loss
+- Session state management
+
+### OSC Protocol
+- **Implementation**: [output/src/osc_output.rs](mdc:output/src/osc_output.rs)
+- **Dependencies**: `rosc = "0.8"` in [output/Cargo.toml](mdc:output/Cargo.toml)
+- **Message Schema**: Defined in project documentation
+
+### mDNS Service Discovery
+- **Implementation**: [network/src/discovery.rs](mdc:network/src/discovery.rs)
+- **Dependencies**: `mdns-sd = "0.6"` in [network/Cargo.toml](mdc:network/Cargo.toml)
+- **Services**: `_apple-midi._udp`, `_osc._udp`
+
+## Configuration Management
+
+### Config Structure
+[core/src/lib.rs](mdc:core/src/lib.rs) defines the main `Config` struct:
+```rust
+pub struct Config {
+    // ... existing fields ...
+    // Android Hub specific fields
+    pub esp32_ip: Option<String>,
+    pub esp32_port: Option<u16>,
+    pub daw_ip: Option<String>,
+    pub daw_port: Option<u16>,
+}
+```
+
+### Configuration Loading
+- File-based: `Config::load_from_file(path)`
+- Environment variables support
+- Default values for missing fields
+
+## Error Handling
+
+### StreamError Enum
+[core/src/lib.rs](mdc:core/src/lib.rs) defines unified error types:
+```rust
+pub enum StreamError {
+    Io(std::io::Error),
+    Network(String),
+    Other(String),
+}
+```
+
+### Error Propagation
+- Use `anyhow::Result` for application-level errors
+- Use `StreamError` for protocol-level errors
+- Log errors with appropriate levels (error, warn, info)
+
+## FFI and Platform Integration
+
+### Android FFI
+[platform/src/ffi.rs](mdc:platform/src/ffi.rs) provides C-compatible interface:
+- `create_service()` - Initialize service
+- `start_android_hub_service()` - Start with Android-specific config
+- `stop_service()` - Graceful shutdown
+- `destroy_service()` - Cleanup
+
+### Service Lifecycle
+- Use `tokio::sync::watch` for shutdown coordination
+- Graceful shutdown across all async tasks
+- Resource cleanup in `Drop` implementations
+
+## Testing Guidelines
+
+### Unit Tests
+- Test protocol implementations independently
+- Mock network I/O for isolated testing
+- Use `MockSender` for testing output systems
+
+### Integration Tests
+- [integration_tests/](mdc:integration_tests/) - End-to-end testing
+- Test complete data flows
+- Validate protocol compatibility
+
+### Performance Testing
+- Measure latency for real-time requirements
+- Profile memory usage
+- Test under load conditions
+
+## Code Quality Standards
+
+### Warnings and Linting
+- Zero-warning policy: `#![deny(warnings)]`
+- Use `cargo clippy --all-targets -- -D warnings`
+- Fix all unused imports and variables
+
+### Documentation
+- Document public APIs with `///` comments
+- Include usage examples in doc tests
+- Maintain README.md with current status
+
+### Dependencies
+- Audit dependencies regularly: `cargo audit`
+- Use workspace dependencies in [Cargo.toml](mdc:Cargo.toml)
+- Minimize dependency tree size
+description:
+globs:
+alwaysApply: false
+---

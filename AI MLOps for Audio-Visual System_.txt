@@ -1,0 +1,610 @@
+﻿Definitive Technical Blueprint for an Intelligent MIDI-to-Visual Instrument
+
+
+
+
+Section 1: Executive Summary & System Vision
+
+
+
+
+1.1. Project Mandate
+
+
+This report provides the definitive technical blueprint for the design, implementation, and strategic evolution of a portable, low-latency, and highly creative audio-visual instrument. The system's core mandate is to establish a seamless, real-time integration between a Native Instruments Maschine hardware controller, an Android-based processing hub, a professional Digital Audio Workstation (DAW), and a custom ESP32-driven LED visualizer.1 The objective is to create a cohesive ecosystem that transforms MIDI performance data into a synchronized audio and visual experience, offering significant potential for live performance and creative expression. This document serves as the authoritative engineering guide, synthesizing high-level project goals with a granular implementation plan to ensure a robust and successful outcome.
+
+
+1.2. Core Technical Pillars
+
+
+The success of this ambitious project rests upon four foundational technical pillars, each selected to address specific challenges related to real-time performance, reliability, and cross-platform integration:
+1. A Hybrid-Native Android Application: To achieve the stringent low-latency processing required for professional audio and MIDI, the Android Hub will be built on a hybrid-native architecture. This model combines a modern Kotlin-based user interface with a high-performance core written in Rust and accessed via the Native Development Kit (NDK). This approach isolates time-critical operations from the Android runtime's garbage collector, a common source of unpredictable latency.1
+2. A Dual-Protocol Network Architecture: The system employs a specialized dual-protocol strategy to optimize communication for its distinct endpoints. RTP-MIDI over UDP is utilized for its resilience and industry-standard compatibility with DAWs, while Open Sound Control (OSC) over UDP is chosen for its lightweight efficiency in delivering processed commands to the resource-constrained ESP32.1
+3. A Concurrent, Real-Time Firmware Architecture: The ESP32 visualizer firmware is architected around the FreeRTOS real-time operating system. It leverages the ESP32's dual-core processor to create a concurrent, multi-tasking environment that decouples network communication from the LED animation loop. This separation is critical for rendering smooth, jitter-free visuals, unaffected by network timing uncertainties.1
+4. A Modern Development Lifecycle: The project will be developed and maintained using a modern software engineering lifecycle. This includes a comprehensive Continuous Integration and Continuous Deployment (CI/CD) pipeline using GitHub Actions for automated builds and, critically, containerized integration testing to validate network protocols. Furthermore, a forward-looking Machine Learning Operations (MLOps) strategy is defined to guide the integration of on-device AI for future intelligent features.1
+
+
+1.3. Strategic Evolution
+
+
+This project represents a strategic pivot for the existing rtp-midi codebase. The implementation plan explicitly calls for evolving the current, versatile but fragmented, project into a focused, high-performance audio-visual instrument.1 This transformation involves a deliberate consolidation of the codebase, deprecating legacy components such as the WebRTC signaling server and multiple UI frontends that are not aligned with the new vision. The goal is to refine the project's purpose, concentrating all development effort on creating a single, powerful "Android Hub" that serves as the central nervous system of the instrument. This evolution will also introduce a generative AI layer, positioning the system not merely as a data router but as an active creative partner.1
+
+
+1.4. Report Structure
+
+
+This report is structured to guide a technical team from architectural understanding to actionable implementation. It begins by presenting the unified system architecture and its core data flows. It then provides deep-dive analyses of the two primary custom components: the Android Hub and the ESP32 Visualizer. Following this, the report introduces the advanced, forward-looking strategies for integrating a generative AI layer and for implementing a robust, containerized CI/CD pipeline. The document culminates in a comprehensive, phased implementation roadmap that breaks down the entire development process into a logical sequence of manageable tasks, providing a clear path from foundational work to full system integration and refinement.
+
+
+Section 2: Unified System Architecture and Data Flow
+
+
+
+
+2.1. Component Roles and Interdependencies
+
+
+The system is composed of four primary components whose interactions define the flow of creative data from physical input to audio-visual output. A formal definition of their roles and responsibilities is essential to establish clear boundaries and prevent ambiguity during development.1
+* Maschine Controller: This is the physical human-machine interface and the origin point for all performance data. Its sole responsibility is to generate raw MIDI 1.0 event data in response to user actions (pad strikes, knob turns, etc.). To ensure standard compatibility and bypass proprietary software layers, the device must be operated in its generic "MIDI Mode".1
+* Android Hub: This component is the central nervous system of the entire instrument. Running a custom hybrid-native application, its responsibilities are multifaceted. It handles the ingestion of MIDI data from the Maschine controller via USB OTG. It then performs all real-time processing, including the critical task of protocol translation (MIDI-to-OSC). Finally, it acts as an intelligent router, bifurcating the data stream and transmitting it over Wi-Fi to the appropriate audio and visual endpoints.1
+* ESP32 Visualizer: This is the dedicated visualization endpoint. Its responsibilities are intentionally limited to maximize real-time performance. It receives pre-processed visualization commands from the Android Hub via the OSC protocol. Its firmware then executes this logic, driving a connected strip of 23 WS2812B programmable LEDs using the highly optimized FastLED library.1 It does not parse raw MIDI data itself.
+* Digital Audio Workstation (DAW): This is the audio synthesis endpoint, running on a separate computer (PC/Mac). Its role is to receive a standard RTP-MIDI data stream from the Android Hub. It then uses this data to trigger virtual instruments, samplers, and other audio effects, generating the audible component of the performance.1
+This clear division of labor is captured in the following responsibility matrix, which serves as a foundational agreement for the development teams.
+Functional Area
+	Maschine Controller
+	Android Hub
+	ESP32 Visualizer
+	DAW
+	MIDI Event Generation
+	✅
+	
+
+	
+
+	
+
+	USB MIDI Input
+	
+
+	✅ (AMidi NDK)
+	
+
+	
+
+	RTP-MIDI Session
+	
+
+	✅ (Initiator)
+	
+
+	✅ (Participant)
+	OSC Message Generation
+	
+
+	✅ (Translator)
+	
+
+	
+
+	OSC Message Reception
+	
+
+	
+
+	✅ (Server)
+	
+
+	mDNS Service Publication
+	
+
+	✅ (RTP-MIDI)
+	✅ (OSC)
+	✅ (RTP-MIDI)
+	mDNS Service Discovery
+	
+
+	✅ (Finds ESP32)
+	
+
+	✅ (Finds Android)
+	LED Visualization Logic
+	
+
+	
+
+	✅ (FastLED)
+	
+
+	Audio Synthesis
+	
+
+	
+
+	
+
+	✅
+	Table 2.1: Component Responsibility Matrix, defining the explicit functional roles and boundaries for each system component.1
+
+
+2.2. Core Data Pathways and Protocol Justification
+
+
+The selection of network protocols is the most critical architectural decision, directly influencing the system's latency, reliability, and complexity. A "one size fits all" approach would be inefficient. Instead, the architecture employs a "dual-protocol" strategy, leveraging the distinct strengths of two different protocols for their specific use cases. This choice is not merely technical but philosophical, as it enables a distributed computing pattern that correctly maps workload to the capabilities of the system's endpoints. It strategically moves computational complexity away from the "thin" edge (the ESP32) to the more powerful "proximate" edge (the Android Hub), which is key to achieving the project's performance goals.1
+* Path A (Audio): Android -> RTP-MIDI (UDP) -> DAW
+This pathway is optimized for integrating with professional audio software, prioritizing low latency and adherence to industry standards. The chosen protocol, RTP-MIDI (RFC 6295), is an IETF standard designed specifically for transmitting MIDI 1.0 messages over potentially unreliable networks like Wi-Fi.1 Its most crucial feature is the "recovery journal" mechanism. This allows a receiving client (the DAW) to reconstruct lost UDP packets without requiring a retransmission from the sender. This is paramount for musical applications, as it prevents the perceptible latency spikes and "stuck notes" that would be caused by TCP-style retransmission delays. The protocol's native support in Apple's macOS and iOS, and its availability on Windows through well-regarded drivers like
+rtpMIDI, ensures broad compatibility with DAWs such as Logic Pro and Ableton Live.1
+* Path B (Visuals): Android -> OSC (UDP) -> ESP32
+This pathway is optimized for efficiency, simplicity, and minimal processing overhead on the resource-constrained ESP32 microcontroller. Open Sound Control (OSC) is a modern protocol far superior to raw MIDI for this task. Whereas MIDI has a rigid, byte-based message structure, OSC uses a flexible, human-readable address space (e.g., /led/segment/1/color) and supports high-resolution data types like 32-bit floating-point numbers.1 This allows the Android Hub to perform the computationally expensive work of parsing complex, polyphonic MIDI streams and translating them into simple, directly executable commands for the ESP32. For example, a MIDI Note On event (
+channel 1, note 60, velocity 127) can be translated into a simple OSC message like /led/10/on 255 0 0. This offloading of complexity is essential, as it allows the ESP32 to dedicate its limited processing cycles to its primary function: rendering high-frequency, real-time LED animations.1
+* Rejected Alternatives
+Other common networking protocols were evaluated and explicitly rejected for these primary real-time data paths. MQTT, while a standard in IoT, relies on a central broker, which introduces an intermediary hop and unacceptable latency for a real-time musical instrument. Protocols built on TCP, such as WebSockets or a raw HTTP API, were also deemed unsuitable. The guaranteed delivery and retransmission mechanisms of TCP, while ensuring reliability, introduce significant overhead and unpredictable latency, making them a poor fit for streaming a high volume of small, time-sensitive messages compared to the lean, fire-and-forget nature of UDP, which is appropriately managed by RTP-MIDI's journaling.1
+The following table summarizes the protocol analysis, justifying the selection of the dual-protocol architecture.
+Protocol
+	Transport
+	Latency Profile
+	Overhead
+	Primary Use in Project
+	Key Libraries
+	RTP-MIDI
+	UDP
+	Very Low
+	Low
+	Android -> DAW
+	libRtpMidi (C++), AppleMIDI (Arduino)
+	OSC
+	UDP
+	Very Low
+	Very Low
+	Android -> ESP32
+	JavaOSC (Java/Kotlin), ArduinoOSC
+	MQTT
+	TCP
+	Medium to High
+	Medium
+	Unsuitable
+	Paho, PubSubClient
+	WebSockets
+	TCP
+	Low
+	Medium
+	Configuration (optional)
+	Various (Jetty, etc.)
+	WLED API
+	HTTP/TCP
+	High
+	High
+	Unsuitable
+	-
+	Table 2.2: Protocol Comparison Matrix, highlighting the rationale behind the selection of RTP-MIDI and OSC for the system's core real-time pathways.1
+
+
+2.3. Network Service Discovery: Zero-Configuration Networking
+
+
+To ensure a seamless user experience and eliminate the need for manual IP address configuration, the system will implement zero-configuration networking using the mDNS (Multicast DNS) protocol, widely known by its Apple trade name, Bonjour.1 This allows devices to automatically discover each other on a local network.
+   * Android Hub (mDNS Publisher & Discoverer): The Android application will perform two roles. First, it will act as a publisher, advertising its own RTP-MIDI service (e.g., _apple-midi._udp) so that DAWs on the network can find it. Second, it will act as a discoverer, actively searching for the _osc._udp service being broadcast by the ESP32. This will be implemented using the native NsdManager API in the Kotlin layer or, for a pure-Rust implementation, a crate like mdns-sd.1
+   * ESP32 Visualizer (mDNS Publisher): The ESP32 firmware will use the standard ESPmDNS library, which is a part of the Arduino Core for ESP32. It will register and advertise its OSC service, allowing the Android Hub to discover it via a user-friendly local domain name, such as esp32-visualizer.local.1
+   * DAW (mDNS Discoverer): Professional DAWs are already equipped for this. Logic Pro on macOS has native Bonjour support for discovering network MIDI devices. For Windows users, the recommended rtpMIDI driver provides this same discovery functionality for applications like Ableton Live, completing the zero-configuration ecosystem.1
+
+
+Section 3: The Android Hub: A Hybrid Native Real-Time Core
+
+
+The Android Hub application is the most complex software component in the system. Achieving the performance goals of a professional musical instrument on the Android platform, which is not traditionally known for low-latency audio, requires a specific and uncompromising architectural approach. A "hybrid native" model is not merely a recommendation but a necessity.1
+
+
+3.1. Architectural Blueprint: Kotlin, Rust, and the JNI Bridge
+
+
+The application will be constructed using a hybrid architecture that leverages the strengths of different languages for different tasks. This separation of concerns is critical for both performance and maintainability.
+   * Kotlin Layer (UI & Application Control): The entire user-facing portion of the application will be built in Kotlin, using modern Android development practices. The UI will be implemented with Jetpack Compose, a declarative UI toolkit that simplifies the creation of dynamic and responsive interfaces. Android KTX extensions will be used for more concise and idiomatic Kotlin code. This layer is responsible for all non-real-time logic: managing the UI, handling user settings, processing Android permissions, discovering network services via NsdManager, and controlling the lifecycle of the background ForegroundService.1
+   * Rust NDK Layer (Real-Time Core): The performance-critical engine of the hub will be written in Rust and compiled into a native shared library (.so) using the Android NDK. This native code runs outside the Android ART/Dalvik virtual machine, making it immune to the unpredictable pauses caused by Java's garbage collection (GC), which are a death knell for real-time audio. This Rust core will be executed within a dedicated, high-priority system thread and will be responsible for all time-sensitive operations: ingesting MIDI from the USB device, parsing MIDI messages, encapsulating them into RTP-MIDI and OSC packets, and handling all network I/O via UDP sockets.1 The choice of Rust over traditional C++ for this native layer is a deliberate engineering decision to enhance robustness. Rust's strict ownership model and borrow checker eliminate entire classes of memory safety bugs (e.g., buffer overflows, null pointer dereferences, data races) at compile time. In a long-running, complex native service, this preemptively mitigates a primary source of instability and mysterious crashes, contributing significantly to the goal of a "rock-solid" application.1
+   * JNI Bridge (Java Native Interface): This is the meticulously defined boundary that connects the Kotlin world with the native Rust world. The project will extend the existing Foreign Function Interface (FFI) patterns found in platform/src/ffi.rs.1 This bridge will expose a set of
+extern "C" functions from the Rust library that can be called from Kotlin. These functions will allow the Kotlin layer to manage the lifecycle of the Rust core (e.g., create_service, start_service, stop_service), pass down configuration data (such as the discovered IP address of the ESP32), and, most critically, pass the native file descriptor or handle for the USB MIDI device to the Rust layer.1
+
+
+3.2. Low-Latency I/O: Mastering the AMidi NDK API
+
+
+The single most critical task for achieving low latency on the Android Hub is the method of MIDI data ingestion. Relying on the standard Java-level MIDI APIs is insufficient for professional use due to their higher, more variable latency. Therefore, the implementation plan mandates the use of the native C-based AMidi NDK API.1
+The implementation flow for this high-risk, high-reward task is precise. First, the Kotlin layer will use the standard android.media.midi.MidiManager to enumerate connected USB devices and request permission from the user to access the Maschine controller. Once permission is granted, the MidiManager provides a MidiDevice object. The native handle or file descriptor associated with this object will be retrieved and passed down to the Rust layer via a custom JNI function. Inside the Rust core, JNI bindings will allow the code to use this handle to interface directly with the C-based AMidi functions, opening a native input port and reading raw MIDI data with the lowest possible latency, bypassing the Java virtual machine entirely for the real-time data path.1
+
+
+3.3. Ensuring Robustness: Foreground Services and Lifecycle Management
+
+
+To function as a reliable musical tool, the MIDI routing must continue uninterrupted, even when the application is minimized or the screen is off. The standard Android process lifecycle would otherwise kill the application to save resources. To prevent this, the core logic must be encapsulated within a Foreground Service.1
+For modern Android versions (14+), this requires a specific declaration in the AndroidManifest.xml. The <service> tag must include the attribute android:foregroundServiceType="connectedDevice", and the manifest must also declare the FOREGROUND_SERVICE and FOREGROUND_SERVICE_CONNECTED_DEVICE permissions.1 In the Kotlin code, the service must be started by calling
+startForeground() and must present a persistent, non-dismissible notification to the user, clearly indicating that an active process is running. This is a system requirement for all foreground services.1
+Furthermore, the Rust core itself must be designed for robust lifecycle management. The implementation plan includes a task to refactor the codebase to establish a unified, graceful shutdown mechanism. This involves creating a tokio::sync::watch channel that propagates a shutdown signal to all spawned asynchronous tasks (e.g., the network listeners, the AMidi input reader). Upon receiving this signal, each task will terminate cleanly, preventing resource leaks or panics when the service is stopped by the user or the system.1
+
+
+3.4. Protocol Implementation in Rust
+
+
+The Rust NDK layer is responsible for implementing the two network protocols.
+      * RTP-MIDI Session Management: This task addresses a critical gap in the existing rtp-midi codebase. The current implementation in network/src/midi/rtp/session.rs is incomplete. The plan requires completing the full, AppleMIDI-compliant session handshake. This includes the two-port IN/OK exchange on the control and data ports, as well as the three-way CK0/CK1/CK2 clock synchronization exchange. This synchronization is essential for calculating network latency and jitter, allowing the receiving DAW to align the MIDI events with sample-level accuracy.1
+      * MIDI-to-OSC Translation: The Rust core will consume the raw MIDI byte stream from the AMidi input. It will parse these bytes into structured MIDI messages and then translate them into OSC messages according to a strictly defined API contract. The rosc crate is the recommended Rust library for serializing these structured commands into valid OSC packets to be sent over UDP to the ESP32.1 This contract is detailed in the table below, which is essential for enabling parallel development between the Android and ESP32 teams.
+MIDI Event
+	OSC Address
+	Argument 1
+	Argument 2
+	Notes
+	Note On
+	/noteOn
+	int note
+	int velocity
+	
+
+	Note Off
+	/noteOff
+	int note
+	
+
+	
+
+	Control Change (CC)
+	/cc
+	int controller
+	int value
+	
+
+	Pitch Bend
+	/pitchBend
+	float bendValue
+	Range -1.0 to 1.0
+	
+
+	Program Change
+	/config/setEffect
+	int effectId
+	
+
+	For switching visual effects
+	Table 3.1: MIDI-to-OSC Message Mapping, defining the API contract between the Android Hub and the ESP32 Visualizer.1
+
+
+Section 4: The ESP32 Visualizer: High-Performance Embedded Firmware
+
+
+The ESP32 firmware is designed from the ground up for one purpose: to generate fluid, responsive, and visually compelling real-time animations based on commands from the Android Hub. The design prioritizes performance, concurrency, and portability.1
+
+
+4.1. Framework and Tooling: Arduino Core and FastLED
+
+
+While the ESP-IDF (Espressif IoT Development Framework) offers the absolute highest performance, the Arduino Core for ESP32 is the recommended framework for this project.1 This decision is based on pragmatism and efficiency. The Arduino Core provides a significantly simpler learning curve and a vast ecosystem of mature, well-tested libraries for essential functions like networking and hardware control. Since the Arduino Core is built directly on top of the ESP-IDF, critical low-level primitives, most notably the FreeRTOS real-time operating system, remain fully accessible. This provides the best of both worlds: rapid development and access to powerful real-time capabilities.1
+For controlling the 23-diode WS2812B LED strip, the FastLED library is the unequivocal choice.1 It is the industry standard for a reason: it is highly optimized for a wide variety of LED chipsets, using techniques like direct port manipulation to achieve the fastest possible data transmission rates. It also provides a rich and powerful API for color theory, palettes, and non-blocking animation patterns, which will be essential for creating sophisticated visual effects.1
+
+
+4.2. Designing for Portability: The Configuration-Driven Hardware Model
+
+
+To ensure the firmware can be easily adapted to different ESP32 development boards without requiring code changes, a simple yet effective configuration-driven hardware model will be used.1 Instead of creating a complex Hardware Abstraction Layer (HAL), all hardware-specific definitions will be isolated in a single header file,
+board_config.h. This file will use C preprocessor #define directives to specify constants such as the data pin for the LED strip, the number of LEDs, the LED chipset type, and the color order.
+An example board_config_devkit_v1.h might look like this 1:
+
+
+C
+
+
+
+
+#pragma once
+#define LED_PIN       16
+#define NUM_LEDS      23
+#define LED_TYPE      WS2812B
+#define COLOR_ORDER   GRB
+#define BRIGHTNESS    150
+
+The main firmware file (main.cpp) will simply #include "board_config.h" and use these constants. To support a new board, a developer only needs to create a new configuration file with the correct pin assignments and include it instead. This approach directly satisfies the requirement to avoid code duplication and makes the firmware highly portable.1
+To aid in this process, the following guide provides crucial information on GPIO pin selection for the ESP32, highlighting pins that have special functions during boot (strapping pins) or are input-only, which could cause frustrating hardware issues if used incorrectly.
+GPIO Number
+	Primary Function
+	Strapping Pin?
+	ADC/DAC Capability
+	Safe for General Use?
+	Notes/Warnings
+	GPIO0
+	Boot Mode
+	Yes
+	ADC1_CH1
+	No
+	Must be HIGH for normal boot. Do not use for outputs.
+	GPIO1
+	TXD0
+	No
+	-
+	Yes
+	Default serial port. Usable if not needed for debugging.
+	GPIO2
+	-
+	Yes
+	ADC2_CH2
+	Yes (as output)
+	Must be floating or LOW for normal boot. Often tied to built-in LED.
+	GPIO3
+	RXD0
+	No
+	-
+	Yes
+	Default serial port. Usable if not needed for debugging.
+	GPIO4
+	-
+	No
+	ADC2_CH0
+	Yes
+	-
+	GPIO5
+	VSPI_CS0
+	Yes
+	ADC2_CH3
+	Yes
+	Must be HIGH during boot.
+	GPIO6-11
+	SPI Flash
+	No
+	-
+	No
+	Internally connected to the flash memory chip. Do not use.
+	GPIO12
+	-
+	Yes
+	ADC2_CH5
+	Yes
+	Must be LOW during boot for 3.3V flash voltage.
+	GPIO13
+	-
+	No
+	ADC2_CH4
+	Yes
+	-
+	GPIO14
+	-
+	No
+	ADC2_CH6
+	Yes
+	-
+	GPIO15
+	-
+	Yes
+	ADC2_CH7
+	Yes
+	Must be HIGH during boot.
+	GPIO16
+	-
+	No
+	-
+	Yes (Recommended)
+	A good, safe choice for the LED strip data line.
+	GPIO17-33
+	-
+	No
+	Various
+	Yes
+	Most of these pins are safe for general I/O.
+	GPIO34-39
+	Input Only
+	No
+	ADC1
+	Input Only
+	These pins lack internal pull-ups/downs and cannot be used as outputs.
+	Table 4.1: ESP32 GPIO Pinout and Safety Guide, providing a critical reference for hardware selection to avoid boot and runtime issues.1
+
+
+4.3. Real-Time Concurrency: A Dual-Core FreeRTOS Task Architecture
+
+
+The most critical element of the firmware architecture is its use of a dual-core, multi-tasking design based on FreeRTOS. A simple, single-threaded approach using the standard Arduino loop() function is fundamentally incapable of providing the required performance. Network operations, such as waiting for a UDP packet, are inherently non-deterministic; their timing can vary significantly due to network conditions, leading to jitter. If the same thread that handles networking also handles rendering, this network jitter will translate directly into visual stutter, ruining the real-time effect.1
+To prevent this, the architecture creates a firewall against timing uncertainty. It decouples the non-deterministic network world from the deterministic rendering world using two separate tasks pinned to the ESP32's two physical CPU cores 1:
+      * Core 0 (Network Task): This task will be created using xTaskCreatePinnedToCore and assigned exclusively to Core 0. Its sole responsibility is to manage the Wi-Fi connection, handle mDNS advertisements, and listen for incoming OSC UDP packets. When a packet arrives, this task will parse the OSC message and place the resulting command (e.g., a struct representing a noteOn event) into a thread-safe FreeRTOS Queue (xQueueHandle_t). This task absorbs all the network latency and jitter.
+      * Core 1 (Animation Task): This task will be pinned to Core 1. It runs a tight, high-frequency rendering loop (aiming for 60-120 Hz). In each iteration, it performs a non-blocking check on the FreeRTOS queue for new commands. If a command exists, it updates the internal state of the visualization. It then proceeds to calculate the next frame of the animation (e.g., handling fades, movement) and writes the final color data to the LED strip by calling FastLED.show(). This task's timing is never affected by network delays, ensuring perfectly smooth animation.
+For maximum performance, critical functions within both tasks, especially the animation loop and OSC parsing logic, will be placed in the ESP32's IRAM using the IRAM_ATTR attribute. This prevents execution latency caused by "cache misses" when fetching code from the slower external flash memory.1
+
+
+4.4. The MIDI-to-Visual Mapping Engine
+
+
+The Animation Task on Core 1 will host the creative logic engine that translates the simple OSC commands into rich visual effects. This engine will be stateful and highly interactive.1
+      * State Management: The core of the engine will be a data structure, likely an array of structs, to track the state of all 128 possible MIDI notes. Each element will store whether the note is on or off, its last known velocity, and a timestamp for timing-based effects.1
+      * Visual Effects Implementation: The engine will map MIDI parameters received via OSC to visual properties:
+      * Note On/Off: When a /noteOn command is received, the corresponding LED (or segment of LEDs) will illuminate. The velocity argument will directly control the brightness of the note's light. For a more polished and less jarring effect, a /noteOff command will not extinguish the light instantly but will trigger a gradual, non-blocking fade-out animation.1
+      * Polyphony & Sustain: The system must handle multiple simultaneous notes. The state-tracking array allows for this, and the visual output can represent chords by blending the colors of the constituent notes. When a sustain pedal message (/cc 64 127) is received, the engine will ignore subsequent /noteOff commands until the pedal is released (/cc 64 0), keeping the notes visually "held".1
+      * Expressive Controllers: Other MIDI messages will be mapped to global, performative effects. A /pitchBend message could cause a wave of color to sweep across the LED strip, with the direction and speed determined by the bend value. A channel aftertouch message could be mapped to a subtle "pulsing" or "glowing" effect on active notes, where the pulse rate or intensity increases with pressure. Other CC messages, like /cc 74, could be used to shift the hue of the entire color palette in real-time, allowing for dynamic, interactive control over the visual mood.1
+
+
+Section 5: The Generative AI Layer: Evolving into an Intelligent Instrument
+
+
+To elevate the system beyond a passive MIDI-to-light converter, this blueprint introduces a forward-looking strategy for integrating on-device Artificial Intelligence. The vision is to transform the instrument into an active creative partner capable of both generating new musical ideas and creating more sophisticated, emotionally resonant visuals. This requires a tiered approach to AI, deploying different classes of models on the Android Hub and the ESP32, aligned with their respective computational capabilities.4
+
+
+5.1. Conceptual Framework: On-Device AI for Creative Augmentation
+
+
+The AI layer will be implemented across two distinct pathways, creating a sophisticated, distributed intelligence model. The computationally heavy generative tasks will be assigned to the powerful Android Hub, which will act as the "creative brain." The lightweight, real-time inference and classification tasks will be assigned to the resource-constrained ESP32, which will function as the "reactive visual cortex." This intelligent distribution of AI workloads is key to making the integration both feasible and effective, mirroring the dual-protocol data architecture.4
+
+
+5.2. Pathway 1: AI-Driven MIDI Generation and Harmonization (Android Hub)
+
+
+      * Concept: The Android Hub will host a generative AI model capable of real-time musical co-creation. A user could perform a simple melodic phrase on the Maschine controller, and the AI could respond by generating a harmonizing bassline, an arpeggiated chord progression, or a complex counter-melody. This moves the system from a simple controller to a generative instrument.8
+      * Technology: This functionality will be powered by modern, state-of-the-art music generation models. Technologies like Google's Lyria, which operates over a low-latency streaming connection, or other AI melody generators provide a template for this capability.6 These models can be prompted and continuously steered with text or, in this case, with incoming MIDI data. The newly generated MIDI events would then be seamlessly merged with the user's performance data and fed into the existing RTP-MIDI and OSC pipelines.11
+      * Implementation: The generative model will be integrated into the Rust NDK layer of the Android Hub, which possesses the necessary processing power to run it. The model could be a pre-trained one or a custom model fine-tuned for specific genres. The Kotlin UI will provide the user with controls to activate the AI co-creator, select its musical style (e.g., "techno bassline," "ambient pads"), and adjust its creative intensity.
+
+
+5.3. Pathway 2: Adaptive Visuals via Real-Time Feature Extraction (ESP32)
+
+
+      * Concept: The visualization will evolve beyond a direct, one-to-one mapping of notes to lights. An ML model running directly on the ESP32 will analyze the incoming musical data to infer its higher-level characteristics, such as emotional content (valence and arousal), complexity, or genre. The visualizer will then adapt its entire aesthetic—color palettes, animation styles, and textures—to match the inferred mood of the music, creating a far more sophisticated and emotionally resonant experience.12
+      * Technology: This is a quintessential use case for Tiny Machine Learning (TinyML). A lightweight classification or regression model will be trained to predict musical attributes from MIDI data. The model will be built using a standard framework like TensorFlow or PyTorch and then converted into a highly optimized format suitable for microcontrollers, such as TensorFlow Lite for Microcontrollers or PyTorch ExecuTorch.7 Espressif provides optimized libraries like ESP-NN that can further accelerate these models on ESP32 hardware.14
+      * Implementation: The trained model will be converted into a C-language byte array (typically using a tool like xxd -i model.tflite > model.h) and compiled directly into the ESP32 firmware.7 In the firmware's dual-core architecture, the Network Task (Core 0) will feed the data from incoming OSC messages into the TensorFlow Lite interpreter. The model's output—for example, a struct containing predictions like
+{'valence': 0.8, 'energy': 0.7}—will be passed to the Animation Task (Core 1) via the FreeRTOS queue. The Animation Task will then use these high-level descriptors to dynamically select from a library of pre-programmed color palettes and animation routines, seamlessly shifting the visual mood from "calm and ambient" (e.g., slow-fading blues and greens) to "energetic and intense" (e.g., fast-strobing reds and oranges) based on the music's content.18
+
+
+5.4. MLOps for the Edge: A Lifecycle for Embedded AI Models
+
+
+Deploying and maintaining ML models on embedded devices presents unique challenges that require a disciplined MLOps approach. A pragmatic lifecycle must be established to manage the models from conception to retirement.3
+         * Data Collection and Management: The foundation of any good model is good data. The process begins by capturing and labeling real-world data. For the ESP32 mood model, this would involve collecting a diverse dataset of MIDI clips and having them labeled with their corresponding emotional characteristics (e.g., valence/energy scores). Capturing a wide variety of real-world musical variations is critical to prevent model failure in the field.5
+         * Model Training, Conversion, and Quantization: Models will be trained in a standard Python environment using TensorFlow or PyTorch. A critical step in the pipeline is the conversion to an edge-optimized format. For the ESP32, this involves a pipeline that might look like PyTorch -> ONNX -> TensorFlow Lite. During this conversion, techniques like full-integer quantization will be applied. Quantization dramatically reduces the model's size and computational requirements by converting 32-bit floating-point weights to 8-bit integers, making it feasible to run on the ESP32's limited memory and processing power.16
+         * Deployment and CI/CD Integration: The model deployment process must be automated. The CI/CD pipeline will be extended to include steps for model conversion and validation. When a new version of the model is approved, the pipeline will automatically convert it to a C array and place it in the ESP32 firmware source tree. The subsequent firmware build job will then compile the new model directly into the binary artifact, ensuring that every firmware release is bundled with the correct, validated model version.3
+         * Monitoring and Feedback Loop: A crucial, and often overlooked, aspect of MLOps for the edge is monitoring and creating a feedback loop. The single most common cause of model failure is a mismatch between training data and real-world operational data.5 To combat this "training-serving skew," the system can implement a mechanism to log problematic inferences. For instance, if the user provides feedback that the visual mood is wrong, the Android app could capture the recent MIDI sequence and the model's incorrect output. This data can be sent back to a central repository. This feedback loop provides an invaluable stream of real-world data that highlights the model's weaknesses, enabling targeted retraining and continuous improvement over the product's lifecycle.3
+
+
+Section 6: A Modern CI/CD and Testing Strategy
+
+
+To ensure high code quality, reliability, and rapid iteration, the project will adopt a modern Continuous Integration and Continuous Deployment (CI/CD) strategy built on GitHub Actions. This strategy goes beyond simple compilation, incorporating automated quality gates and a sophisticated containerized testing environment to validate the system's complex network interactions without requiring physical hardware for every test run.2
+
+
+6.1. Pipeline Architecture with GitHub Actions
+
+
+The primary CI workflow, defined in .github/workflows/ci.yml, will evolve from the baseline in the project documents into a comprehensive build and test pipeline.1
+         * Triggers: The workflow will be configured to trigger automatically on every push to any branch and on every pull_request targeting the main branch. This ensures that all proposed changes are validated before they are merged.22
+         * Matrix Builds: To ensure cross-platform compatibility, a matrix strategy will be employed. This will create a parallel set of jobs that build and test the software for all its intended targets simultaneously: x86_64-unknown-linux-gnu (for running the test suite on the GitHub runner), aarch64-linux-android (for the final Android Hub library), and xtensa-esp32-none-elf (for the ESP32 firmware).1
+         * ESP32 Build Automation: The ESP32 firmware compilation will be automated within the pipeline using the official espressif/esp-idf-ci-action. This action creates a containerized build environment with the correct ESP-IDF version and toolchain, compiles the firmware, and generates the final binary artifact. This guarantees that the firmware is always buildable and catches any compilation errors early.25
+
+
+6.2. Containerized Integration Testing: Simulating the Network
+
+
+The cornerstone of the advanced testing strategy is the use of Docker and Docker Compose to create a virtual, containerized environment for integration testing within the CI pipeline. This allows for the automated testing of the Android Hub's complex network logic by emulating its network peers. This approach transforms the CI pipeline from a simple build tool into a form of "executable architecture," where the tests not only validate the code but also enforce the system's architectural contracts.2
+         * Docker Compose Configuration: A docker-compose.yml file will be defined within the CI workflow. This file will specify a multi-container environment that the test runner can interact with via localhost.
+         * Mock DAW Service: One container will run a lightweight script (e.g., in Python or Node.js) that acts as a mock DAW. This script will open UDP ports 5004 and 5005, listen for incoming RTP-MIDI connections, validate the AppleMIDI handshake sequence (IN, OK), and assert that received MIDI data packets are correctly formatted according to RFC 6295. This container is the executable specification for the DAW's network interface.
+         * Mock ESP32 Service: A second container will run a script that emulates the ESP32 Visualizer's network stack. It will open a UDP port, listen for incoming OSC messages, and parse them to verify that their address patterns and arguments match the schema defined in Table 3.1. This container is the executable specification for the ESP32's network interface.
+         * Test Execution Flow: The main CI job will first launch this multi-container environment using docker-compose up. Once the mock services are running, the job will execute the Rust integration test suite (integration_tests/). These tests will programmatically drive the compiled Rust core of the Android Hub, instructing it to connect to the mock services (running on localhost). The tests will then simulate MIDI input and assert that the correct RTP-MIDI and OSC packets are received and validated by the mock service containers.1
+         * Network Emulation for Reliability Testing: To validate the system's resilience to real-world network problems, the integration tests will leverage network emulation tools. A tool like Pumba or the built-in Linux tc (traffic control) utility can be run against the Docker containers to artificially introduce packet loss, latency, and jitter into the virtual network.26 This allows for automated testing of the RTP-MIDI recovery journal's effectiveness and the overall stability of the system under adverse network conditions.
+
+
+6.3. Hardware-in-the-Loop (HIL) and On-Target Validation
+
+
+While containerized testing provides excellent coverage for software and protocol logic, it cannot validate the final hardware interaction. Therefore, the CI strategy will be augmented with a Hardware-in-the-Loop (HIL) testing stage.28
+         * Self-Hosted Runner: A dedicated physical machine, such as a Raspberry Pi or a small desktop PC, will be configured as a self-hosted GitHub Actions runner. This runner will be registered with the project's GitHub repository.
+         * Physical Test Rig: This self-hosted runner will be connected to a physical test rig. The rig will consist of an ESP32 development board, the 23-LED strip, an appropriate power supply, and a USB connection back to the runner for flashing and serial monitoring.
+         * HIL Workflow: A separate GitHub Actions workflow will be created, configured to run jobs exclusively on the self-hosted runner (using runs-on: self-hosted). This workflow could be triggered manually for release validation or run on a nightly schedule. The jobs in this workflow will perform on-target validation:
+         1. Download the latest firmware binary artifact produced by the main CI pipeline.
+         2. Use esptool.py to flash the firmware onto the physical ESP32.
+         3. Run a test script that sends OSC commands to the ESP32's IP address.
+         4. Verify the results. This could involve reading serial output from the ESP32 to check its status or, in a more advanced setup, using a camera and simple computer vision to assert that the LEDs have turned on to the correct color.
+
+
+6.4. Automated Quality Gates and Performance Benchmarking
+
+
+The CI pipeline will serve as the primary quality gate for all code changes.
+         * Static Analysis: Every build will run a comprehensive suite of static analysis tools. This includes cargo clippy with a zero-warning policy (-D warnings) to enforce idiomatic Rust and catch potential bugs, and cargo deny to scan all dependencies for security vulnerabilities and non-compliant software licenses.1
+         * Automated Firmware Deployment: The pipeline will be configured to automate the release process. When a new version tag (e.g., v1.2.0) is pushed to the repository, a dedicated release job will trigger. This job will automatically create a new GitHub Release, generate release notes from the commit history, and attach the compiled .so library for Android and the .bin firmware for the ESP32 as release assets. This enables a clean and automated process for deploying firmware for Over-the-Air (OTA) updates, potentially using a library like esp_ghota.17
+         * Performance Regression Testing: The "loopback" latency test, designed to measure the round-trip time of the Wi-Fi and OSC stack, will be integrated into a CI job that runs on the HIL test rig.1 The results of this test will be tracked over time, allowing the team to immediately detect any code changes that cause a regression in network performance.
+
+
+Section 7: Phased Implementation and Strategic Roadmap
+
+
+This section synthesizes the architectural design and strategic goals into a granular, actionable implementation plan. The roadmap is divided into four logical phases, progressing from foundational work to full system integration and refinement. It also includes strategic recommendations for codebase management and future-proofing the architecture.
+
+
+7.1. Codebase Consolidation and Deprecation Plan
+
+
+As a foundational first step, the project will undergo a strategic consolidation to align with its new, focused vision. The implementation of the "Maschine MIDI na ESP32 LED" system is a pivot away from the rtp-midi project's experimental past. To focus development effort, reduce maintenance overhead, and provide clarity for all contributors, the following legacy components will be formally deprecated 1:
+         * The WebRTC-based signaling_server and audio_server.
+         * The multiple frontend implementations (qt_ui/, ui-frontend/, frontend/).
+The main README.md file will be updated immediately to reflect this new direction, clearly stating that the project's primary goal is the development of the Android Hub application. Documentation for the deprecated components will be moved to an archive/ directory to preserve history without causing confusion.1
+
+
+7.2. Detailed Four-Phase Implementation Task List
+
+
+The development process is broken down into the following four phases. Each phase builds upon the last, ensuring a logical progression and allowing for incremental testing.
+
+
+Phase 1: Foundational Enhancements & CI Setup
+
+
+This phase focuses on implementing the core protocols and setting up the development infrastructure.
+         * Task 1.1: Complete the AppleMIDI Handshake and Clock Synchronization in the Rust core, implementing the full two-port handshake and three-way clock sync as specified in 1.
+         * Task 1.2: Implement a generic OSC protocol layer in Rust, using the rosc crate to create an OscSender that can serialize and send all messages defined in the MIDI-to-OSC mapping table.1
+         * Task 1.3: Integrate mDNS service discovery into the Rust core using the mdns-sd crate, enabling both advertisement of the RTP-MIDI service and discovery of the ESP32's OSC service.1
+         * Task 1.4 (New): Establish the baseline GitHub Actions CI workflow. This includes setting up the matrix build strategy for all targets and creating the docker-compose.yml file and mock service scripts for the containerized integration testing environment.
+
+
+Phase 2: ESP32 Firmware and Initial AI Model
+
+
+This phase focuses on developing the complete, standalone firmware for the visualizer.
+         * Task 2.1: Establish the ESP32 project using PlatformIO, the Arduino Core, and adding FastLED and an Arduino OSC library as dependencies. Implement a basic sketch that connects to Wi-Fi and starts an OSC server.1
+         * Task 2.2: Implement the configuration-driven hardware model by creating the board_config.h file and refactoring the main sketch to use its constants.1
+         * Task 2.3: Develop the dual-core FreeRTOS task architecture, explicitly pinning the Network Task to Core 0 and the Animation Task to Core 1, with communication via a FreeRTOS queue.1
+         * Task 2.4: Implement the core MIDI-to-visualization logic, including the state machine for 128 notes and visual effects for velocity, note-off fades, and sustain.1
+         * Task 2.5 (New): Train a first-pass "mood detection" model (e.g., predicting valence/energy) in TensorFlow. Convert this model to TensorFlow Lite, create the C array header, and integrate it into the ESP32 firmware. The Animation Task will use the model's output to select between a few basic color palettes.
+
+
+Phase 3: Android Hub and End-to-End Integration
+
+
+This phase focuses on building the central Android application and integrating all components.
+         * Task 3.1: Structure the new Android Studio project for the hybrid native architecture, configuring the Gradle build to compile the Rust NDK library and setting up the JNI bridge.1
+         * Task 3.2: Implement the critical low-latency USB MIDI input using the AMidi NDK API, including the JNI function to pass the device handle from Kotlin to Rust.1
+         * Task 3.3: Integrate the RTP-MIDI and OSC senders into the Rust core's main service loop, plumbing the MIDI data from the AMidi input to both protocol encoders.1
+         * Task 3.4: Develop the Android ForegroundService (with connectedDevice type) and a minimal Jetpack Compose UI to control the service lifecycle and display connection status.1
+         * Task 3.5 (New): Integrate a pre-trained generative music AI model into the Android Hub's Rust core. Add UI controls to enable/disable the AI co-creator.
+
+
+Phase 4: Refinement, Testing, and MLOps
+
+
+The final phase focuses on hardening the system, expanding test coverage, and operationalizing the AI components.
+         * Task 4.1: Fully develop the automated end-to-end integration tests in the integration_tests crate, validating both the RTP-MIDI and OSC data flows against the mock services in the containerized environment.1
+         * Task 4.2: Perform a full code quality sweep, enforcing the #![deny(warnings)] policy across the Rust workspace and fixing all clippy lints. Implement the automated cargo fix CI job.1
+         * Task 4.3: Thoroughly update all project documentation (README.md, architecture docs) to reflect the final, consolidated system architecture and usage instructions.1
+         * Task 4.4 (New): Implement the MLOps feedback loop. Add functionality to the Android app that allows a user to flag a poor AI-driven visual response, which captures the recent MIDI data and sends it to a cloud endpoint for analysis and future retraining.
+         * Task 4.5 (New): Set up the physical Hardware-in-the-Loop (HIL) test rig with a self-hosted GitHub Actions runner and create the associated HIL testing workflow.
+
+
+7.3. Advanced Profiling and Latency Optimization Strategy
+
+
+Once the system is integrated, a dedicated phase of performance profiling and optimization will be undertaken. This is essential to move from a functional prototype to a professional-grade instrument. The strategy will involve 1:
+         1. Android Native Profiling: Extensive use of the Android Studio Profiler to inspect the native Rust/C++ thread. The CPU profiler will be used to confirm that the thread is running with THREAD_PRIORITY_URGENT_AUDIO and is not being preempted. The memory profiler will be used to ensure the native code is not performing unexpected allocations that could trigger GC pauses in the ART runtime.
+         2. Latency Measurement: A quantitative "loopback" test will be implemented. The Android Hub will send a specific OSC message to the ESP32, which will be programmed to immediately send a response. Measuring the round-trip time within the Android app will provide a concrete metric for the real-world latency of the entire Wi-Fi and OSC protocol stack, allowing for targeted optimizations.
+
+
+7.4. Future-Proofing: Designing for Extensibility
+
+
+Throughout the implementation, architectural decisions will be made with future scalability in mind, ensuring the project can evolve beyond its initial scope.1
+         * Extensible Visualization Engine: The visualization logic in the ESP32 firmware will be designed around an object-oriented or trait-based pattern. A C++ abstract base class, VisualizerEffect, could define a common interface (e.g., onNoteOn(), renderFrame()). Specific effects ("PianoScroll," "SpectrumAnalyzer") would be implemented as separate classes inheriting from this base. This will allow new visual effects to be added in the future with minimal changes to the core animation loop.
+         * Abstracted Protocol Layers: The DataStreamNetSender and DataStreamNetReceiver traits in the Rust core are an excellent abstraction pattern that will be preserved. This design decouples the core logic from the specific protocol implementation. For example, adding support for MIDI 2.0 over RTP in the future would simply require creating a new RtpMidi2Session struct that implements these traits. It could then be integrated into the system with minimal friction, demonstrating the power of the project's modular design.
+Citovaná díla
+         1. rtp-midi Project Implementation Tasks
+         2. Actions · QuantumLeaps/Embedded-Test - GitHub, použito července 16, 2025, https://github.com/QuantumLeaps/Embedded-Test/actions
+         3. Powerful MLOps for Embedded and IoT Device Management - Beetlebox, použito července 16, 2025, https://beetlebox.org/powerful-mlops-for-embedded-and-iot-device-management/
+         4. AI-Powered Embedded Systems for Real-Time Intelligence | Uplatz ..., použito července 16, 2025, https://uplatz.com/blog/ai-powered-embedded-systems-for-real-time-intelligence/
+         5. Ultimate Guide to Machine Learning for Embedded Systems | Renesas, použito července 16, 2025, https://www.renesas.com/en/document/whp/ultimate-guide-machine-learning-embedded-systems
+         6. Music generation using Lyria RealTime | Gemini API | Google AI for Developers, použito července 16, 2025, https://ai.google.dev/gemini-api/docs/music-generation
+         7. TensorFlow Lite On ESP32 – OpenELAB Technology Ltd., použito července 16, 2025, https://openelab.io/blogs/learn/tensorflow-lite-on-esp32
+         8. AI MIDI Generator for Advanced Music Production - MakeBestMusic.com, použito července 16, 2025, https://makebestmusic.com/ai-midi-generator
+         9. Lemonaide AI — The #1 AI Melody Generator Powered By Industry Producers, použito července 16, 2025, https://www.lemonaide.ai/
+         10. Soundful: #1 AI Music Studio - AI Music Generator for Creators, použito července 16, 2025, https://soundful.com/
+         11. Staccato's AI MIDI Maker | Create Original MIDI Music With the Help of AI, použito července 16, 2025, https://staccato.ai/midi-maker
+         12. A Generative Art Perspective: Visualizing Emotions in Music Through Color - DiVA, použito července 16, 2025, https://kth.diva-portal.org/smash/get/diva2:1941305/FULLTEXT02.pdf
+         13. Synesthesia - Live Music Visualizer - VJ Software, použito července 16, 2025, https://synesthesia.live/
+         14. espressif/esp-tflite-micro: TensorFlow Lite Micro for Espressif Chipsets - GitHub, použito července 16, 2025, https://github.com/espressif/esp-tflite-micro
+         15. pytorch/executorch: On-device AI across mobile, embedded ... - GitHub, použito července 16, 2025, https://github.com/pytorch/executorch
+         16. nanguoyu/Embedded-AI-Torch-to-TFLite-on-ESP32 - GitHub, použito července 16, 2025, https://github.com/nanguoyu/Embedded-AI-Torch-to-TFLite-on-ESP32
+         17. Fishwaldo/esp_ghota: esp32 OTA Component to update ... - GitHub, použito července 16, 2025, https://github.com/Fishwaldo/esp_ghota
+         18. Using Processing for Music Visualization - Generative Hut, použito července 16, 2025, https://www.generativehut.com/post/using-processing-for-music-visualization
+         19. ESP32-CAM Person Detection Experiment With TensorFlow Lite : 4 Steps - Instructables, použito července 16, 2025, https://www.instructables.com/ESP32-CAM-Person-Detection-Expreiment-With-TensorF/
+         20. MLOps engineers: What exactly do you do on a daily basis in your MLOps job? - Reddit, použito července 16, 2025, https://www.reddit.com/r/mlops/comments/1i3yk5y/mlops_engineers_what_exactly_do_you_do_on_a_daily/
+         21. Running a PyTorch Model on the ESP32 S3 - Hackaday.io, použito července 16, 2025, https://hackaday.io/project/196067-running-a-pytorch-model-on-the-esp32-s3
+         22. How to Run Tests for Your Containerized Monorepo Using Github ..., použito července 16, 2025, https://spin.atomicobject.com/github-actions/
+         23. Using Docker to Simulate Production Environments for Mobile App ..., použito července 16, 2025, https://dev.to/swap11/using-docker-to-simulate-production-environments-for-mobile-app-testing-5ccl
+         24. Actions · espressif/esp32-arduino-libs - GitHub, použito července 16, 2025, https://github.com/espressif/esp32-arduino-libs/actions
+         25. espressif/esp-idf-ci-action: GitHub Action for ESP32 CI - GitHub, použito července 16, 2025, https://github.com/espressif/esp-idf-ci-action
+         26. Network emulation for Docker containers | by Alexei Ledenev | HackerNoon.com | Medium, použito července 16, 2025, https://medium.com/hackernoon/network-emulation-for-docker-containers-f4d36b656cc3
+         27. Using Docker and userspace networking to simulate real-world networks - Daily.co, použito července 16, 2025, https://www.daily.co/blog/using-docker-and-userspace-networking-to-simulate-real-world-networks/
+         28. Continuous Integration Using github Actions: to Static Test and Compile in every commit, použito července 16, 2025, https://community.st.com/t5/stm32-mcus-embedded-software/continuous-integration-using-github-actions-to-static-test-and/td-p/77252
+         29. Embedded software testing with GitHub Actions | by Julien Vermillard - Medium, použito července 16, 2025, https://medium.com/@vrmvrm/embedded-software-testing-with-github-actions-bceca5474d33

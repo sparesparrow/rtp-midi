@@ -7,6 +7,7 @@ use tokio::runtime::Runtime;
 use log::{error, info};
 use once_cell::sync::Lazy;
 use tokio::sync::watch;
+use rtp_midi_lib;
 
 static TOKIO_RUNTIME: Lazy<Runtime> = Lazy::new(|| {
     Runtime::new().expect("Failed to create global Tokio runtime for FFI")
@@ -93,6 +94,72 @@ pub unsafe extern "C" fn start_service(handle: *mut ServiceHandle) {
     info!("Service started via FFI.");
 }
 
+/// Starts the service with OSC and RTP-MIDI support for Android Hub
+///
+/// # Safety
+/// The `handle` must be a valid pointer returned by `create_service`.
+/// The `esp32_ip` and `esp32_port` parameters must be valid C strings.
+#[no_mangle]
+pub unsafe extern "C" fn start_android_hub_service(
+    handle: *mut ServiceHandle,
+    esp32_ip: *const c_char,
+    esp32_port: u16,
+    daw_ip: *const c_char,
+    daw_port: u16,
+) {
+    if handle.is_null() { return; }
+    let handle_ref = &*handle;
+
+    let mut worker_guard = handle_ref.worker_thread.lock().unwrap();
+    if worker_guard.is_some() {
+        info!("Android Hub service is already running.");
+        return;
+    }
+
+    let config_guard = handle_ref.config.lock().unwrap();
+    let mut config = match config_guard.as_ref() {
+        Some(c) => c.clone(),
+        None => {
+            error!("Cannot start Android Hub service: config is not loaded.");
+            return;
+        }
+    };
+    drop(config_guard);
+
+    // Parse ESP32 IP address
+    let esp32_ip_str = if !esp32_ip.is_null() {
+        CStr::from_ptr(esp32_ip).to_str().unwrap_or("").to_string()
+    } else {
+        "192.168.1.100".to_string() // Default ESP32 IP
+    };
+
+    // Parse DAW IP address
+    let daw_ip_str = if !daw_ip.is_null() {
+        CStr::from_ptr(daw_ip).to_str().unwrap_or("").to_string()
+    } else {
+        "192.168.1.50".to_string() // Default DAW IP
+    };
+
+    // Update config with discovered addresses
+    config.esp32_ip = Some(esp32_ip_str);
+    config.esp32_port = Some(esp32_port);
+    config.daw_ip = Some(daw_ip_str);
+    config.daw_port = Some(daw_port);
+
+    // Create a new shutdown channel for this service instance
+    let (shutdown_tx, shutdown_rx) = watch::channel(false);
+    {
+        let mut shutdown_guard = handle_ref.shutdown_tx.lock().unwrap();
+        *shutdown_guard = Some(shutdown_tx);
+    }
+    let rt_handle_clone = handle_ref.tokio_rt_handle.clone();
+    let thread = rt_handle_clone.spawn(async move {
+        run_android_hub_service(config, shutdown_rx).await;
+    });
+    *worker_guard = Some(thread);
+    info!("Android Hub service started via FFI.");
+}
+
 /// Stops the running service.
 ///
 /// # Safety
@@ -135,6 +202,37 @@ pub unsafe extern "C" fn destroy_service(handle: *mut ServiceHandle) {
     info!("Service handle destroyed.");
 }
 
+/// Android Hub service implementation
+async fn run_android_hub_service(config: Config, mut shutdown_rx: watch::Receiver<bool>) {
+    info!("Android Hub service starting...");
+    
+    // Initialize OSC sender for ESP32
+    let esp32_target = if let (Some(ip), Some(port)) = (config.esp32_ip.as_ref(), config.esp32_port) {
+        format!("{}:{}", ip, port)
+    } else {
+        "192.168.1.100:8000".to_string() // Default ESP32 address
+    };
+    
+    let mut osc_sender = match output::osc_output::OscSender::new(&esp32_target) {
+        Ok(sender) => sender,
+        Err(e) => {
+            error!("Failed to create OSC sender: {}", e);
+            return;
+        }
+    };
+    
+    // Initialize RTP-MIDI session for DAW
+    let daw_target = if let (Some(ip), Some(port)) = (config.daw_ip.as_ref(), config.daw_port) {
+        format!("{}:{}", ip, port)
+    } else {
+        "192.168.1.50:5004".to_string() // Default DAW address
+    };
+    
+    // Start the main service loop with Android Hub specific logic
+    rtp_midi_lib::run_service_loop(config, shutdown_rx).await;
+    
+    info!("Android Hub service stopped.");
+}
 
 /// Sets a WLED preset.
 /// # Safety

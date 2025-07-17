@@ -13,3 +13,4 @@ rand = "0.8"
 output = { path = "../output" }
 rtp_midi_core = { path = "../core" }
 async-trait = "0.1"
+mdns-sd = "0.6"

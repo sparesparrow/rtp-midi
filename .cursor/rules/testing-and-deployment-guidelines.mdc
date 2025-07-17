@@ -1,0 +1,231 @@
+# Testing and Deployment Guidelines
+
+## Testing Strategy Overview
+
+### Component-Level Testing
+- **Rust Library**: Unit tests for protocol implementations
+- **Android App**: UI tests and service integration tests
+- **ESP32 Firmware**: Hardware-in-the-loop testing
+- **Protocol Integration**: End-to-end workflow testing
+
+### Performance Testing
+- **Latency Measurement**: <10ms end-to-end target
+- **Throughput Testing**: Dense MIDI stream handling
+- **Memory Usage**: Monitor for leaks and optimization
+- **Battery Life**: Android device power consumption
+
+## Rust Library Testing
+
+### Unit Tests
+```bash
+# Run all tests
+cargo test --workspace
+
+# Run specific crate tests
+cargo test -p network
+cargo test -p output
+cargo test -p core
+
+# Run with warnings as errors
+RUSTFLAGS="-D warnings" cargo test
+```
+
+### Integration Tests
+- **Location**: [integration_tests/](mdc:integration_tests/)
+- **Focus**: End-to-end protocol workflows
+- **Mocking**: Network and device simulation
+
+### Protocol Testing
+- **RTP-MIDI**: Test with real DAWs (Logic Pro, Ableton)
+- **OSC**: Test with OSC clients and ESP32
+- **mDNS**: Test service discovery across platforms
+
+## Android App Testing
+
+### Unit Tests
+```bash
+# Run Android unit tests
+./gradlew test
+
+# Run instrumented tests
+./gradlew connectedAndroidTest
+```
+
+### UI Testing
+- **Jetpack Compose**: UI component testing
+- **Service Testing**: Foreground service lifecycle
+- **Permission Testing**: Runtime permission handling
+
+### Integration Testing
+- **MIDI Device**: Test with real Maschine controller
+- **Network Discovery**: Test mDNS service discovery
+- **Native Library**: Test JNI integration
+
+## ESP32 Firmware Testing
+
+### Hardware Testing
+```bash
+# Build and flash
+pio run -t upload
+
+# Monitor serial output
+pio device monitor
+```
+
+### Network Testing
+- **OSC Communication**: Test with OSC clients
+- **mDNS Advertisement**: Verify service discovery
+- **WiFi Connectivity**: Test network stability
+
+### Performance Testing
+- **LED Refresh Rate**: Verify 60 FPS target
+- **Task Scheduling**: Monitor FreeRTOS task performance
+- **Memory Usage**: Check heap fragmentation
+
+## End-to-End Testing
+
+### Complete Workflow Testing
+1. **Setup**: Android Hub + ESP32 + DAW
+2. **Connection**: Verify all components discover each other
+3. **Data Flow**: Test MIDI → Android → DAW + ESP32
+4. **Performance**: Measure end-to-end latency
+5. **Reliability**: Test under various network conditions
+
+### Test Scenarios
+- **Basic MIDI Routing**: Note on/off to DAW
+- **Visual Feedback**: MIDI events to LED visualization
+- **Polyphonic Performance**: Multiple simultaneous notes
+- **Sustain Pedal**: CC 64 handling
+- **Network Interruption**: Recovery from connection loss
+
+## Deployment Guidelines
+
+### Rust Library Deployment
+
+#### Android Build
+```bash
+# Build for Android
+./build_android.sh
+
+# Verify ABI support
+file target/aarch64-linux-android/release/librtp_midi_lib.so
+```
+
+#### Desktop Build
+```bash
+# Build for desktop
+cargo build --release
+
+# Create release package
+./package_release.sh
+```
+
+### Android App Deployment
+
+#### Development Build
+```bash
+# Build debug APK
+./gradlew assembleDebug
+
+# Install on device
+adb install app/build/outputs/apk/debug/app-debug.apk
+```
+
+#### Release Build
+```bash
+# Build release APK
+./gradlew assembleRelease
+
+# Sign APK
+jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 \
+  -keystore my-release-key.keystore \
+  app-release-unsigned.apk alias_name
+```
+
+### ESP32 Firmware Deployment
+
+#### PlatformIO Build
+```bash
+# Build firmware
+pio run
+
+# Upload to device
+pio run -t upload
+
+# Monitor output
+pio device monitor
+```
+
+#### Configuration
+- Update WiFi credentials in [board_config.h](mdc:firmware/esp32_visualizer/src/board_config.h)
+- Verify LED strip parameters
+- Test network connectivity
+
+## Performance Monitoring
+
+### Latency Measurement
+- **USB MIDI**: Measure input latency
+- **Network**: Measure Wi-Fi transmission time
+- **Processing**: Measure Android processing time
+- **Output**: Measure LED update time
+
+### Tools and Methods
+- **Oscilloscope**: Hardware timing measurement
+- **Network Analysis**: Wireshark for packet analysis
+- **Profiling**: Android Studio profiler
+- **Logging**: Structured logging for analysis
+
+### Optimization Targets
+- **Total Latency**: <10ms end-to-end
+- **Jitter**: <1ms variation
+- **Throughput**: 1000+ MIDI events/second
+- **Memory**: <50MB Android app usage
+
+## Troubleshooting Guide
+
+### Common Issues
+
+#### Network Connectivity
+- **mDNS Issues**: Check multicast support
+- **OSC Communication**: Verify port and firewall settings
+- **RTP-MIDI**: Check AppleMIDI compatibility
+
+#### Performance Issues
+- **High Latency**: Check network congestion
+- **Audio Dropouts**: Verify Android audio settings
+- **LED Flickering**: Check power supply stability
+
+#### Device Issues
+- **MIDI Not Detected**: Check USB permissions
+- **ESP32 Not Found**: Verify WiFi credentials
+- **Service Crashes**: Check logcat for errors
+
+### Debug Commands
+```bash
+# Android debugging
+adb logcat | grep rtp_midi
+
+# Network debugging
+ping esp32-ip-address
+nslookup esp32-visualizer.local
+
+# ESP32 debugging
+pio device monitor --baud 115200
+```
+
+## Continuous Integration
+
+### GitHub Actions
+- **Rust Tests**: [.github/workflows/ci.yml](mdc:.github/workflows/ci.yml)
+- **Android Build**: Automated APK generation
+- **ESP32 Build**: PlatformIO CI integration
+
+### Quality Gates
+- **Test Coverage**: >80% code coverage
+- **Performance**: Latency regression testing
+- **Security**: Dependency vulnerability scanning
+- **Documentation**: API documentation generation
+description:
+globs:
+alwaysApply: false
+---
