@@ -77,16 +77,27 @@ impl JournalEntry {
             let command_bytes = data.copy_to_bytes(command_len);
             let mut command_reader = command_bytes.clone();
             let command = MidiCommand::parse(&mut command_reader)?;
-            commands.push(TimedMidiCommand { delta_time, command });
+            commands.push(TimedMidiCommand {
+                delta_time,
+                command,
+            });
         }
 
-        Ok(Self { sequence_nr, commands })
+        Ok(Self {
+            sequence_nr,
+            commands,
+        })
     }
 }
 
 impl JournalData {
     pub fn serialize_enhanced(&self) -> Result<Bytes> {
-        let JournalData::Enhanced { a_bit, ch_bits, checkpoint_sequence_number, entries } = self;
+        let JournalData::Enhanced {
+            a_bit,
+            ch_bits,
+            checkpoint_sequence_number,
+            entries,
+        } = self;
         let mut buf = BytesMut::new();
         let s_bit = 0b1000_0000; // S=1 (enhanced)
         let a_ch_bits = ((*a_bit as u8) << 6) | (*ch_bits & 0b0011_1111);
@@ -150,18 +161,22 @@ pub fn process_journal(journal_data: &JournalData, history: &mut BTreeSet<u16>) 
 fn parse_variable_length_quantity(data: &mut Bytes) -> Result<(u32, usize)> {
     let mut value = 0u32;
     let mut length = 0;
-    for _ in 0..4 { // VLQ is max 4 bytes
+    for _ in 0..4 {
+        // VLQ is max 4 bytes
         if !data.has_remaining() {
             return Err(anyhow!("Incomplete Variable Length Quantity"));
         }
         let byte = data.get_u8();
         length += 1;
         value = (value << 7) | (byte & 0x7F) as u32;
-        if (byte & 0x80) == 0 { // Last byte of VLQ
+        if (byte & 0x80) == 0 {
+            // Last byte of VLQ
             return Ok((value, length));
         }
     }
-    Err(anyhow!("Variable Length Quantity exceeded 4 bytes or malformed"))
+    Err(anyhow!(
+        "Variable Length Quantity exceeded 4 bytes or malformed"
+    ))
 }
 
 fn encode_variable_length_quantity(value: u32, buf: &mut [u8; 4]) -> Result<usize> {
@@ -180,7 +195,7 @@ fn encode_variable_length_quantity(value: u32, buf: &mut [u8; 4]) -> Result<usiz
         buf[idx] = ((temp & 0x7F) | 0x80) as u8;
         temp >>= 7;
     }
-    
+
     let start = idx;
     let length = 4 - start;
     for i in 0..length {
@@ -194,22 +209,38 @@ pub fn serialize_midi_command(cmd: &MidiCommand, out: &mut Vec<u8>) -> Result<()
     // Pro jednoduchost použijeme existující serializaci do raw MIDI bytu
     // (můžete rozšířit podle potřeby)
     match cmd {
-        MidiCommand::NoteOff { channel, key, velocity } => {
+        MidiCommand::NoteOff {
+            channel,
+            key,
+            velocity,
+        } => {
             out.push(0x80 | (channel & 0x0F));
             out.push(*key);
             out.push(*velocity);
         }
-        MidiCommand::NoteOn { channel, key, velocity } => {
+        MidiCommand::NoteOn {
+            channel,
+            key,
+            velocity,
+        } => {
             out.push(0x90 | (channel & 0x0F));
             out.push(*key);
             out.push(*velocity);
         }
-        MidiCommand::PolyphonicKeyPressure { channel, key, value } => {
+        MidiCommand::PolyphonicKeyPressure {
+            channel,
+            key,
+            value,
+        } => {
             out.push(0xA0 | (channel & 0x0F));
             out.push(*key);
             out.push(*value);
         }
-        MidiCommand::ControlChange { channel, control, value } => {
+        MidiCommand::ControlChange {
+            channel,
+            control,
+            value,
+        } => {
             out.push(0xB0 | (channel & 0x0F));
             out.push(*control);
             out.push(*value);
@@ -244,4 +275,4 @@ pub fn serialize_midi_command(cmd: &MidiCommand, out: &mut Vec<u8>) -> Result<()
         }
     }
     Ok(())
-} 
+}

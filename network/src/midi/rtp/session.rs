@@ -3,20 +3,24 @@
 
 use anyhow::{anyhow, Result};
 use log::{error, info, warn};
+use rtp_midi_core::event_bus::Event;
+use rtp_midi_core::journal_engine::TimedMidiCommand;
+use rtp_midi_core::{
+    DataStreamNetReceiver, DataStreamNetSender, JournalData, JournalEntry, StreamError,
+};
 use std::collections::{BTreeSet, VecDeque};
 use std::net::SocketAddr;
 use std::sync::Arc;
-use tokio::sync::Mutex;
-use rtp_midi_core::{DataStreamNetSender, DataStreamNetReceiver, StreamError, JournalData, JournalEntry};
-use rtp_midi_core::journal_engine::TimedMidiCommand;
-use rtp_midi_core::event_bus::Event;
 use tokio::sync::broadcast::Sender as BroadcastSender;
+use tokio::sync::Mutex;
 
+use super::control_message::{
+    AppleMidiMessage, Invitation, InvitationAccepted, Sync as AppleMidiSync,
+};
 use super::message::{MidiMessage, RtpMidiPacket};
 use rtp_midi_core::parse_rtp_packet;
-use super::control_message::{AppleMidiMessage, Invitation, InvitationAccepted, Sync as AppleMidiSync};
-use tokio::time::{Duration, Sleep, sleep};
 use std::pin::Pin;
+use tokio::time::{sleep, Duration, Sleep};
 
 // The listener now receives only the MIDI commands, not the whole packet, for cleaner separation.
 type MidiCommandListener = Arc<Mutex<dyn Fn(Vec<MidiMessage>) + Send + Sync>>;
@@ -31,7 +35,7 @@ pub enum SessionState {
     Idle,
     Inviting,
     AwaitingOK,
-    ClockSync, // Starting clock sync
+    ClockSync,   // Starting clock sync
     Established, // Handshake complete, ready for data
     Terminated,
 }
@@ -70,7 +74,11 @@ pub struct RtpMidiSession {
 
 impl RtpMidiSession {
     /// Creates a new RTP-MIDI session with handshake state.
-    pub async fn new(name: String, _port: u16, event_sender: Option<BroadcastSender<Event>>) -> Result<Self> {
+    pub async fn new(
+        name: String,
+        _port: u16,
+        event_sender: Option<BroadcastSender<Event>>,
+    ) -> Result<Self> {
         // The port parameter is now advisory; actual binding is done by network_interface.
         info!("RTP-MIDI session '{}' created.", name);
 
@@ -95,7 +103,12 @@ impl RtpMidiSession {
     }
 
     /// Handles an incoming raw UDP packet, parses it, and processes MIDI commands or journal data.
-    pub async fn handle_incoming_packet(&mut self, data: Vec<u8>, event_sender: &tokio::sync::broadcast::Sender<Event>, peer_addr: SocketAddr) {
+    pub async fn handle_incoming_packet(
+        &mut self,
+        data: Vec<u8>,
+        event_sender: &tokio::sync::broadcast::Sender<Event>,
+        peer_addr: SocketAddr,
+    ) {
         let parsed_rtp = match parse_rtp_packet(&data) {
             Ok(p) => p,
             Err(e) => {
@@ -110,7 +123,10 @@ impl RtpMidiSession {
                 let mut history = self.receive_history.lock().await;
 
                 // --- Gap Detection ---
-                let expected_seq = history.iter().next_back().map_or(packet.sequence_number, |&last| last.wrapping_add(1));
+                let expected_seq = history
+                    .iter()
+                    .next_back()
+                    .map_or(packet.sequence_number, |&last| last.wrapping_add(1));
                 if packet.sequence_number != expected_seq && !history.is_empty() {
                     let mut missing = Vec::new();
                     let mut seq = expected_seq;
@@ -125,16 +141,27 @@ impl RtpMidiSession {
                         // Try to recover using the journal if present
                         if let Some(journal) = &packet.journal_data {
                             let recovered = self.process_journal(journal, &mut history);
-                            let unrecovered: Vec<_> = missing.iter().filter(|seq| !recovered.contains(seq)).cloned().collect();
+                            let unrecovered: Vec<_> = missing
+                                .iter()
+                                .filter(|seq| !recovered.contains(seq))
+                                .cloned()
+                                .collect();
                             // --- Enhanced: Reconstruct and emit repaired MIDI commands for each missing sequence ---
                             for seq in &missing {
-                                if let Some(entry) = journal.entries().iter().find(|e| &e.sequence_nr == seq) {
+                                if let Some(entry) =
+                                    journal.entries().iter().find(|e| &e.sequence_nr == seq)
+                                {
                                     // Convert TimedMidiCommand to raw MIDI bytes for event
                                     let mut repaired_bytes = Vec::new();
                                     for cmd in &entry.commands {
                                         // Serialize each TimedMidiCommand to raw MIDI bytes
                                         let mut midi_bytes = Vec::new();
-                                        if let Ok(()) = rtp_midi_core::journal_engine::serialize_midi_command(&cmd.command, &mut midi_bytes) {
+                                        if let Ok(()) =
+                                            rtp_midi_core::journal_engine::serialize_midi_command(
+                                                &cmd.command,
+                                                &mut midi_bytes,
+                                            )
+                                        {
                                             repaired_bytes.extend(midi_bytes);
                                         }
                                     }
@@ -147,12 +174,18 @@ impl RtpMidiSession {
                                 }
                             }
                             if !unrecovered.is_empty() {
-                                warn!("Could not recover all missing packets from journal: {:?}", unrecovered);
+                                warn!(
+                                    "Could not recover all missing packets from journal: {:?}",
+                                    unrecovered
+                                );
                             } else {
                                 info!("Successfully recovered all missing packets from journal.");
                             }
                         } else {
-                            warn!("No journal present to recover missing packets: {:?}", missing);
+                            warn!(
+                                "No journal present to recover missing packets: {:?}",
+                                missing
+                            );
                         }
                     }
                 }
@@ -222,10 +255,13 @@ impl RtpMidiSession {
 
         let mut seq_num_lock = self.sequence_number.lock().await;
         let mut last_sent_ts_lock = self.last_sent_timestamp.lock().await;
-        
-        let current_timestamp = (tokio::time::Instant::now().elapsed().as_secs_f64() * MIDI_CLOCK_HZ) as u32;
+
+        let current_timestamp =
+            (tokio::time::Instant::now().elapsed().as_secs_f64() * MIDI_CLOCK_HZ) as u32;
         let delta_time_is_zero = commands.iter().all(|cmd| cmd.delta_time == 0);
-        let is_sysex_start = commands.first().is_some_and(|cmd| cmd.command.first().is_some_and(|&b| b == 0xF0));
+        let is_sysex_start = commands
+            .first()
+            .is_some_and(|cmd| cmd.command.first().is_some_and(|&b| b == 0xF0));
 
         let mut packet = RtpMidiPacket::new(self.ssrc, *seq_num_lock, current_timestamp);
         packet.midi_commands = commands.clone();
@@ -265,18 +301,21 @@ impl RtpMidiSession {
         }
         history_lock.push_back(JournalEntry {
             sequence_nr: packet.sequence_number,
-            commands: commands.iter().filter_map(|msg| {
-                match rtp_midi_core::parse_midi_message(&msg.command) {
-                    Ok((cmd, _)) => Some(TimedMidiCommand {
-                        delta_time: msg.delta_time,
-                        command: cmd,
-                    }),
-                    Err(e) => {
-                        warn!("Failed to parse MidiMessage for journaling: {}", e);
-                        None
-                    }
-                }
-            }).collect(),
+            commands: commands
+                .iter()
+                .filter_map(
+                    |msg| match rtp_midi_core::parse_midi_message(&msg.command) {
+                        Ok((cmd, _)) => Some(TimedMidiCommand {
+                            delta_time: msg.delta_time,
+                            command: cmd,
+                        }),
+                        Err(e) => {
+                            warn!("Failed to parse MidiMessage for journaling: {}", e);
+                            None
+                        }
+                    },
+                )
+                .collect(),
         });
 
         // Increment sequence number for the next packet.
@@ -287,7 +326,11 @@ impl RtpMidiSession {
 
     /// Processes a journal from an incoming packet, identifies missing packets,
     /// and updates the receive history. Returns a set of sequence numbers recovered.
-    fn process_journal(&self, journal_data: &JournalData, history: &mut BTreeSet<u16>) -> std::collections::HashSet<u16> {
+    fn process_journal(
+        &self,
+        journal_data: &JournalData,
+        history: &mut BTreeSet<u16>,
+    ) -> std::collections::HashSet<u16> {
         let entries = match journal_data {
             JournalData::Enhanced { entries, .. } => entries,
         };
@@ -354,7 +397,10 @@ impl RtpMidiSession {
                 break;
             }
             attempts += 1;
-            warn!("Handshake attempt {} failed, retrying after {:?}", attempts, backoff);
+            warn!(
+                "Handshake attempt {} failed, retrying after {:?}",
+                attempts, backoff
+            );
             sleep(backoff).await;
             backoff = std::cmp::min(backoff * 2, max_backoff); // Exponential backoff
         }
@@ -370,7 +416,11 @@ impl RtpMidiSession {
     }
 
     /// Handles a control message from a remote peer.
-    pub async fn handle_control_message(&self, msg: AppleMidiMessage, peer_addr: SocketAddr) -> Result<()> {
+    pub async fn handle_control_message(
+        &self,
+        msg: AppleMidiMessage,
+        peer_addr: SocketAddr,
+    ) -> Result<()> {
         let mut state = self.session_state.lock().await;
         match msg {
             AppleMidiMessage::Invitation(inv) => {
@@ -389,7 +439,9 @@ impl RtpMidiSession {
                 }
             }
             AppleMidiMessage::InvitationAccepted(ok) => {
-                if *state == SessionState::AwaitingOK && ok.header.initiator_token == self.initiator_token {
+                if *state == SessionState::AwaitingOK
+                    && ok.header.initiator_token == self.initiator_token
+                {
                     info!("Invitation accepted by {}. Session established.", ok.name);
                     *self.peer_ssrc.lock().await = Some(ok.header.ssrc);
                     *state = SessionState::Established;
@@ -400,7 +452,8 @@ impl RtpMidiSession {
             AppleMidiMessage::Sync(sync) => {
                 // This is a simplified clock sync. A full implementation would handle CK0, CK1, CK2.
                 if *state == SessionState::Established || *state == SessionState::ClockSync {
-                    if sync.count == 0 { // Peer initiated sync (CK0)
+                    if sync.count == 0 {
+                        // Peer initiated sync (CK0)
                         info!("Received CK0, responding with CK1.");
                         let response = AppleMidiMessage::Sync(AppleMidiSync::new(
                             self.ssrc,
@@ -408,7 +461,8 @@ impl RtpMidiSession {
                             sync.timestamps, // Echo back timestamps
                         ));
                         self.send_control_message(&response).await?;
-                    } else if sync.count == 1 { // We initiated, this is CK1 response
+                    } else if sync.count == 1 {
+                        // We initiated, this is CK1 response
                         info!("Received CK1, sending CK2 and finalizing sync.");
                         let response = AppleMidiMessage::Sync(AppleMidiSync::new(
                             self.ssrc,
@@ -423,7 +477,10 @@ impl RtpMidiSession {
                     }
                 }
             }
-            _ => warn!("Received unexpected control message in state {:?}: {:?}", *state, msg),
+            _ => warn!(
+                "Received unexpected control message in state {:?}: {:?}",
+                *state, msg
+            ),
         }
         Ok(())
     }
@@ -454,7 +511,7 @@ impl RtpMidiSession {
 
         let sync_msg = AppleMidiMessage::Sync(AppleMidiSync::new(
             self.ssrc,
-            0, // This is CK0
+            0,         // This is CK0
             [0, 0, 0], // Timestamps are filled by the receiver
         ));
 
@@ -490,7 +547,10 @@ impl RtpMidiSession {
                 break;
             }
             attempts += 1;
-            warn!("Clock sync attempt {} failed, retrying after {:?}", attempts, backoff);
+            warn!(
+                "Clock sync attempt {} failed, retrying after {:?}",
+                attempts, backoff
+            );
             sleep(backoff).await;
             backoff = std::cmp::min(backoff * 2, max_backoff); // Exponential backoff
         }
@@ -533,15 +593,27 @@ impl DataStreamNetSender for RtpMidiSession {
         match rtp_midi_core::parse_midi_message(payload) {
             Ok((_cmd, _)) => {
                 // Wrap in MidiMessage with delta_time = 0 for now
-                let midi_msg = MidiMessage { delta_time: 0, command: payload.to_vec() };
+                let midi_msg = MidiMessage {
+                    delta_time: 0,
+                    command: payload.to_vec(),
+                };
                 // This is a sync function, but send_midi is async, so we just log for now
                 // In production, this should be refactored for async context
-                warn!("DataStreamNetSender::send called, but send_midi is async. Message: {:?}", midi_msg);
+                warn!(
+                    "DataStreamNetSender::send called, but send_midi is async. Message: {:?}",
+                    midi_msg
+                );
                 Ok(())
-            },
+            }
             Err(e) => {
-                warn!("Failed to parse MIDI payload in DataStreamNetSender::send: {}", e);
-                Err(StreamError::Other(format!("Failed to parse MIDI payload: {}", e)))
+                warn!(
+                    "Failed to parse MIDI payload in DataStreamNetSender::send: {}",
+                    e
+                );
+                Err(StreamError::Other(format!(
+                    "Failed to parse MIDI payload: {}",
+                    e
+                )))
             }
         }
     }

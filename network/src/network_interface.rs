@@ -1,10 +1,10 @@
 // rtp_midi_lib/src/network_interface.rs
 
 use anyhow::Result;
-use tokio::net::UdpSocket;
-use tokio::sync::{broadcast, watch};
 use log::{error, info};
 use std::sync::Arc;
+use tokio::net::UdpSocket;
+use tokio::sync::{broadcast, watch};
 
 use rtp_midi_core::event_bus::Event;
 
@@ -73,4 +73,4 @@ pub async fn start_network_interface(
 
     let _ = udp_task.await;
     Ok(())
-} 
+}

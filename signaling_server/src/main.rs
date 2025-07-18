@@ -44,7 +44,7 @@ pub enum SignalingMessage {
     RegisterSuccess {
         message_type: String,
         payload: serde_json::Value,
-    }
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -55,7 +55,17 @@ pub struct ClientNotification {
 
 #[derive(Clone)]
 pub struct Clients {
-    peers: Arc<Mutex<HashMap<String, (PeerType, mpsc::Sender<Result<Message, tokio_tungstenite::tungstenite::Error>>)>>>,
+    peers: Arc<
+        Mutex<
+            HashMap<
+                String,
+                (
+                    PeerType,
+                    mpsc::Sender<Result<Message, tokio_tungstenite::tungstenite::Error>>,
+                ),
+            >,
+        >,
+    >,
 }
 
 impl Default for Clients {
@@ -71,9 +81,17 @@ impl Clients {
         }
     }
 
-    pub fn register(&self, client_id: String, peer_type: PeerType, tx: mpsc::Sender<Result<Message, tokio_tungstenite::tungstenite::Error>>) {
+    pub fn register(
+        &self,
+        client_id: String,
+        peer_type: PeerType,
+        tx: mpsc::Sender<Result<Message, tokio_tungstenite::tungstenite::Error>>,
+    ) {
         info!("Registering client: {} ({:?})", client_id, peer_type);
-        self.peers.lock().unwrap().insert(client_id, (peer_type, tx));
+        self.peers
+            .lock()
+            .unwrap()
+            .insert(client_id, (peer_type, tx));
     }
 
     pub fn unregister(&self, client_id: &str) {
@@ -81,22 +99,43 @@ impl Clients {
         self.peers.lock().unwrap().remove(client_id);
     }
 
-    pub fn get_audio_server(&self) -> Option<(String, mpsc::Sender<Result<Message, tokio_tungstenite::tungstenite::Error>>)> {
-        self.peers.lock().unwrap().iter().find_map(|(id, (peer_type, tx))| {
-            if *peer_type == PeerType::AudioServer {
-                Some((id.clone(), tx.clone()))
-            } else {
-                None
-            }
-        })
+    pub fn get_audio_server(
+        &self,
+    ) -> Option<(
+        String,
+        mpsc::Sender<Result<Message, tokio_tungstenite::tungstenite::Error>>,
+    )> {
+        self.peers
+            .lock()
+            .unwrap()
+            .iter()
+            .find_map(|(id, (peer_type, tx))| {
+                if *peer_type == PeerType::AudioServer {
+                    Some((id.clone(), tx.clone()))
+                } else {
+                    None
+                }
+            })
     }
 
-    pub fn get_peer(&self, client_id: &str) -> Option<mpsc::Sender<Result<Message, tokio_tungstenite::tungstenite::Error>>> {
-        self.peers.lock().unwrap().get(client_id).map(|(_, tx)| tx.clone())
+    pub fn get_peer(
+        &self,
+        client_id: &str,
+    ) -> Option<mpsc::Sender<Result<Message, tokio_tungstenite::tungstenite::Error>>> {
+        self.peers
+            .lock()
+            .unwrap()
+            .get(client_id)
+            .map(|(_, tx)| tx.clone())
     }
 
     pub fn get_all_clients(&self) -> Vec<(String, PeerType)> {
-        self.peers.lock().unwrap().iter().map(|(id, (peer_type, _))| (id.clone(), peer_type.clone())).collect()
+        self.peers
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|(id, (peer_type, _))| (id.clone(), peer_type.clone()))
+            .collect()
     }
 }
 
@@ -150,14 +189,24 @@ pub async fn handle_connection(clients: Clients, stream: TcpStream) {
 
             match serde_json::from_str::<SignalingMessage>(text) {
                 Ok(SignalingMessage::Register { payload, .. }) => {
-                    info!("Client {} registered as {:?}", payload.client_id, payload.peer_type);
+                    info!(
+                        "Client {} registered as {:?}",
+                        payload.client_id, payload.peer_type
+                    );
                     peer_type_opt = Some(payload.peer_type.clone());
-                    clients.register(payload.client_id.clone(), payload.peer_type.clone(), tx.clone());
+                    clients.register(
+                        payload.client_id.clone(),
+                        payload.peer_type.clone(),
+                        tx.clone(),
+                    );
 
                     let all_clients: Vec<ClientNotification> = clients
                         .get_all_clients()
                         .into_iter()
-                        .map(|(id, peer_type)| ClientNotification { client_id: id, peer_type })
+                        .map(|(id, peer_type)| ClientNotification {
+                            client_id: id,
+                            peer_type,
+                        })
                         .collect();
                     let response = SignalingMessage::ClientList {
                         message_type: "client_list".to_string(),
@@ -174,7 +223,10 @@ pub async fn handle_connection(clients: Clients, stream: TcpStream) {
                         notify_audio_server_of_new_client(&clients, &payload.client_id).await;
                     }
                 }
-                _ => warn!("Unhandled signaling message type or malformed message: {}", text),
+                _ => warn!(
+                    "Unhandled signaling message type or malformed message: {}",
+                    text
+                ),
             }
         } else if msg.is_close() {
             info!("Connection closed by client: {}", peer_addr);
@@ -191,7 +243,10 @@ pub async fn handle_connection(clients: Clients, stream: TcpStream) {
 
 async fn notify_audio_server_of_new_client(clients: &Clients, client_id: &str) {
     if let Some((audio_server_id, audio_server_tx)) = clients.get_audio_server() {
-        info!("Notifying audio server {} about new client {}", audio_server_id, client_id);
+        info!(
+            "Notifying audio server {} about new client {}",
+            audio_server_id, client_id
+        );
         let notification = ClientNotification {
             client_id: client_id.to_string(),
             peer_type: PeerType::ClientApp,
@@ -201,7 +256,10 @@ async fn notify_audio_server_of_new_client(clients: &Clients, client_id: &str) {
             clients: vec![notification],
         };
         if let Ok(msg_text) = serde_json::to_string(&msg) {
-            if let Err(e) = audio_server_tx.send(Ok(Message::Text(msg_text.into()))).await {
+            if let Err(e) = audio_server_tx
+                .send(Ok(Message::Text(msg_text.into())))
+                .await
+            {
                 error!("Failed to notify audio server: {}", e);
             }
         }
@@ -219,7 +277,6 @@ pub async fn run_server(listener: TcpListener) -> anyhow::Result<()> {
     }
 }
 
-
 // Hlavní funkce pro spuštění binárky
 #[tokio::main]
 async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
@@ -228,7 +285,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
 
     let addr = "127.0.0.1:8080";
     let listener = TcpListener::bind(addr).await?;
-    
+
     info!("Starting signaling server on {}", addr);
 
     // Volání funkce `run_server`, kterou jsme zkopírovali výše
@@ -237,4 +294,4 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
-} 
+}

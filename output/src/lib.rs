@@ -13,23 +13,23 @@ mod tests {
     }
 }
 
-pub mod wled_control;
 pub mod ddp_output;
 pub mod light_mapper;
+pub mod wled_control;
 
 #[cfg(feature = "hal_esp32")]
-use crate::wled_control::WledSender;
-#[cfg(feature = "hal_esp32")]
 use crate::ddp_output::DdpSender;
+#[cfg(feature = "hal_esp32")]
+use crate::wled_control::WledSender;
 #[cfg(feature = "hal_esp32")]
 use core::DataStreamNetSender;
 #[cfg(feature = "hal_esp32")]
 
 /// Enum dispatch pro embedded buildy (ESP32).
-/// 
+///
 /// Umožňuje staticky vybírat mezi různými výstupy (WLED, DDP, ...),
 /// což vede k menší binárce a žádnému RTTI na embedded platformách.
-/// 
+///
 /// Příklad použití:
 /// #[cfg(feature = "hal_esp32")]
 /// let mut sender = StreamSender::Wled(WledSender::new("192.168.1.100".to_string()));

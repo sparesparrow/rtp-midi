@@ -1,17 +1,19 @@
-use rustfft::{FftPlanner, num_complex::Complex};
+use rustfft::{num_complex::Complex, FftPlanner};
 
 /// Performs FFT on the input buffer and returns normalized magnitudes.
 pub fn compute_fft_magnitudes(input: &[f32], prev: &mut Vec<f32>, smoothing: f32) -> Vec<f32> {
     let len = input.len().next_power_of_two();
     let mut planner = FftPlanner::<f32>::new();
     let fft = planner.plan_fft_forward(len);
-    let mut buffer: Vec<Complex<f32>> = input.iter().map(|&x| Complex{ re: x, im: 0.0 }).collect();
-    buffer.resize(len, Complex{ re: 0.0, im: 0.0 });
+    let mut buffer: Vec<Complex<f32>> = input.iter().map(|&x| Complex { re: x, im: 0.0 }).collect();
+    buffer.resize(len, Complex { re: 0.0, im: 0.0 });
     fft.process(&mut buffer);
     let mut mags: Vec<f32> = buffer.iter().map(|c| c.norm()).collect();
     // Normalize
     let max = mags.iter().cloned().fold(0.0_f32, f32::max).max(1e-6);
-    for m in mags.iter_mut() { *m /= max; }
+    for m in mags.iter_mut() {
+        *m /= max;
+    }
     // Smoothing (simple moving average with previous frame)
     if prev.len() == mags.len() {
         for (m, p) in mags.iter_mut().zip(prev.iter()) {
@@ -39,8 +41,17 @@ mod tests {
         let mut prev = vec![];
         let mags = compute_fft_magnitudes(&input, &mut prev, 0.0);
         // The magnitude should peak at bin 4 or n-4 (due to symmetry)
-        let max_idx = mags.iter().enumerate().max_by(|a, b| a.1.partial_cmp(b.1).unwrap()).unwrap().0;
-        assert!(max_idx == freq_bin || max_idx == n - freq_bin, "Peak at wrong bin: {}", max_idx);
+        let max_idx = mags
+            .iter()
+            .enumerate()
+            .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+            .unwrap()
+            .0;
+        assert!(
+            max_idx == freq_bin || max_idx == n - freq_bin,
+            "Peak at wrong bin: {}",
+            max_idx
+        );
         // The peak should be much higher than the average
         let peak = mags[max_idx];
         let avg = mags.iter().sum::<f32>() / mags.len() as f32;
@@ -60,4 +71,4 @@ mod tests {
             assert!((*m - m1 * 0.5).abs() < 1e-3, "Smoothing failed");
         }
     }
-} 
+}

@@ -25,7 +25,12 @@ pub fn map_audio_to_leds_spectrum(magnitudes: &[f32], led_count: usize) -> Vec<u
     for i in 0..led_count {
         let hue = i as f32 / led_count as f32;
         let magnitude_index = (i as f32 / led_count as f32 * magnitudes.len() as f32) as usize;
-        let brightness = magnitudes.get(magnitude_index).cloned().unwrap_or(0.0).sqrt() * 2.0;
+        let brightness = magnitudes
+            .get(magnitude_index)
+            .cloned()
+            .unwrap_or(0.0)
+            .sqrt()
+            * 2.0;
         let (r, g, b) = hsv_to_rgb(hue, 1.0, brightness.min(1.0));
         leds.push(r);
         leds.push(g);
@@ -93,8 +98,8 @@ mod mapping_tests {
         let mags = vec![0.5, 0.5, 0.5];
         let leds = map_audio_to_leds_vumeter(&mags, 4);
         // Should light up 2 LEDs (rounded)
-        assert_eq!(leds[0..6], [0,255,0,0,255,0]);
-        assert_eq!(leds[6..], [10,10,10,10,10,10]);
+        assert_eq!(leds[0..6], [0, 255, 0, 0, 255, 0]);
+        assert_eq!(leds[6..], [10, 10, 10, 10, 10, 10]);
     }
 
     #[test]
@@ -108,6 +113,6 @@ mod mapping_tests {
     fn test_map_leds_with_preset_vumeter() {
         let mags = vec![1.0, 1.0, 1.0];
         let leds = map_leds_with_preset(&mags, 3, MappingPreset::VuMeter);
-        assert_eq!(leds, vec![0,255,0,0,255,0,0,255,0]);
+        assert_eq!(leds, vec![0, 255, 0, 0, 255, 0, 0, 255, 0]);
     }
-} 
+}

@@ -1,20 +1,24 @@
 use anyhow::Result;
 use cpal::traits::{DeviceTrait, HostTrait};
 use cpal::{Sample, SampleFormat};
-use tokio::sync::broadcast;
-use rustfft::num_traits;
 use rtp_midi_core::event_bus::Event;
+use rustfft::num_traits;
+use tokio::sync::broadcast;
 
 /// Starts audio capture from the specified device (or default if None).
 /// Sends audio buffers (Vec<f32>) to the provided channel sender.
-pub fn start_audio_input(device_name: Option<&str>, tx: broadcast::Sender<Event>) -> Result<cpal::Stream> {
+pub fn start_audio_input(
+    device_name: Option<&str>,
+    tx: broadcast::Sender<Event>,
+) -> Result<cpal::Stream> {
     let host = cpal::default_host();
     let device = if let Some(name) = device_name {
         host.input_devices()?
             .find(|d| d.name().map(|n| n == name).unwrap_or(false))
             .ok_or_else(|| anyhow::anyhow!("Audio device not found: {}", name))?
     } else {
-        host.default_input_device().ok_or_else(|| anyhow::anyhow!("No default audio input device"))?
+        host.default_input_device()
+            .ok_or_else(|| anyhow::anyhow!("No default audio input device"))?
     };
     let config = device.default_input_config()?;
     let sample_format = config.sample_format();
@@ -26,7 +30,10 @@ pub fn start_audio_input(device_name: Option<&str>, tx: broadcast::Sender<Event>
         SampleFormat::U16 => build_input_stream::<u16>(&device, &config, tx.clone(), err_fn)?,
         _ => {
             log::error!("Unsupported sample format: {:?}", sample_format);
-            return Err(anyhow::anyhow!("Unsupported sample format: {:?}", sample_format));
+            return Err(anyhow::anyhow!(
+                "Unsupported sample format: {:?}",
+                sample_format
+            ));
         }
     };
     Ok(stream)
@@ -44,8 +51,7 @@ where
     let _channels = config.channels as usize;
     let stream = device.build_input_stream(
         config,
-        move |data: &[T], _|
-        {
+        move |data: &[T], _| {
             let mut buffer = Vec::with_capacity(data.len());
             for &sample in data {
                 buffer.push(num_traits::ToPrimitive::to_f32(&sample).unwrap_or(0.0));

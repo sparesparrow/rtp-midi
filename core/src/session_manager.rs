@@ -1,8 +1,8 @@
-use crate::event_bus::{Event};
-use tokio::sync::mpsc::{Sender, Receiver};
+use crate::event_bus::Event;
+use log::{error, info, warn};
 use std::net::SocketAddr;
-use log::{info, warn, error};
 use std::time::{SystemTime, UNIX_EPOCH};
+use tokio::sync::mpsc::{Receiver, Sender};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SessionState {
@@ -42,29 +42,56 @@ impl SessionManager {
 
     async fn process_event(&mut self, event: Event) {
         match event {
-            Event::RawPacketReceived { payload, source_addr } => {
+            Event::RawPacketReceived {
+                payload,
+                source_addr,
+            } => {
                 // Parse AppleMIDI control packet (IN, OK, NO, BY, CK)
                 if let Some(cmd) = Self::parse_applemidi_command(&payload) {
                     match cmd {
-                        AppleMidiCommand::Invitation { initiator_token, ssrc, name } => {
+                        AppleMidiCommand::Invitation {
+                            initiator_token,
+                            ssrc,
+                            name,
+                        } => {
                             // Handle invitation (IN)
-                            self.handle_invitation(initiator_token, ssrc, name, source_addr).await;
+                            self.handle_invitation(initiator_token, ssrc, name, source_addr)
+                                .await;
                         }
-                        AppleMidiCommand::InvitationAccepted { initiator_token, ssrc, name } => {
+                        AppleMidiCommand::InvitationAccepted {
+                            initiator_token,
+                            ssrc,
+                            name,
+                        } => {
                             // Handle invitation accepted (OK)
-                            self.handle_invitation_accepted(initiator_token, ssrc, name, source_addr).await;
+                            self.handle_invitation_accepted(
+                                initiator_token,
+                                ssrc,
+                                name,
+                                source_addr,
+                            )
+                            .await;
                         }
-                        AppleMidiCommand::InvitationRejected { initiator_token, ssrc } => {
+                        AppleMidiCommand::InvitationRejected {
+                            initiator_token,
+                            ssrc,
+                        } => {
                             // Handle invitation rejected (NO)
-                            self.handle_invitation_rejected(initiator_token, ssrc, source_addr).await;
+                            self.handle_invitation_rejected(initiator_token, ssrc, source_addr)
+                                .await;
                         }
                         AppleMidiCommand::EndSession { ssrc } => {
                             // Handle session termination (BY)
                             self.handle_end_session(ssrc, source_addr).await;
                         }
-                        AppleMidiCommand::ClockSync { count, timestamps, ssrc } => {
+                        AppleMidiCommand::ClockSync {
+                            count,
+                            timestamps,
+                            ssrc,
+                        } => {
                             // Handle clock sync (CK)
-                            self.handle_clock_sync(count, timestamps, ssrc, source_addr).await;
+                            self.handle_clock_sync(count, timestamps, ssrc, source_addr)
+                                .await;
                         }
                     }
                 } else {
@@ -88,7 +115,8 @@ impl SessionManager {
                     return None;
                 }
                 let _protocol_version = u16::from_be_bytes([payload[2], payload[3]]);
-                let initiator_token = u32::from_be_bytes([payload[4], payload[5], payload[6], payload[7]]);
+                let initiator_token =
+                    u32::from_be_bytes([payload[4], payload[5], payload[6], payload[7]]);
                 let ssrc = u32::from_be_bytes([payload[8], payload[9], payload[10], payload[11]]);
                 // Name is optional and null-terminated
                 let name = if payload.len() > 12 {
@@ -103,9 +131,20 @@ impl SessionManager {
                     None
                 };
                 match cmd {
-                    b"IN" => Some(AppleMidiCommand::Invitation { initiator_token, ssrc, name }),
-                    b"OK" => Some(AppleMidiCommand::InvitationAccepted { initiator_token, ssrc, name }),
-                    b"NO" => Some(AppleMidiCommand::InvitationRejected { initiator_token, ssrc }),
+                    b"IN" => Some(AppleMidiCommand::Invitation {
+                        initiator_token,
+                        ssrc,
+                        name,
+                    }),
+                    b"OK" => Some(AppleMidiCommand::InvitationAccepted {
+                        initiator_token,
+                        ssrc,
+                        name,
+                    }),
+                    b"NO" => Some(AppleMidiCommand::InvitationRejected {
+                        initiator_token,
+                        ssrc,
+                    }),
                     _ => None,
                 }
             }
@@ -128,17 +167,29 @@ impl SessionManager {
                 for i in 0..3 {
                     let start = 8 + i * 8;
                     let end = start + 8;
-                    if end > payload.len() { return None; }
+                    if end > payload.len() {
+                        return None;
+                    }
                     timestamps[i] = u64::from_be_bytes(payload[start..end].try_into().ok()?);
                 }
-                Some(AppleMidiCommand::ClockSync { count, timestamps, ssrc })
+                Some(AppleMidiCommand::ClockSync {
+                    count,
+                    timestamps,
+                    ssrc,
+                })
             }
             _ => None,
         }
     }
 
     // Placeholder: handle invitation (IN)
-    async fn handle_invitation(&mut self, initiator_token: u32, ssrc: u32, _name: Option<String>, source_addr: SocketAddr) {
+    async fn handle_invitation(
+        &mut self,
+        initiator_token: u32,
+        ssrc: u32,
+        _name: Option<String>,
+        source_addr: SocketAddr,
+    ) {
         // AppleMIDI handshake responder logic
         match self.state {
             SessionState::Disconnected => {
@@ -160,10 +211,13 @@ impl SessionManager {
                     payload.push(0);
                 }
                 // Send OK response
-                let _ = self.event_sender.send(Event::SendPacket {
-                    payload,
-                    dest_addr: source_addr,
-                }).await;
+                let _ = self
+                    .event_sender
+                    .send(Event::SendPacket {
+                        payload,
+                        dest_addr: source_addr,
+                    })
+                    .await;
                 // Optionally: log or notify
             }
             _ => {
@@ -174,16 +228,25 @@ impl SessionManager {
                 payload.extend_from_slice(&initiator_token.to_be_bytes());
                 payload.extend_from_slice(&ssrc.to_be_bytes());
                 // No name for NO response
-                let _ = self.event_sender.send(Event::SendPacket {
-                    payload,
-                    dest_addr: source_addr,
-                }).await;
+                let _ = self
+                    .event_sender
+                    .send(Event::SendPacket {
+                        payload,
+                        dest_addr: source_addr,
+                    })
+                    .await;
             }
         }
     }
 
     // Placeholder: handle invitation accepted (OK)
-    async fn handle_invitation_accepted(&mut self, initiator_token: u32, ssrc: u32, _name: Option<String>, source_addr: SocketAddr) {
+    async fn handle_invitation_accepted(
+        &mut self,
+        initiator_token: u32,
+        ssrc: u32,
+        _name: Option<String>,
+        source_addr: SocketAddr,
+    ) {
         // AppleMIDI handshake: handle OK response
         match self.state {
             SessionState::Handshaking => {
@@ -201,10 +264,13 @@ impl SessionManager {
                 payload.extend_from_slice(&now.to_be_bytes()); // timestamp1
                 payload.extend_from_slice(&0u64.to_be_bytes()); // timestamp2 (zero)
                 payload.extend_from_slice(&0u64.to_be_bytes()); // timestamp3 (zero)
-                let _ = self.event_sender.send(Event::SendPacket {
-                    payload,
-                    dest_addr: source_addr,
-                }).await;
+                let _ = self
+                    .event_sender
+                    .send(Event::SendPacket {
+                        payload,
+                        dest_addr: source_addr,
+                    })
+                    .await;
                 self.state = SessionState::Syncing;
             }
             _ => {
@@ -214,7 +280,12 @@ impl SessionManager {
     }
 
     // Placeholder: handle invitation rejected (NO)
-    async fn handle_invitation_rejected(&mut self, _initiator_token: u32, _ssrc: u32, _source_addr: SocketAddr) {
+    async fn handle_invitation_rejected(
+        &mut self,
+        _initiator_token: u32,
+        _ssrc: u32,
+        _source_addr: SocketAddr,
+    ) {
         // Invitation rejected, reset state
         self.state = SessionState::Disconnected;
         // Emit event: SessionRejected
@@ -226,13 +297,20 @@ impl SessionManager {
         // Session terminated
         self.state = SessionState::Disconnected;
         // Emit event: SessionTerminated
-        let _ = self.event_sender.send(Event::SessionTerminated {
-            peer: source_addr,
-        }).await;
+        let _ = self
+            .event_sender
+            .send(Event::SessionTerminated { peer: source_addr })
+            .await;
     }
 
     // Placeholder: handle clock sync (CK)
-    async fn handle_clock_sync(&mut self, count: u8, timestamps: [u64; 3], ssrc: u32, source_addr: SocketAddr) {
+    async fn handle_clock_sync(
+        &mut self,
+        count: u8,
+        timestamps: [u64; 3],
+        ssrc: u32,
+        source_addr: SocketAddr,
+    ) {
         // AppleMIDI CK three-way exchange
         match self.state {
             SessionState::Syncing => {
@@ -248,10 +326,13 @@ impl SessionManager {
                         payload.extend_from_slice(&timestamps[0].to_be_bytes()); // timestamp1 (from peer)
                         payload.extend_from_slice(&now.to_be_bytes()); // timestamp2 (our time)
                         payload.extend_from_slice(&0u64.to_be_bytes()); // timestamp3 (zero)
-                        let _ = self.event_sender.send(Event::SendPacket {
-                            payload,
-                            dest_addr: source_addr,
-                        }).await;
+                        let _ = self
+                            .event_sender
+                            .send(Event::SendPacket {
+                                payload,
+                                dest_addr: source_addr,
+                            })
+                            .await;
                     }
                     1 => {
                         // Received CK1, respond with CK2
@@ -264,24 +345,29 @@ impl SessionManager {
                         payload.extend_from_slice(&timestamps[0].to_be_bytes()); // timestamp1 (from peer)
                         payload.extend_from_slice(&timestamps[1].to_be_bytes()); // timestamp2 (from peer)
                         payload.extend_from_slice(&now.to_be_bytes()); // timestamp3 (our time)
-                        let _ = self.event_sender.send(Event::SendPacket {
-                            payload,
-                            dest_addr: source_addr,
-                        }).await;
+                        let _ = self
+                            .event_sender
+                            .send(Event::SendPacket {
+                                payload,
+                                dest_addr: source_addr,
+                            })
+                            .await;
                         // Session is now established
                         self.state = SessionState::Connected;
                         // Emit event: SessionEstablished
-                        let _ = self.event_sender.send(Event::SessionEstablished {
-                            peer: source_addr,
-                        }).await;
+                        let _ = self
+                            .event_sender
+                            .send(Event::SessionEstablished { peer: source_addr })
+                            .await;
                     }
                     2 => {
                         // Received CK2, handshake complete
                         self.state = SessionState::Connected;
                         // Emit event: SessionEstablished
-                        let _ = self.event_sender.send(Event::SessionEstablished {
-                            peer: source_addr,
-                        }).await;
+                        let _ = self
+                            .event_sender
+                            .send(Event::SessionEstablished { peer: source_addr })
+                            .await;
                     }
                     _ => {}
                 }
@@ -293,16 +379,36 @@ impl SessionManager {
     fn current_timestamp() -> u64 {
         // Return current time in microseconds since epoch (placeholder)
         use std::time::{SystemTime, UNIX_EPOCH};
-        SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_micros() as u64
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_micros() as u64
     }
 }
 
 // Enum for AppleMIDI control commands
 #[derive(Debug, Clone)]
 enum AppleMidiCommand {
-    Invitation { initiator_token: u32, ssrc: u32, name: Option<String> },
-    InvitationAccepted { initiator_token: u32, ssrc: u32, name: Option<String> },
-    InvitationRejected { initiator_token: u32, ssrc: u32 },
-    EndSession { ssrc: u32 },
-    ClockSync { count: u8, timestamps: [u64; 3], ssrc: u32 },
-} 
+    Invitation {
+        initiator_token: u32,
+        ssrc: u32,
+        name: Option<String>,
+    },
+    InvitationAccepted {
+        initiator_token: u32,
+        ssrc: u32,
+        name: Option<String>,
+    },
+    InvitationRejected {
+        initiator_token: u32,
+        ssrc: u32,
+    },
+    EndSession {
+        ssrc: u32,
+    },
+    ClockSync {
+        count: u8,
+        timestamps: [u64; 3],
+        ssrc: u32,
+    },
+}

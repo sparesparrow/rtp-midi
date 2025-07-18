@@ -16,16 +16,16 @@ mod tests {
 }
 
 pub mod event_bus;
-pub mod network_interface;
-pub mod session_manager;
-pub mod mapping;
-pub mod packet_processor;
 pub mod journal_engine;
+pub mod mapping;
+pub mod network_interface;
+pub mod packet_processor;
+pub mod session_manager;
 
 use std::fmt;
 
 /// Chyba při práci se streamem.
-/// 
+///
 /// Používá se ve všech implementacích DataStreamNetSender/Receiver pro sjednocené API napříč platformami.
 #[derive(Debug)]
 pub enum StreamError {
@@ -56,7 +56,7 @@ impl From<std::io::Error> for StreamError {
 }
 
 /// Trait pro odesílače datových streamů (síť, HW, ...).
-/// 
+///
 /// Implementujte pro každý typ výstupu (WLED, DDP, DMX, ...).
 /// Umožňuje jednotné API napříč platformami a buildy.
 pub trait DataStreamNetSender {
@@ -71,7 +71,7 @@ pub trait DataStreamNetSender {
 }
 
 /// Trait pro přijímače datových streamů (síť, HW, ...).
-/// 
+///
 /// Implementujte pro každý typ vstupu (RTP-MIDI, DDP, ...).
 pub trait DataStreamNetReceiver {
     /// Inicializace přijímače
@@ -81,7 +81,7 @@ pub trait DataStreamNetReceiver {
 }
 
 /// Mock implementace DataStreamNetSender pro testování a dependency injection.
-/// 
+///
 /// Umožňuje testovat logiku bez skutečného síťového/hardware výstupu.
 /// Příklad použití v testu viz níže.
 pub struct MockSender {
@@ -126,16 +126,23 @@ pub use crate::journal_engine::{JournalData, JournalEntry};
 
 // === Shared Data Models and MIDI Parsing Logic (moved from utils) ===
 
-use serde::{Deserialize, Serialize};
 use anyhow::{anyhow, Result};
 use bytes::{Buf, Bytes};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
 pub enum Event {
     AudioDataReady(Vec<f32>),
     MidiMessageReceived(Vec<u8>),
-    RawPacketReceived { source: String, data: Vec<u8> },
-    SendPacket { destination: String, port: u16, data: Vec<u8> },
+    RawPacketReceived {
+        source: String,
+        data: Vec<u8>,
+    },
+    SendPacket {
+        destination: String,
+        port: u16,
+        data: Vec<u8>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -157,11 +164,25 @@ pub enum InputEvent {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum WledOutputAction {
-    SetPreset { id: i32 },
-    SetBrightness { value: u8 },
-    SetColor { r: u8, g: u8, b: u8 },
-    SetEffect { id: i32, speed: Option<u8>, intensity: Option<u8> },
-    SetPalette { id: i32 },
+    SetPreset {
+        id: i32,
+    },
+    SetBrightness {
+        value: u8,
+    },
+    SetColor {
+        r: u8,
+        g: u8,
+        b: u8,
+    },
+    SetEffect {
+        id: i32,
+        speed: Option<u8>,
+        intensity: Option<u8>,
+    },
+    SetPalette {
+        id: i32,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -180,14 +201,31 @@ impl Mapping {
     /// Returns true if this mapping matches the given MIDI command.
     pub fn matches_midi_command(&self, command: &MidiCommand) -> bool {
         match (&self.input, command) {
-            (InputEvent::MidiNoteOn { note, velocity: note_vel }, MidiCommand::NoteOn { channel: _, key, velocity: cmd_vel }) => {
+            (
+                InputEvent::MidiNoteOn {
+                    note,
+                    velocity: note_vel,
+                },
+                MidiCommand::NoteOn {
+                    channel: _,
+                    key,
+                    velocity: cmd_vel,
+                },
+            ) => {
                 (note.is_none() || *note == Some(*key))
                     && (note_vel.is_none() || *note_vel == Some(*cmd_vel))
-            },
-            (InputEvent::MidiControlChange { controller, value }, MidiCommand::ControlChange { channel: _, control, value: cc_val }) => {
+            }
+            (
+                InputEvent::MidiControlChange { controller, value },
+                MidiCommand::ControlChange {
+                    channel: _,
+                    control,
+                    value: cc_val,
+                },
+            ) => {
                 (controller.is_none() || *controller == Some(*control))
                     && (value.is_none() || *value == Some(*cc_val))
-            },
+            }
             _ => false,
         }
     }
@@ -264,11 +302,17 @@ pub fn parse_midi_message(data: &[u8]) -> Result<(MidiCommand, usize)> {
     let mut reader = Bytes::copy_from_slice(data);
     let status_byte = reader.chunk()[0];
     if status_byte < 0x80 {
-        return Err(anyhow!("Running status not supported in this parser (yet)."));
+        return Err(anyhow!(
+            "Running status not supported in this parser (yet)."
+        ));
     }
     let command_length = midi_command_length(status_byte)?;
     if reader.len() < command_length {
-        return Err(anyhow!("Incomplete MIDI message: Expected {} bytes, got {}", command_length, reader.len()));
+        return Err(anyhow!(
+            "Incomplete MIDI message: Expected {} bytes, got {}",
+            command_length,
+            reader.len()
+        ));
     }
     let command_slice = reader.copy_to_bytes(command_length);
     let mut command_reader = command_slice;
@@ -285,22 +329,23 @@ pub fn midi_command_length(status_byte: u8) -> Result<usize> {
         0xC0 => Ok(2),
         0xD0 => Ok(2),
         0xE0 => Ok(3),
-        0xF0 => {
-            match status_byte {
-                0xF0 => Ok(1),
-                0xF1 => Ok(2),
-                0xF2 => Ok(3),
-                0xF3 => Ok(2),
-                0xF6 => Ok(1),
-                0xF8 => Ok(1),
-                0xFA => Ok(1),
-                0xFB => Ok(1),
-                0xFC => Ok(1),
-                0xFE => Ok(1),
-                0xFF => Ok(1),
-                _ => Err(anyhow!("Unknown System Common/Real-Time message: 0x{:X}", status_byte)),
-            }
-        }
+        0xF0 => match status_byte {
+            0xF0 => Ok(1),
+            0xF1 => Ok(2),
+            0xF2 => Ok(3),
+            0xF3 => Ok(2),
+            0xF6 => Ok(1),
+            0xF8 => Ok(1),
+            0xFA => Ok(1),
+            0xFB => Ok(1),
+            0xFC => Ok(1),
+            0xFE => Ok(1),
+            0xFF => Ok(1),
+            _ => Err(anyhow!(
+                "Unknown System Common/Real-Time message: 0x{:X}",
+                status_byte
+            )),
+        },
         _ => Err(anyhow!("Unknown MIDI status byte: 0x{:X}", status_byte)),
     }
 }
@@ -412,10 +457,16 @@ impl MidiCommand {
                     0xFB => Ok(MidiCommand::Continue),
                     0xFC => Ok(MidiCommand::Stop),
                     0xFE => Ok(MidiCommand::ActiveSensing),
-                    _ => Ok(MidiCommand::Unknown { status: status_byte, data: data.to_vec() }),
+                    _ => Ok(MidiCommand::Unknown {
+                        status: status_byte,
+                        data: data.to_vec(),
+                    }),
                 }
             }
-            _ => Ok(MidiCommand::Unknown { status: status_byte, data: data.to_vec() }),
+            _ => Ok(MidiCommand::Unknown {
+                status: status_byte,
+                data: data.to_vec(),
+            }),
         }
     }
 }

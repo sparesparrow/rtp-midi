@@ -1,7 +1,7 @@
-use tokio::net::UdpSocket;
-use std::net::SocketAddr;
-use tokio::sync::mpsc::Sender;
 use crate::event_bus::Event;
+use std::net::SocketAddr;
+use tokio::net::UdpSocket;
+use tokio::sync::mpsc::Sender;
 
 pub struct NetworkInterface {
     socket: UdpSocket,
@@ -11,7 +11,10 @@ pub struct NetworkInterface {
 impl NetworkInterface {
     pub async fn new(bind_addr: &str, event_sender: Sender<Event>) -> std::io::Result<Self> {
         let socket = UdpSocket::bind(bind_addr).await?;
-        Ok(Self { socket, event_sender })
+        Ok(Self {
+            socket,
+            event_sender,
+        })
     }
 
     pub async fn start_listening(&self) {
@@ -37,4 +40,4 @@ impl NetworkInterface {
     pub async fn handle_send_packet(&self, payload: Vec<u8>, dest_addr: SocketAddr) {
         let _ = self.socket.send_to(&payload, dest_addr).await;
     }
-} 
+}

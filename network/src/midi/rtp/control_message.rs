@@ -23,7 +23,8 @@ impl AppleMidiHeader {
     }
 
     fn parse(reader: &mut Bytes) -> Result<Self> {
-        if reader.len() < 12 { // 2 magic bytes + 2 command bytes + 4 version + 4 token + 4 ssrc = 16 bytes. Let's start with a minimal check.
+        if reader.len() < 12 {
+            // 2 magic bytes + 2 command bytes + 4 version + 4 token + 4 ssrc = 16 bytes. Let's start with a minimal check.
             return Err(anyhow!("AppleMIDI header too short"));
         }
 
@@ -39,10 +40,18 @@ impl AppleMidiHeader {
         let ssrc = reader.get_u32();
 
         if protocol_version != Self::PROTOCOL_VERSION {
-            return Err(anyhow!("Unsupported AppleMIDI protocol version: {}", protocol_version));
+            return Err(anyhow!(
+                "Unsupported AppleMIDI protocol version: {}",
+                protocol_version
+            ));
         }
 
-        Ok(Self { command, protocol_version, initiator_token, ssrc })
+        Ok(Self {
+            command,
+            protocol_version,
+            initiator_token,
+            ssrc,
+        })
     }
 }
 
@@ -197,7 +206,11 @@ pub struct Sync {
 
 impl Sync {
     pub fn new(ssrc: u32, count: u8, timestamps: [u64; 3]) -> Self {
-        Self { ssrc, count, timestamps }
+        Self {
+            ssrc,
+            count,
+            timestamps,
+        }
     }
 
     pub fn serialize(&self) -> Bytes {
@@ -232,12 +245,12 @@ impl Sync {
         let ssrc = reader.get_u32();
         let count = reader.get_u8();
         reader.advance(3); // Skip padding
-        let timestamps = [
-            reader.get_u64(),
-            reader.get_u64(),
-            reader.get_u64(),
-        ];
-        Ok(Self { ssrc, count, timestamps })
+        let timestamps = [reader.get_u64(), reader.get_u64(), reader.get_u64()];
+        Ok(Self {
+            ssrc,
+            count,
+            timestamps,
+        })
     }
 }
 
@@ -249,7 +262,10 @@ pub struct ReceiverFeedback {
 
 impl ReceiverFeedback {
     pub fn new(ssrc: u32, sequence_number: u16) -> Self {
-        Self { ssrc, sequence_number }
+        Self {
+            ssrc,
+            sequence_number,
+        }
     }
 
     pub fn serialize(&self) -> Bytes {
@@ -279,7 +295,10 @@ impl ReceiverFeedback {
         let ssrc = reader.get_u32();
         let sequence_number = reader.get_u16();
         reader.advance(2); // Skip padding
-        Ok(Self { ssrc, sequence_number })
+        Ok(Self {
+            ssrc,
+            sequence_number,
+        })
     }
 }
 
@@ -300,14 +319,20 @@ impl AppleMidiMessage {
             return Err(anyhow!("Message too short for command detection"));
         }
         let command_bytes = [reader.chunk()[2], reader.chunk()[3]];
-        
+
         match &command_bytes {
             b"IN" => Ok(AppleMidiMessage::Invitation(Invitation::parse(reader)?)),
-            b"OK" => Ok(AppleMidiMessage::InvitationAccepted(InvitationAccepted::parse(reader)?)),
-            b"NO" => Ok(AppleMidiMessage::InvitationRejected(InvitationRejected::parse(reader)?)),
+            b"OK" => Ok(AppleMidiMessage::InvitationAccepted(
+                InvitationAccepted::parse(reader)?,
+            )),
+            b"NO" => Ok(AppleMidiMessage::InvitationRejected(
+                InvitationRejected::parse(reader)?,
+            )),
             b"BY" => Ok(AppleMidiMessage::Exit(Exit::parse(reader)?)),
             b"CK" => Ok(AppleMidiMessage::Sync(Sync::parse(reader)?)),
-            b"RS" => Ok(AppleMidiMessage::ReceiverFeedback(ReceiverFeedback::parse(reader)?)),
+            b"RS" => Ok(AppleMidiMessage::ReceiverFeedback(ReceiverFeedback::parse(
+                reader,
+            )?)),
             _ => Err(anyhow!("Unknown AppleMIDI command: {:?}", command_bytes)),
         }
     }
@@ -322,4 +347,4 @@ impl AppleMidiMessage {
             AppleMidiMessage::ReceiverFeedback(msg) => msg.serialize(),
         }
     }
-} 
+}

@@ -59,4 +59,4 @@ impl EventBus {
         let (sender, _) = broadcast::channel(buffer);
         Self { sender }
     }
-} 
+}

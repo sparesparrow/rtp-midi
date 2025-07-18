@@ -4,9 +4,10 @@ use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
-use tokio::sync::Mutex;
+use std::sync::Arc;
 use tokio::net::TcpStream;
-use tokio_tungstenite::{tungstenite::Message, connect_async, MaybeTlsStream, WebSocketStream};
+use tokio::sync::Mutex;
+use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
 use url::Url;
 use webrtc::api::media_engine::MediaEngine;
 use webrtc::api::APIBuilder;
@@ -16,10 +17,9 @@ use webrtc::ice_transport::ice_server::RTCIceServer;
 use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc::peer_connection::RTCPeerConnection;
-use webrtc::track::track_remote::TrackRemote;
-use webrtc::rtp_transceiver::RTCRtpTransceiver;
 use webrtc::rtp_transceiver::rtp_receiver::RTCRtpReceiver;
-use std::sync::Arc;
+use webrtc::rtp_transceiver::RTCRtpTransceiver;
+use webrtc::track::track_remote::TrackRemote;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 enum PeerType {
@@ -71,7 +71,11 @@ async fn main() -> Result<()> {
     };
 
     let register_msg_str = serde_json::to_string(&register_msg)?;
-    ws_write.lock().await.send(Message::text(register_msg_str)).await?;
+    ws_write
+        .lock()
+        .await
+        .send(Message::text(register_msg_str))
+        .await?;
 
     let client_connections = Arc::new(Mutex::new(HashMap::<String, ClientConnection>::new()));
 
@@ -141,18 +145,19 @@ async fn handle_offer(
         urls: vec!["stun:stun.l.google.com:19302".to_string()],
         ..Default::default()
     }];
-    let peer_connection: Arc<RTCPeerConnection> = Arc::new(api.new_peer_connection(rtc_config).await?);
-    
+    let peer_connection: Arc<RTCPeerConnection> =
+        Arc::new(api.new_peer_connection(rtc_config).await?);
+
     let _pc_clone = Arc::clone(&peer_connection);
     let ws_write_clone = Arc::clone(&ws_write);
     let server_id_clone = server_id.to_string();
     let client_id_clone = client_id.to_string();
-    
+
     peer_connection.on_ice_candidate(Box::new(move |candidate: Option<RTCIceCandidate>| {
         let ws_write = ws_write_clone.clone();
         let server_id = server_id_clone.clone();
         let client_id = client_id_clone.clone();
-    
+
         Box::pin(async move {
             if let Some(candidate) = candidate {
                 let candidate_msg = SignalingMessage {
@@ -161,7 +166,7 @@ async fn handle_offer(
                     receiver_id: Some(client_id),
                     payload: json!({ "candidate": candidate }),
                 };
-    
+
                 if let Ok(msg_str) = serde_json::to_string(&candidate_msg) {
                     let mut guard = ws_write.lock().await;
                     if let Err(e) = guard.send(Message::text(msg_str)).await {
@@ -171,70 +176,82 @@ async fn handle_offer(
             }
         })
     }));
-    
+
     let client_id_for_dc = client_id.to_string();
     let client_connections_clone = Arc::clone(&client_connections);
-    
+
     peer_connection.on_data_channel(Box::new(move |data_channel: Arc<RTCDataChannel>| {
         let client_id = client_id_for_dc.clone();
         let connections = client_connections_clone.clone();
-    
+
         Box::pin(async move {
-            info!("[AudioServer] Přijat data channel od klienta: {}", client_id);
+            info!(
+                "[AudioServer] Přijat data channel od klienta: {}",
+                client_id
+            );
             let _dc_clone = Arc::clone(&data_channel);
             let client_id_clone = client_id.clone();
-    
+
             data_channel.on_message(Box::new(move |msg| {
                 Box::pin({
                     let value = client_id_clone.clone();
                     async move {
                         if !msg.is_string {
-                            info!("[AudioServer] MIDI data od klienta {}: {:?}", value, msg.data);
+                            info!(
+                                "[AudioServer] MIDI data od klienta {}: {:?}",
+                                value, msg.data
+                            );
                         }
                     }
                 })
             }));
-    
+
             let mut connections_lock = connections.lock().await;
             if let Some(conn) = connections_lock.get_mut(&client_id) {
                 conn.data_channel = Some(Arc::clone(&data_channel));
             }
         })
     }));
-    
+
     let client_id_on_track = client_id.to_string();
-    peer_connection.on_track(Box::new(move |track: Arc<TrackRemote>, _receiver: Arc<RTCRtpReceiver>, _transceiver: Arc<RTCRtpTransceiver>| {
-        let track_client_id = client_id_on_track.clone();
-        Box::pin(async move {
-            info!(
-                "[AudioServer] Přijat stream SSRC {} od klienta {}, typ: {}",
-                track.ssrc(),
-                track_client_id,
-                track.kind()
-            );
-        })
-    }));
-    
+    peer_connection.on_track(Box::new(
+        move |track: Arc<TrackRemote>,
+              _receiver: Arc<RTCRtpReceiver>,
+              _transceiver: Arc<RTCRtpTransceiver>| {
+            let track_client_id = client_id_on_track.clone();
+            Box::pin(async move {
+                info!(
+                    "[AudioServer] Přijat stream SSRC {} od klienta {}, typ: {}",
+                    track.ssrc(),
+                    track_client_id,
+                    track.kind()
+                );
+            })
+        },
+    ));
+
     if let Some(sdp) = msg.payload.get("sdp").and_then(|v| v.as_str()) {
         let offer = RTCSessionDescription::offer(sdp.to_string())?;
         peer_connection.set_remote_description(offer).await?;
         let answer = peer_connection.create_answer(None).await?;
-        peer_connection.set_local_description(answer.clone()).await?;
-    
+        peer_connection
+            .set_local_description(answer.clone())
+            .await?;
+
         let answer_msg = SignalingMessage {
             message_type: "answer".to_string(),
             sender_id: server_id.to_string(),
             receiver_id: Some(client_id.to_string()),
             payload: json!({ "sdp": peer_connection.local_description().await.unwrap().sdp }),
         };
-    
+
         if let Ok(msg_str) = serde_json::to_string(&answer_msg) {
             let mut guard = ws_write.lock().await;
             if let Err(e) = guard.send(Message::text(msg_str)).await {
                 error!("[AudioServer] Chyba při odesílání odpovědi: {}", e);
             }
         }
-    
+
         let mut client_conns = client_connections.lock().await;
         client_conns.insert(
             client_id.to_string(),
@@ -245,6 +262,6 @@ async fn handle_offer(
         );
         info!("[AudioServer] Odpověď odeslána klientovi {}", client_id);
     }
-    
+
     Ok(())
 }

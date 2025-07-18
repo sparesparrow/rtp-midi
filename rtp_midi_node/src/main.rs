@@ -1,23 +1,29 @@
-use std::env;
-use tokio::sync::watch;
-use log::info;
 #[cfg(feature = "ctrlc")]
 use ctrlc;
+use log::info;
+use std::env;
+use tokio::sync::watch;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let role = args.iter().position(|a| a == "--role").and_then(|i| args.get(i+1)).map(|s| s.as_str());
+    let role = args
+        .iter()
+        .position(|a| a == "--role")
+        .and_then(|i| args.get(i + 1))
+        .map(|s| s.as_str());
 
     match role {
         Some("server") => {
             println!("[rtp-midi-node] Spouštím v režimu SERVER");
-            let config = rtp_midi_lib::Config::load_from_file("config.toml").expect("config.toml načtení selhalo");
+            let config = rtp_midi_lib::Config::load_from_file("config.toml")
+                .expect("config.toml načtení selhalo");
             let (shutdown_tx, shutdown_rx) = watch::channel(false);
             #[cfg(feature = "ctrlc")]
             ctrlc::set_handler(move || {
                 info!("Ctrl+C signal received, initiating shutdown...");
                 let _ = shutdown_tx.send(true);
-            }).expect("Error setting Ctrl-C handler");
+            })
+            .expect("Error setting Ctrl-C handler");
             #[cfg(not(feature = "ctrlc"))]
             println!("Ctrl+C handler not available; shutdown must be triggered manually.");
             let service = tokio::spawn(async move {
@@ -44,7 +50,8 @@ fn main() {
                     Ok(body) => Ok(res.body(body)?),
                     Err(_) => Ok(res.status(404).body(b"Not found".to_vec())?),
                 }
-            }).listen("127.0.0.1", "8088");
+            })
+            .listen("127.0.0.1", "8088");
             println!("UI dostupné na http://127.0.0.1:8088/");
         }
         _ => {
@@ -56,4 +63,4 @@ fn main() {
     // TODO: Pro embedded/ESP32 buildy lze autodetekovat platformu přes feature flagy nebo env proměnné
 }
 
-// POZOR: Pokud build selže kvůli chybějící závislosti simple-server, přidejte ji do [dependencies] v Cargo.toml root crate. 
+// POZOR: Pokud build selže kvůli chybějící závislosti simple-server, přidejte ji do [dependencies] v Cargo.toml root crate.

@@ -1,10 +1,10 @@
 #![deny(warnings)]
 use anyhow::Result;
 use ddp_rs::connection::DDPConnection;
-use rtp_midi_core::{DataStreamNetSender, StreamError, DataStreamNetReceiver};
+use rtp_midi_core::{DataStreamNetReceiver, DataStreamNetSender, StreamError};
 
 /// Wrapper pro DDP odesílač implementující sjednocené API.
-/// 
+///
 /// Umožňuje odesílat LED data přes DDP protokol jednotným způsobem (implementace DataStreamNetSender).
 /// Použijte např. v service loop nebo v enum dispatch pro embedded buildy.
 ///
@@ -27,7 +27,8 @@ impl DataStreamNetSender for DdpSender {
         Ok(())
     }
     fn send(&mut self, _ts: u64, payload: &[u8]) -> Result<(), StreamError> {
-        self.conn.write(payload)
+        self.conn
+            .write(payload)
             .map(|_| ())
             .map_err(|e| StreamError::Other(e.to_string()))
     }
@@ -39,16 +40,22 @@ pub fn send_ddp_frame(sender: &mut DDPConnection, data: &[u8]) -> Result<()> {
     Ok(())
 }
 
-pub fn create_ddp_sender(ip: &str, port: u16, _led_count: usize, _rgbw: bool) -> Result<DDPConnection> {
+pub fn create_ddp_sender(
+    ip: &str,
+    port: u16,
+    _led_count: usize,
+    _rgbw: bool,
+) -> Result<DDPConnection> {
     let pixel_config = ddp_rs::protocol::PixelConfig::default(); // Always RGB
     let addr = format!("{}:{}", ip, port);
     let socket = std::net::UdpSocket::bind("0.0.0.0:0")?;
-    let sender = DDPConnection::try_new(addr, pixel_config, ddp_rs::protocol::ID::Custom(1), socket)?;
+    let sender =
+        DDPConnection::try_new(addr, pixel_config, ddp_rs::protocol::ID::Custom(1), socket)?;
     Ok(sender)
 }
 
 /// Šablona pro DDP přijímač implementující sjednocené API.
-/// 
+///
 /// Připravena pro budoucí rozšíření (implementace DataStreamNetReceiver).
 ///
 /// Příklad použití:
@@ -77,7 +84,8 @@ impl DataStreamNetReceiver for DdpReceiver {
         // Inicializace přijímače (otevření socketu na DDP portu 4048)
         let socket = std::net::UdpSocket::bind("0.0.0.0:4048")
             .map_err(|e| StreamError::Other(format!("Failed to bind DDP socket: {}", e)))?;
-        socket.set_nonblocking(true)
+        socket
+            .set_nonblocking(true)
             .map_err(|e| StreamError::Other(format!("Failed to set non-blocking: {}", e)))?;
         self.socket = Some(socket);
         Ok(())
@@ -91,12 +99,14 @@ impl DataStreamNetReceiver for DdpReceiver {
                         .map_err(|e| StreamError::Other(format!("Time error: {}", e)))?
                         .as_millis() as u64;
                     Ok(Some((ts, len)))
-                },
+                }
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => Ok(None),
                 Err(e) => Err(StreamError::Other(format!("DDP recv error: {}", e))),
             }
         } else {
-            Err(StreamError::Other("DDP receiver socket not initialized".to_string()))
+            Err(StreamError::Other(
+                "DDP receiver socket not initialized".to_string(),
+            ))
         }
     }
 }
@@ -125,4 +135,4 @@ mod ddp_tests {
 
     // Note: send_ddp_frame is hard to test in isolation without a mock UDP socket or a real receiver.
     // It's better covered by integration tests.
-} 
+}

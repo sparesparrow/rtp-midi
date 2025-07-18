@@ -1,13 +1,13 @@
 use anyhow::Result;
+use log::{error, info};
 use reqwest::Client;
 use serde_json::json;
-use log::{error, info};
 // use utils::NetworkInterface; // Removed to break dependency cycle
-use rtp_midi_core::{DataStreamNetSender, StreamError};
 use rtp_midi_core::WledOutputAction;
+use rtp_midi_core::{DataStreamNetSender, StreamError};
 
 /// Wrapper pro WLED JSON API odesílač implementující sjednocené API.
-/// 
+///
 /// Umožňuje odesílat příkazy na WLED zařízení přes HTTP/JSON jednotným způsobem (implementace DataStreamNetSender).
 /// Použijte např. v service loop nebo v enum dispatch pro embedded buildy.
 ///
@@ -41,28 +41,35 @@ impl DataStreamNetSender for WledSender {
         let resp = client.post(&url).json(&json_payload).send();
         match resp {
             Ok(r) if r.status().is_success() => Ok(()),
-            Ok(r) => Err(StreamError::Other(format!("WLED HTTP error: {}", r.status()))),
+            Ok(r) => Err(StreamError::Other(format!(
+                "WLED HTTP error: {}",
+                r.status()
+            ))),
             Err(e) => Err(StreamError::Other(format!("WLED send error: {}", e))),
         }
     }
 }
 
 /// Sends a generic JSON command to the WLED device.
-pub async fn send_wled_json_command(
-    wled_ip: &str,
-    json_payload: serde_json::Value,
-) -> Result<()> {
+pub async fn send_wled_json_command(wled_ip: &str, json_payload: serde_json::Value) -> Result<()> {
     let client = Client::new();
     let url = format!("http://{}/json/state", wled_ip);
 
     match client.post(&url).json(&json_payload).send().await {
         Ok(response) => {
             if response.status().is_success() {
-                info!("Successfully sent WLED command. Status: {}", response.status());
+                info!(
+                    "Successfully sent WLED command. Status: {}",
+                    response.status()
+                );
             } else {
-                error!("Failed to send WLED command. Status: {}, Response: {:?}", response.status(), response.text().await);
+                error!(
+                    "Failed to send WLED command. Status: {}, Response: {:?}",
+                    response.status(),
+                    response.text().await
+                );
             }
-        },
+        }
         Err(e) => error!("Error sending WLED command: {}", e),
     }
     Ok(())
@@ -91,11 +98,20 @@ pub async fn set_wled_preset(wled_ip: &str, preset_id: u8) -> Result<()> {
 }
 
 /// Sets a WLED effect for the primary segment via the JSON API.
-pub async fn set_wled_effect(wled_ip: &str, effect_id: i32, speed: Option<u8>, intensity: Option<u8>) -> Result<()> {
+pub async fn set_wled_effect(
+    wled_ip: &str,
+    effect_id: i32,
+    speed: Option<u8>,
+    intensity: Option<u8>,
+) -> Result<()> {
     let mut seg_payload = serde_json::Map::new();
     seg_payload.insert("fx".to_string(), json!(effect_id));
-    if let Some(s) = speed { seg_payload.insert("sx".to_string(), json!(s)); }
-    if let Some(i) = intensity { seg_payload.insert("ix".to_string(), json!(i)); }
+    if let Some(s) = speed {
+        seg_payload.insert("sx".to_string(), json!(s));
+    }
+    if let Some(i) = intensity {
+        seg_payload.insert("ix".to_string(), json!(i));
+    }
 
     let payload = json!({ "seg": [seg_payload] });
     send_wled_json_command(wled_ip, payload).await
@@ -118,21 +134,17 @@ pub async fn execute_wled_action(action: &WledOutputAction, wled_ip: &str) {
         WledOutputAction::SetPreset { id } => {
             set_wled_preset(wled_ip, (*id).try_into().unwrap()).await
         }
-        WledOutputAction::SetBrightness { value } => {
-            set_wled_brightness(wled_ip, *value).await
-        }
-        WledOutputAction::SetColor { r, g, b } => {
-            set_wled_color(wled_ip, *r, *g, *b).await
-        }
-        WledOutputAction::SetEffect { id, speed, intensity } => {
-            set_wled_effect(wled_ip, *id, *speed, *intensity).await
-        }
-        WledOutputAction::SetPalette { id } => {
-            set_wled_palette(wled_ip, *id).await
-        }
+        WledOutputAction::SetBrightness { value } => set_wled_brightness(wled_ip, *value).await,
+        WledOutputAction::SetColor { r, g, b } => set_wled_color(wled_ip, *r, *g, *b).await,
+        WledOutputAction::SetEffect {
+            id,
+            speed,
+            intensity,
+        } => set_wled_effect(wled_ip, *id, *speed, *intensity).await,
+        WledOutputAction::SetPalette { id } => set_wled_palette(wled_ip, *id).await,
     };
 
     if let Err(e) = result {
         error!("Failed to execute WLED action {:?}: {}", action, e);
     }
-} 
+}

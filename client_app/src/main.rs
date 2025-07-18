@@ -1,7 +1,7 @@
-use tokio::sync::watch;
-use log::{info, error};
-use rtp_midi_lib::{Config, run_service_loop};
+use log::{error, info};
+use rtp_midi_lib::{run_service_loop, Config};
 use tokio::runtime::Runtime;
+use tokio::sync::watch;
 
 /// Main entry point for the desktop application.
 /// This loads the configuration and runs the service loop until interrupted.
@@ -28,7 +28,8 @@ fn main() {
     ctrlc::set_handler(move || {
         info!("Ctrl+C signal received, initiating shutdown...");
         let _ = shutdown_tx.send(true);
-    }).expect("Error setting Ctrl-C handler");
+    })
+    .expect("Error setting Ctrl-C handler");
 
     info!("Service starting. Press Ctrl+C to stop.");
 
