@@ -1,7 +1,5 @@
 use crate::event_bus::Event;
-use log::{error, info, warn};
 use std::net::SocketAddr;
-use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::mpsc::{Receiver, Sender};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -41,64 +39,61 @@ impl SessionManager {
     }
 
     async fn process_event(&mut self, event: Event) {
-        match event {
-            Event::RawPacketReceived {
+        if let Event::RawPacketReceived {
                 payload,
                 source_addr,
-            } => {
-                // Parse AppleMIDI control packet (IN, OK, NO, BY, CK)
-                if let Some(cmd) = Self::parse_applemidi_command(&payload) {
-                    match cmd {
-                        AppleMidiCommand::Invitation {
-                            initiator_token,
-                            ssrc,
-                            name,
-                        } => {
-                            // Handle invitation (IN)
-                            self.handle_invitation(initiator_token, ssrc, name, source_addr)
-                                .await;
-                        }
-                        AppleMidiCommand::InvitationAccepted {
-                            initiator_token,
-                            ssrc,
-                            name,
-                        } => {
-                            // Handle invitation accepted (OK)
-                            self.handle_invitation_accepted(
-                                initiator_token,
-                                ssrc,
-                                name,
-                                source_addr,
-                            )
+            } = event {
+            // Parse AppleMIDI control packet (IN, OK, NO, BY, CK)
+            if let Some(cmd) = Self::parse_applemidi_command(&payload) {
+                match cmd {
+                    AppleMidiCommand::Invitation {
+                        initiator_token,
+                        ssrc,
+                        name,
+                    } => {
+                        // Handle invitation (IN)
+                        self.handle_invitation(initiator_token, ssrc, name, source_addr)
                             .await;
-                        }
-                        AppleMidiCommand::InvitationRejected {
+                    }
+                    AppleMidiCommand::InvitationAccepted {
+                        initiator_token,
+                        ssrc,
+                        name,
+                    } => {
+                        // Handle invitation accepted (OK)
+                        self.handle_invitation_accepted(
                             initiator_token,
                             ssrc,
-                        } => {
-                            // Handle invitation rejected (NO)
-                            self.handle_invitation_rejected(initiator_token, ssrc, source_addr)
-                                .await;
-                        }
-                        AppleMidiCommand::EndSession { ssrc } => {
-                            // Handle session termination (BY)
-                            self.handle_end_session(ssrc, source_addr).await;
-                        }
-                        AppleMidiCommand::ClockSync {
-                            count,
-                            timestamps,
-                            ssrc,
-                        } => {
-                            // Handle clock sync (CK)
-                            self.handle_clock_sync(count, timestamps, ssrc, source_addr)
-                                .await;
-                        }
+                            name,
+                            source_addr,
+                        )
+                        .await;
                     }
-                } else {
-                    // Not a control packet; ignore or handle as MIDI data
+                    AppleMidiCommand::InvitationRejected {
+                        initiator_token,
+                        ssrc,
+                    } => {
+                        // Handle invitation rejected (NO)
+                        self.handle_invitation_rejected(initiator_token, ssrc, source_addr)
+                            .await;
+                    }
+                    AppleMidiCommand::EndSession { ssrc } => {
+                        // Handle session termination (BY)
+                        self.handle_end_session(ssrc, source_addr).await;
+                    }
+                    AppleMidiCommand::ClockSync {
+                        count,
+                        timestamps,
+                        ssrc,
+                    } => {
+                        // Handle clock sync (CK)
+                        self.handle_clock_sync(count, timestamps, ssrc, source_addr)
+                            .await;
+                    }
                 }
+            } else {
+                // Not a control packet; ignore or handle as MIDI data
             }
-            _ => {}
         }
     }
 
@@ -312,67 +307,64 @@ impl SessionManager {
         source_addr: SocketAddr,
     ) {
         // AppleMIDI CK three-way exchange
-        match self.state {
-            SessionState::Syncing => {
-                match count {
-                    0 => {
-                        // Received CK0, respond with CK1
-                        let now = Self::current_timestamp();
-                        let mut payload = Vec::new();
-                        payload.extend_from_slice(b"CK");
-                        payload.push(1); // count = 1 (CK1)
-                        payload.push(0); // reserved
-                        payload.extend_from_slice(&ssrc.to_be_bytes());
-                        payload.extend_from_slice(&timestamps[0].to_be_bytes()); // timestamp1 (from peer)
-                        payload.extend_from_slice(&now.to_be_bytes()); // timestamp2 (our time)
-                        payload.extend_from_slice(&0u64.to_be_bytes()); // timestamp3 (zero)
-                        let _ = self
-                            .event_sender
-                            .send(Event::SendPacket {
-                                payload,
-                                dest_addr: source_addr,
-                            })
-                            .await;
-                    }
-                    1 => {
-                        // Received CK1, respond with CK2
-                        let now = Self::current_timestamp();
-                        let mut payload = Vec::new();
-                        payload.extend_from_slice(b"CK");
-                        payload.push(2); // count = 2 (CK2)
-                        payload.push(0); // reserved
-                        payload.extend_from_slice(&ssrc.to_be_bytes());
-                        payload.extend_from_slice(&timestamps[0].to_be_bytes()); // timestamp1 (from peer)
-                        payload.extend_from_slice(&timestamps[1].to_be_bytes()); // timestamp2 (from peer)
-                        payload.extend_from_slice(&now.to_be_bytes()); // timestamp3 (our time)
-                        let _ = self
-                            .event_sender
-                            .send(Event::SendPacket {
-                                payload,
-                                dest_addr: source_addr,
-                            })
-                            .await;
-                        // Session is now established
-                        self.state = SessionState::Connected;
-                        // Emit event: SessionEstablished
-                        let _ = self
-                            .event_sender
-                            .send(Event::SessionEstablished { peer: source_addr })
-                            .await;
-                    }
-                    2 => {
-                        // Received CK2, handshake complete
-                        self.state = SessionState::Connected;
-                        // Emit event: SessionEstablished
-                        let _ = self
-                            .event_sender
-                            .send(Event::SessionEstablished { peer: source_addr })
-                            .await;
-                    }
-                    _ => {}
+        if self.state == SessionState::Syncing {
+            match count {
+                0 => {
+                    // Received CK0, respond with CK1
+                    let now = Self::current_timestamp();
+                    let mut payload = Vec::new();
+                    payload.extend_from_slice(b"CK");
+                    payload.push(1); // count = 1 (CK1)
+                    payload.push(0); // reserved
+                    payload.extend_from_slice(&ssrc.to_be_bytes());
+                    payload.extend_from_slice(&timestamps[0].to_be_bytes()); // timestamp1 (from peer)
+                    payload.extend_from_slice(&now.to_be_bytes()); // timestamp2 (our time)
+                    payload.extend_from_slice(&0u64.to_be_bytes()); // timestamp3 (zero)
+                    let _ = self
+                        .event_sender
+                        .send(Event::SendPacket {
+                            payload,
+                            dest_addr: source_addr,
+                        })
+                        .await;
                 }
+                1 => {
+                    // Received CK1, respond with CK2
+                    let now = Self::current_timestamp();
+                    let mut payload = Vec::new();
+                    payload.extend_from_slice(b"CK");
+                    payload.push(2); // count = 2 (CK2)
+                    payload.push(0); // reserved
+                    payload.extend_from_slice(&ssrc.to_be_bytes());
+                    payload.extend_from_slice(&timestamps[0].to_be_bytes()); // timestamp1 (from peer)
+                    payload.extend_from_slice(&timestamps[1].to_be_bytes()); // timestamp2 (from peer)
+                    payload.extend_from_slice(&now.to_be_bytes()); // timestamp3 (our time)
+                    let _ = self
+                        .event_sender
+                        .send(Event::SendPacket {
+                            payload,
+                            dest_addr: source_addr,
+                        })
+                        .await;
+                    // Session is now established
+                    self.state = SessionState::Connected;
+                    // Emit event: SessionEstablished
+                    let _ = self
+                        .event_sender
+                        .send(Event::SessionEstablished { peer: source_addr })
+                        .await;
+                }
+                2 => {
+                    // Received CK2, handshake complete
+                    self.state = SessionState::Connected;
+                    // Emit event: SessionEstablished
+                    let _ = self
+                        .event_sender
+                        .send(Event::SessionEstablished { peer: source_addr })
+                        .await;
+                }
+                _ => {}
             }
-            _ => {}
         }
     }
 
