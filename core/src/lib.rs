@@ -40,9 +40,9 @@ pub enum StreamError {
 impl fmt::Display for StreamError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            StreamError::Io(e) => write!(f, "IO chyba: {}", e),
-            StreamError::Network(s) => write!(f, "Síťová chyba: {}", s),
-            StreamError::Other(s) => write!(f, "Jiná chyba: {}", s),
+            StreamError::Io(e) => write!(f, "IO chyba: {e}"),
+            StreamError::Network(s) => write!(f, "Síťová chyba: {s}"),
+            StreamError::Other(s) => write!(f, "Jiná chyba: {s}"),
         }
     }
 }
