@@ -130,9 +130,13 @@ pub async fn run_service_loop(config: Config, shutdown_rx: watch::Receiver<bool>
     let event_tx_clone_midi = event_tx.clone();
     tokio::spawn(async move {
         let session = Arc::new(Mutex::new(
-            RtpMidiSession::new("Rust WLED Hub".to_string(), midi_port, Some(event_tx_clone_midi.clone()))
-                .await
-                .expect("Failed to create RTP-MIDI session"),
+            RtpMidiSession::new(
+                "Rust WLED Hub".to_string(),
+                midi_port,
+                Some(event_tx_clone_midi.clone()),
+            )
+            .await
+            .expect("Failed to create RTP-MIDI session"),
         ));
 
         let mut raw_packet_rx = event_tx_clone_midi.subscribe();
@@ -250,9 +254,7 @@ pub async fn run_service_loop(config: Config, shutdown_rx: watch::Receiver<bool>
                                 for action in &mapping.output {
                                     match action {
                                         MappingOutput::Wled(wled_action) => {
-                                            if let Ok(payload) =
-                                                serde_json::to_vec(&wled_action)
-                                            {
+                                            if let Ok(payload) = serde_json::to_vec(&wled_action) {
                                                 let _ = wled_sender.send(0, &payload);
                                             }
                                         } // utils::MappingOutput::Ddp(ddp_action) => {
@@ -271,7 +273,12 @@ pub async fn run_service_loop(config: Config, shutdown_rx: watch::Receiver<bool>
         }
 
         // --- MIDI Processing ---
-        if let Ok(event_bus::Event::MidiCommandsReceived { commands, timestamp: _timestamp, peer: _peer }) = midi_event_rx.try_recv() {
+        if let Ok(event_bus::Event::MidiCommandsReceived {
+            commands,
+            timestamp: _timestamp,
+            peer: _peer,
+        }) = midi_event_rx.try_recv()
+        {
             if let Ok((parsed_command, _)) = parse_midi_message(&commands) {
                 if let Some(mappings) = &mappings {
                     for mapping in mappings {

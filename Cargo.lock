@@ -1889,9 +1889,7 @@ version = "0.1.0"
 dependencies = [
  "android_logger",
  "anyhow",
- "audio_server",
  "bytes 1.10.1",
- "client_app",
  "env_logger 0.11.8",
  "jni",
  "log 0.4.27",
@@ -1900,7 +1898,6 @@ dependencies = [
  "rtp_midi_core",
  "rtp_midi_lib",
  "serde",
- "signaling_server",
  "tempfile",
  "tokio",
 ]

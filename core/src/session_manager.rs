@@ -40,9 +40,10 @@ impl SessionManager {
 
     async fn process_event(&mut self, event: Event) {
         if let Event::RawPacketReceived {
-                payload,
-                source_addr,
-            } = event {
+            payload,
+            source_addr,
+        } = event
+        {
             // Parse AppleMIDI control packet (IN, OK, NO, BY, CK)
             if let Some(cmd) = Self::parse_applemidi_command(&payload) {
                 match cmd {
@@ -61,13 +62,8 @@ impl SessionManager {
                         name,
                     } => {
                         // Handle invitation accepted (OK)
-                        self.handle_invitation_accepted(
-                            initiator_token,
-                            ssrc,
-                            name,
-                            source_addr,
-                        )
-                        .await;
+                        self.handle_invitation_accepted(initiator_token, ssrc, name, source_addr)
+                            .await;
                     }
                     AppleMidiCommand::InvitationRejected {
                         initiator_token,

@@ -20,9 +20,6 @@ jni = { workspace = true }
 anyhow = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 rtp_midi_lib = { path = "../rtp_midi_lib" }
-signaling_server = { path = "../signaling_server" }
-audio_server = { path = "../audio_server" }
-client_app = { path = "../client_app" }
 mockito = { workspace = true }
 tempfile = { workspace = true }
 env_logger = { workspace = true } 

@@ -11,7 +11,17 @@ use tokio::sync::mpsc;
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 use uuid::Uuid;
 
-type PeersMap = Arc<Mutex<HashMap<String, (PeerType, mpsc::Sender<Result<Message, tokio_tungstenite::tungstenite::Error>>)>>>;
+type PeersMap = Arc<
+    Mutex<
+        HashMap<
+            String,
+            (
+                PeerType,
+                mpsc::Sender<Result<Message, tokio_tungstenite::tungstenite::Error>>,
+            ),
+        >,
+    >,
+>;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum PeerType {
