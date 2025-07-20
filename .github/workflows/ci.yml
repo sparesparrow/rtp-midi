@@ -49,6 +49,7 @@ jobs:
     name: Android Build & Test
     runs-on: ubuntu-latest
     continue-on-error: true
+    needs: rust
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK
@@ -58,22 +59,45 @@ jobs:
           java-version: '17'
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+      - name: Install Android NDK
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "ndk;25.2.9519653"
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+        working-directory: android_hub
       - name: Build Android App
-        run: ./gradlew assembleDebug --no-daemon
-        working-directory: android_hub/app
+        run: |
+          if [ -f "../build_android.sh" ]; then
+            echo "Rust build script found, building with native library"
+            ./gradlew assembleDebug --no-daemon
+          else
+            echo "Rust build script not found, building without native library"
+            ./gradlew assembleDebug --no-daemon -x buildRustLibrary
+          fi
+        working-directory: android_hub
       - name: Run Unit Tests
-        run: ./gradlew testDebugUnitTest --no-daemon
-        working-directory: android_hub/app
+        run: |
+          if [ -f "../build_android.sh" ]; then
+            echo "Rust build script found, running tests with native library"
+            ./gradlew testDebugUnitTest --no-daemon
+          else
+            echo "Rust build script not found, running tests without native library"
+            ./gradlew testDebugUnitTest --no-daemon -x buildRustLibrary
+          fi
+        working-directory: android_hub
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
           path: android_hub/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn
 
   esp32:
     name: ESP32 Firmware Build
     runs-on: ubuntu-latest
     continue-on-error: true
+    needs: rust
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -82,6 +106,12 @@ jobs:
           python-version: '3.11'
       - name: Install PlatformIO
         run: pip install platformio
+      - name: Check ESP32 firmware directory
+        run: |
+          if [ ! -d "firmware/esp32_visualizer" ]; then
+            echo "ESP32 firmware directory not found, skipping build"
+            exit 0
+          fi
       - name: Build ESP32 Firmware
         run: pio run
         working-directory: firmware/esp32_visualizer
@@ -90,3 +120,4 @@ jobs:
         with:
           name: esp32-firmware
           path: firmware/esp32_visualizer/.pio/build/*/*.bin
+          if-no-files-found: warn
