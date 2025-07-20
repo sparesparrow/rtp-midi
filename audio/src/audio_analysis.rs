@@ -35,8 +35,8 @@ mod tests {
         let n = 64;
         let freq_bin = 4;
         let mut input = vec![0.0f32; n];
-        for i in 0..n {
-            input[i] = (2.0 * PI * freq_bin as f32 * i as f32 / n as f32).sin();
+        for (i, item) in input.iter_mut().enumerate().take(n) {
+            *item = (2.0 * PI * freq_bin as f32 * i as f32 / n as f32).sin();
         }
         let mut prev = vec![];
         let mags = compute_fft_magnitudes(&input, &mut prev, 0.0);

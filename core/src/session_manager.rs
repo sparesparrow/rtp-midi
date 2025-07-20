@@ -159,13 +159,13 @@ impl SessionManager {
                 let count = payload[2];
                 let ssrc = u32::from_be_bytes([payload[4], payload[5], payload[6], payload[7]]);
                 let mut timestamps = [0u64; 3];
-                for i in 0..3 {
+                for (i, ts) in timestamps.iter_mut().enumerate().take(3) {
                     let start = 8 + i * 8;
                     let end = start + 8;
                     if end > payload.len() {
                         return None;
                     }
-                    timestamps[i] = u64::from_be_bytes(payload[start..end].try_into().ok()?);
+                    *ts = u64::from_be_bytes(payload[start..end].try_into().ok()?);
                 }
                 Some(AppleMidiCommand::ClockSync {
                     count,

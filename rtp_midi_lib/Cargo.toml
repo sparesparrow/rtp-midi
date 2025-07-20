@@ -31,14 +31,16 @@ rand = { workspace = true }
 
 # Android and FFI specific dependencies
 libc = { workspace = true }
-jni = { workspace = true }
-android_logger = { workspace = true }
-rsbinder = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
 serde_json = { workspace = true }
 
 [build-dependencies]
 rsbinder-aidl = { workspace = true }
+
+[target.'cfg(target_os = "android")'.dependencies]
+rsbinder = { workspace = true }
+android_logger = { workspace = true }
+jni = { workspace = true }
 
 [target.aarch64-linux-android.dependencies]
 openssl = { version = "0.10.64", features = ["vendored"] } 

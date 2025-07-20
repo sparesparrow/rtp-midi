@@ -19,21 +19,13 @@ impl NetworkInterface {
 
     pub async fn start_listening(&self) {
         let mut buf = [0u8; 2048];
-        loop {
-            match self.socket.recv_from(&mut buf).await {
-                Ok((len, src)) => {
-                    let payload = buf[..len].to_vec();
-                    let event = Event::RawPacketReceived {
-                        payload,
-                        source_addr: src,
-                    };
-                    let _ = self.event_sender.send(event).await;
-                }
-                Err(_e) => {
-                    // Log error or handle as needed
-                    break;
-                }
-            }
+        while let Ok((len, src)) = self.socket.recv_from(&mut buf).await {
+            let payload = buf[..len].to_vec();
+            let event = Event::RawPacketReceived {
+                payload,
+                source_addr: src,
+            };
+            let _ = self.event_sender.send(event).await;
         }
     }
 

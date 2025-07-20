@@ -42,7 +42,7 @@ struct SignalingMessage {
 }
 
 struct ClientConnection {
-    peer_connection: Arc<RTCPeerConnection>,
+    _peer_connection: Arc<RTCPeerConnection>,
     data_channel: Option<Arc<RTCDataChannel>>,
 }
 
@@ -140,11 +140,13 @@ async fn handle_offer(
     let mut media_engine = MediaEngine::default();
     media_engine.register_default_codecs()?;
     let api = APIBuilder::new().with_media_engine(media_engine).build();
-    let mut rtc_config = RTCConfiguration::default();
-    rtc_config.ice_servers = vec![RTCIceServer {
-        urls: vec!["stun:stun.l.google.com:19302".to_string()],
+    let rtc_config = RTCConfiguration {
+        ice_servers: vec![RTCIceServer {
+            urls: vec!["stun:stun.l.google.com:19302".to_string()],
+            ..Default::default()
+        }],
         ..Default::default()
-    }];
+    };
     let peer_connection: Arc<RTCPeerConnection> =
         Arc::new(api.new_peer_connection(rtc_config).await?);
 
@@ -256,7 +258,7 @@ async fn handle_offer(
         client_conns.insert(
             client_id.to_string(),
             ClientConnection {
-                peer_connection: Arc::clone(&peer_connection),
+                _peer_connection: Arc::clone(&peer_connection),
                 data_channel: None,
             },
         );

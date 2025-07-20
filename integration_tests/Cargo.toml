@@ -11,6 +11,11 @@ bytes = "1.0"
 tokio = { version = "1", features = ["full"] }
 rtp_midi_core = { path = "../core" }
 
+[target.'cfg(target_os = "android")'.dependencies]
+rsbinder = { workspace = true }
+android_logger = { workspace = true }
+jni = { workspace = true }
+
 [dev-dependencies]
 anyhow = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

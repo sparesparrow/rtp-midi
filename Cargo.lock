@@ -262,10 +262,13 @@ dependencies = [
 name = "audio_server"
 version = "0.1.0"
 dependencies = [
+ "android_logger",
  "anyhow",
  "bytes 1.10.1",
  "futures-util",
+ "jni",
  "log 0.4.27",
+ "rsbinder",
  "rtp_midi_core",
  "serde",
  "serde_json",
@@ -580,13 +583,16 @@ checksum = "b94f61472cee1439c0b966b47e3aca9ae07e45d070759512cd390ea2bebc6675"
 name = "client_app"
 version = "0.1.0"
 dependencies = [
+ "android_logger",
  "anyhow",
  "bytes 1.10.1",
  "clap",
  "ctrlc",
  "env_logger 0.10.2",
  "futures-util",
+ "jni",
  "log 0.4.27",
+ "rsbinder",
  "rtp_midi_core",
  "rtp_midi_lib",
  "serde",
@@ -1881,13 +1887,16 @@ dependencies = [
 name = "integration_tests"
 version = "0.1.0"
 dependencies = [
+ "android_logger",
  "anyhow",
  "audio_server",
  "bytes 1.10.1",
  "client_app",
  "env_logger 0.11.8",
+ "jni",
  "log 0.4.27",
  "mockito",
+ "rsbinder",
  "rtp_midi_core",
  "rtp_midi_lib",
  "serde",
@@ -2862,9 +2871,12 @@ checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
 name = "platform"
 version = "0.1.0"
 dependencies = [
+ "android_logger",
  "anyhow",
  "bytes 1.10.1",
+ "jni",
  "log 0.4.27",
+ "rsbinder",
  "rtp_midi_core",
  "serde",
  "tokio",
@@ -3376,9 +3388,12 @@ dependencies = [
 name = "rtp_midi_core"
 version = "0.1.0"
 dependencies = [
+ "android_logger",
  "anyhow",
  "bytes 1.10.1",
+ "jni",
  "log 0.4.27",
+ "rsbinder",
  "serde",
  "tokio",
  "toml 0.5.11",

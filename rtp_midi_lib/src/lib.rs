@@ -13,7 +13,7 @@ use output::ddp_output::{create_ddp_sender, DdpReceiver, DdpSender};
 use output::light_mapper::{map_leds_with_preset, MappingPreset};
 use output::wled_control::WledSender;
 use rtp_midi_core::{event_bus, DataStreamNetReceiver, DataStreamNetSender};
-use rtp_midi_core::{parse_midi_message, InputEvent, Mapping, MappingOutput, MidiCommand};
+use rtp_midi_core::{parse_midi_message, InputEvent, MappingOutput, MidiCommand};
 use tokio::sync::watch;
 use tokio::sync::Mutex;
 
@@ -31,7 +31,7 @@ use tokio::sync::Mutex;
 /// Příklad rozšíření:
 /// if let MappingOutput::Wled(action) = ... { wled_sender.send(...); }
 /// if let MappingOutput::Ddp(action) = ... { ddp_sender.send(...); }
-pub async fn run_service_loop(config: Config, mut shutdown_rx: watch::Receiver<bool>) {
+pub async fn run_service_loop(config: Config, shutdown_rx: watch::Receiver<bool>) {
     info!("Service loop starting...");
 
     let wled_ip = config.wled_ip.clone();
@@ -130,13 +130,13 @@ pub async fn run_service_loop(config: Config, mut shutdown_rx: watch::Receiver<b
     let event_tx_clone_midi = event_tx.clone();
     tokio::spawn(async move {
         let session = Arc::new(Mutex::new(
-            RtpMidiSession::new("Rust WLED Hub".to_string(), midi_port)
+            RtpMidiSession::new("Rust WLED Hub".to_string(), midi_port, Some(event_tx_clone_midi.clone()))
                 .await
                 .expect("Failed to create RTP-MIDI session"),
         ));
 
         let mut raw_packet_rx = event_tx_clone_midi.subscribe();
-        let session_clone = Arc::clone(&session);
+        let _session_clone = Arc::clone(&session);
         let event_tx_clone_midi_inner = event_tx_clone_midi.clone();
         tokio::spawn(async move {
             while let Ok(event) = raw_packet_rx.recv().await {
@@ -149,7 +149,7 @@ pub async fn run_service_loop(config: Config, mut shutdown_rx: watch::Receiver<b
                         "RTP-MIDI Session received raw packet from {}: {:?}",
                         source_addr, payload
                     );
-                    session_clone
+                    _session_clone
                         .lock()
                         .await
                         .handle_incoming_packet(payload, &event_tx_clone_midi_inner, source_addr)
@@ -158,9 +158,9 @@ pub async fn run_service_loop(config: Config, mut shutdown_rx: watch::Receiver<b
             }
         });
 
-        let session_clone = Arc::clone(&session);
+        let _session_clone = Arc::clone(&session);
         let event_tx_clone_midi2 = event_tx_clone_midi.clone();
-        session
+        _session_clone
             .lock()
             .await
             .add_outgoing_packet_handler(move |destination, port, data| {
@@ -180,9 +180,9 @@ pub async fn run_service_loop(config: Config, mut shutdown_rx: watch::Receiver<b
             })
             .await;
 
-        let session_clone = Arc::clone(&session);
+        let _session_clone = Arc::clone(&session);
         let event_tx_clone_midi3 = event_tx_clone_midi.clone();
-        session
+        _session_clone
             .lock()
             .await
             .add_midi_command_handler(move |commands: Vec<MidiMessage>| {
@@ -222,49 +222,47 @@ pub async fn run_service_loop(config: Config, mut shutdown_rx: watch::Receiver<b
 
     while !*shutdown_rx.borrow() {
         // --- Audio Processing ---
-        if let Ok(event) = audio_event_rx.try_recv() {
-            if let event_bus::Event::AudioDataReady(audio_buffer) = event {
-                let magnitudes = compute_fft_magnitudes(&audio_buffer, &mut prev_mags, 0.5);
-                let band_size = magnitudes.len() / 3;
-                let bass_level = magnitudes
-                    .iter()
-                    .take(band_size)
-                    .cloned()
-                    .fold(0.0, f32::max);
-                let led_data = map_leds_with_preset(&magnitudes, config.led_count, mapping_preset);
-                // Send led_data to DDP output
-                if let Err(e) = ddp_sender.send(0, &led_data) {
-                    error!("Failed to send LED data to DDP output: {}", e);
-                }
+        if let Ok(event_bus::Event::AudioDataReady(audio_buffer)) = audio_event_rx.try_recv() {
+            let magnitudes = compute_fft_magnitudes(&audio_buffer, &mut prev_mags, 0.5);
+            let band_size = magnitudes.len() / 3;
+            let bass_level = magnitudes
+                .iter()
+                .take(band_size)
+                .cloned()
+                .fold(0.0, f32::max);
+            let led_data = map_leds_with_preset(&magnitudes, config.led_count, mapping_preset);
+            // Send led_data to DDP output
+            if let Err(e) = ddp_sender.send(0, &led_data) {
+                error!("Failed to send LED data to DDP output: {}", e);
+            }
 
-                if let Some(mappings) = &mappings {
-                    for mapping in mappings {
-                        if let InputEvent::AudioBand { band, threshold } = &mapping.input {
-                            if band == "bass" {
-                                let trigger_threshold = threshold.unwrap_or(0.8);
+            if let Some(mappings) = &mappings {
+                for mapping in mappings {
+                    if let InputEvent::AudioBand { band, threshold } = &mapping.input {
+                        if band == "bass" {
+                            let trigger_threshold = threshold.unwrap_or(0.8);
 
-                                if bass_level >= trigger_threshold && !bass_preset_triggered {
-                                    info!(
-                                        "Bass peak detected! Level: {:.2}. Triggering actions.",
-                                        bass_level
-                                    );
-                                    for action in &mapping.output {
-                                        match action {
-                                            MappingOutput::Wled(wled_action) => {
-                                                if let Ok(payload) =
-                                                    serde_json::to_vec(&wled_action)
-                                                {
-                                                    let _ = wled_sender.send(0, &payload);
-                                                }
-                                            } // utils::MappingOutput::Ddp(ddp_action) => {
-                                              //     // Přidejte logiku pro DDP výstup
-                                              // }
-                                        }
+                            if bass_level >= trigger_threshold && !bass_preset_triggered {
+                                info!(
+                                    "Bass peak detected! Level: {:.2}. Triggering actions.",
+                                    bass_level
+                                );
+                                for action in &mapping.output {
+                                    match action {
+                                        MappingOutput::Wled(wled_action) => {
+                                            if let Ok(payload) =
+                                                serde_json::to_vec(&wled_action)
+                                            {
+                                                let _ = wled_sender.send(0, &payload);
+                                            }
+                                        } // utils::MappingOutput::Ddp(ddp_action) => {
+                                          //     // Přidejte logiku pro DDP výstup
+                                          // }
                                     }
-                                    bass_preset_triggered = true;
-                                } else if bass_level < trigger_threshold && bass_preset_triggered {
-                                    bass_preset_triggered = false;
                                 }
+                                bass_preset_triggered = true;
+                            } else if bass_level < trigger_threshold && bass_preset_triggered {
+                                bass_preset_triggered = false;
                             }
                         }
                     }
@@ -273,36 +271,29 @@ pub async fn run_service_loop(config: Config, mut shutdown_rx: watch::Receiver<b
         }
 
         // --- MIDI Processing ---
-        if let Ok(event) = midi_event_rx.try_recv() {
-            if let event_bus::Event::MidiCommandsReceived {
-                commands,
-                timestamp,
-                peer,
-            } = event
-            {
-                if let Ok((parsed_command, _)) = parse_midi_message(&commands) {
-                    if let Some(mappings) = &mappings {
-                        for mapping in mappings {
-                            if mapping.matches_midi_command(&parsed_command) {
-                                match parsed_command {
-                                    MidiCommand::NoteOn { key, .. } => {
-                                        info!("MIDI NoteOn {} matched a mapping.", key)
-                                    }
-                                    MidiCommand::ControlChange { control, value, .. } => {
-                                        info!("MIDI CC {} ({}) matched a mapping.", control, value)
-                                    }
-                                    _ => (),
+        if let Ok(event_bus::Event::MidiCommandsReceived { commands, timestamp: _timestamp, peer: _peer }) = midi_event_rx.try_recv() {
+            if let Ok((parsed_command, _)) = parse_midi_message(&commands) {
+                if let Some(mappings) = &mappings {
+                    for mapping in mappings {
+                        if mapping.matches_midi_command(&parsed_command) {
+                            match parsed_command {
+                                MidiCommand::NoteOn { key, .. } => {
+                                    info!("MIDI NoteOn {} matched a mapping.", key)
                                 }
-                                for action in &mapping.output {
-                                    match action {
-                                        MappingOutput::Wled(wled_action) => {
-                                            if let Ok(payload) = serde_json::to_vec(&wled_action) {
-                                                let _ = wled_sender.send(0, &payload);
-                                            }
-                                        } // utils::MappingOutput::Ddp(ddp_action) => {
-                                          //     // Přidejte logiku pro DDP výstup
-                                          // }
-                                    }
+                                MidiCommand::ControlChange { control, value, .. } => {
+                                    info!("MIDI CC {} ({}) matched a mapping.", control, value)
+                                }
+                                _ => (),
+                            }
+                            for action in &mapping.output {
+                                match action {
+                                    MappingOutput::Wled(wled_action) => {
+                                        if let Ok(payload) = serde_json::to_vec(&wled_action) {
+                                            let _ = wled_sender.send(0, &payload);
+                                        }
+                                    } // utils::MappingOutput::Ddp(ddp_action) => {
+                                      //     // Přidejte logiku pro DDP výstup
+                                      // }
                                 }
                             }
                         }

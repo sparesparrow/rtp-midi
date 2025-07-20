@@ -11,6 +11,8 @@ use tokio::sync::mpsc;
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 use uuid::Uuid;
 
+type PeersMap = Arc<Mutex<HashMap<String, (PeerType, mpsc::Sender<Result<Message, tokio_tungstenite::tungstenite::Error>>)>>>;
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum PeerType {
     AudioServer,
@@ -55,17 +57,7 @@ pub struct ClientNotification {
 
 #[derive(Clone)]
 pub struct Clients {
-    peers: Arc<
-        Mutex<
-            HashMap<
-                String,
-                (
-                    PeerType,
-                    mpsc::Sender<Result<Message, tokio_tungstenite::tungstenite::Error>>,
-                ),
-            >,
-        >,
-    >,
+    peers: PeersMap,
 }
 
 impl Default for Clients {

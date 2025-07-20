@@ -48,6 +48,12 @@ pub enum Event {
         peer: std::net::SocketAddr,
     },
     AudioDataReady(Vec<f32>),
+    SyncStatusChanged {
+        peer: std::net::SocketAddr,
+    },
+    SyncFailed {
+        peer: std::net::SocketAddr,
+    },
 }
 
 pub struct EventBus {
