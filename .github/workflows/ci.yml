@@ -35,6 +35,8 @@ jobs:
           key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
       - name: Lint
         run: cargo fmt --all -- --check && cargo clippy --all-targets -- -D warnings
+      - name: Cargo Fix Suggestions
+        run: cargo fix --workspace --allow-dirty --allow-staged || true
       - name: Build
         run: cargo build --workspace --all-targets
       - name: Test

@@ -47,7 +47,7 @@ pub fn create_ddp_sender(
     _rgbw: bool,
 ) -> Result<DDPConnection> {
     let pixel_config = ddp_rs::protocol::PixelConfig::default(); // Always RGB
-    let addr = format!("{}:{}", ip, port);
+    let addr = format!("{ip}:{port}");
     let socket = std::net::UdpSocket::bind("0.0.0.0:0")?;
     let sender =
         DDPConnection::try_new(addr, pixel_config, ddp_rs::protocol::ID::Custom(1), socket)?;
@@ -83,7 +83,7 @@ impl DataStreamNetReceiver for DdpReceiver {
     fn init(&mut self) -> Result<(), StreamError> {
         // Inicializace přijímače (otevření socketu na DDP portu 4048)
         let socket = std::net::UdpSocket::bind("0.0.0.0:4048")
-            .map_err(|e| StreamError::Other(format!("Failed to bind DDP socket: {}", e)))?;
+            .map_err(|e| StreamError::Other(format!("Failed to bind DDP socket: {e}")))?;
         socket
             .set_nonblocking(true)
             .map_err(|e| StreamError::Other(format!("Failed to set non-blocking: {}", e)))?;

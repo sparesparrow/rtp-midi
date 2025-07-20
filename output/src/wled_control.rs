@@ -145,6 +145,6 @@ pub async fn execute_wled_action(action: &WledOutputAction, wled_ip: &str) {
     };
 
     if let Err(e) = result {
-        error!("Failed to execute WLED action {:?}: {}", action, e);
+        error!("Failed to execute WLED action {action:?}: {e}");
     }
 }
