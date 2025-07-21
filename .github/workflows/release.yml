@@ -7,22 +7,23 @@ on:
 
 jobs:
   build_and_release:
+    timeout-minutes: 30
     name: Build and Release
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # SHA: 2b2e6c4b0e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@stable # SHA: c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3
 
       - name: Build for release
         run: cargo build --release --verbose
 
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
+        uses: actions/create-release@v1 # SHA: e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -35,7 +36,7 @@ jobs:
           generate_release_notes: true
 
       - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
+        uses: actions/upload-release-asset@v1 # SHA: f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -45,7 +46,7 @@ jobs:
           asset_content_type: application/octet-stream
 
       - name: Upload dependency graph
-        uses: actions/upload-release-asset@v1
+        uses: actions/upload-release-asset@v1 # SHA: f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

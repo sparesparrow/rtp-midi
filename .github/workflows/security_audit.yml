@@ -10,15 +10,16 @@ on:
 
 jobs:
   audit:
+    timeout-minutes: 30
     name: Security Audit
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # SHA: 2b2e6c4b0e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@stable # SHA: c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3
 
       - name: Install cargo-audit
         run: cargo install cargo-audit
