@@ -18,7 +18,7 @@ url = { workspace = true }
 tokio-tungstenite = { workspace = true }
 futures-util = { workspace = true }
 uuid = { workspace = true }
-clap = { version = "4.5.4", features = ["derive"] } 
+clap = { version = "4.5.41", features = ["derive"] } 
 
 [target.'cfg(target_os = "android")'.dependencies]
 rsbinder = { workspace = true }
