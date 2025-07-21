@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM rust:1.85 as builderDockerfile
+FROM rust:1.85 as builder
 
 # Install system dependencies required for building
 RUN apt-get update && apt-get install -y \
