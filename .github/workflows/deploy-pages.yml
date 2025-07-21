@@ -12,12 +12,19 @@ jobs:
   build-and-deploy:
     timeout-minutes: 30
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: deploy-pages-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # SHA: 2b2e6c4b0e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2
+        uses: actions/checkout@v4
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable # SHA: c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Install wasm-pack
         run: cargo install wasm-pack --locked
@@ -26,7 +33,7 @@ jobs:
         run: wasm-pack build ./ui-frontend --target web --out-dir ./ui-frontend/dist
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3 # SHA: d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4
+        uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./ui-frontend/dist

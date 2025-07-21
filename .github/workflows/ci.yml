@@ -7,14 +7,25 @@ on:
     branches: [ master, main ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  actions: read
+  checks: write
+  packages: read
+  statuses: write
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   rust:
     name: Rust Build & Test
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4 # SHA: 2b2e6c4b0e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2
+      - uses: actions/checkout@v4
       - name: Set up Rust
-        uses: actions-rs/toolchain@v1 # SHA: 3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c
+        uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           profile: minimal
@@ -22,14 +33,14 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y pkg-config libssl-dev libasound2-dev
       - name: Cache cargo registry
-        uses: actions/cache@v4 # SHA: 4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
       - name: Cache cargo build
-        uses: actions/cache@v4 # SHA: 4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d
+        uses: actions/cache@v4
         with:
           path: target
           key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
@@ -42,7 +53,7 @@ jobs:
       - name: Test
         run: cargo test --workspace --all-targets
       - name: Upload Rust Artifacts
-        uses: actions/upload-artifact@v4 # SHA: 5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e
+        uses: actions/upload-artifact@v4
         with:
           name: rust-binaries
           path: target/
@@ -52,15 +63,16 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     needs: rust
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4 # SHA: 2b2e6c4b0e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2
+      - uses: actions/checkout@v4
       - name: Set up JDK
-        uses: actions/setup-java@v4 # SHA: 6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3 # SHA: 7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a
+        uses: android-actions/setup-android@v3
       - name: Install Android NDK
         run: |
           yes | sdkmanager --licenses
@@ -89,7 +101,7 @@ jobs:
           fi
         working-directory: android_hub
       - name: Upload APK
-        uses: actions/upload-artifact@v4 # SHA: 5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e
+        uses: actions/upload-artifact@v4
         with:
           name: android-apk
           path: android_hub/app/build/outputs/apk/debug/*.apk
@@ -100,10 +112,11 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     needs: rust
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4 # SHA: 2b2e6c4b0e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v5 # SHA: 8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: Install PlatformIO
@@ -118,13 +131,8 @@ jobs:
         run: pio run
         working-directory: firmware/esp32_visualizer
       - name: Upload Firmware
-        uses: actions/upload-artifact@v4 # SHA: 5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e
+        uses: actions/upload-artifact@v4
         with:
           name: esp32-firmware
           path: firmware/esp32_visualizer/.pio/build/*/*.bin
           if-no-files-found: warn
-
-# Add timeout-minutes to each job
-defaults:
-  run:
-    timeout-minutes: 30

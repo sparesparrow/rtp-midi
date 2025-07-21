@@ -12,13 +12,17 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
+    concurrency:
+      group: docker-publish-${{ github.ref }}
+      cancel-in-progress: true
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # SHA: 2b2e6c4b0e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2
+        uses: actions/checkout@v4
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3 # SHA: 9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -26,12 +30,12 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v5 # SHA: a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1
+        uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5 # SHA: b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2
+        uses: docker/build-push-action@v5
         with:
           context: .
           push: true
