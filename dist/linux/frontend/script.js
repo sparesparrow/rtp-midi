@@ -332,21 +332,49 @@ async function handleIceCandidate(candidate) {
 function configureDataChannel(channel) {
     channel.onopen = (event) => {
         console.log('Data channel opened');
-        // TODO: Indicate data channel is ready for MIDI data
+        setStatus('connected', 'Data Channel Ready');
+        addMessage('Data channel is open and ready for MIDI data.');
     };
 
     channel.onmessage = (event) => {
         console.log('Data channel message received:', event.data);
-        // TODO: Process incoming MIDI data
+        // Assume MIDI data is sent as Uint8Array or Array of bytes (JSON-encoded)
+        let midiBytes;
+        if (event.data instanceof ArrayBuffer) {
+            midiBytes = new Uint8Array(event.data);
+        } else if (typeof event.data === 'string') {
+            try {
+                // Try to parse as JSON array
+                const arr = JSON.parse(event.data);
+                if (Array.isArray(arr)) {
+                    midiBytes = Uint8Array.from(arr);
+                }
+            } catch (e) {
+                console.warn('Data channel message is not valid JSON:', event.data);
+            }
+        }
+        if (midiBytes && midiBytes.length > 0) {
+            const midi = parseMidiMessage(midiBytes);
+            if (midi) {
+                addMidiEvent({direction: 'In (DataChannel)', ...midi});
+            } else {
+                addMessage('Received unknown MIDI data on data channel: ' + midiBytes);
+            }
+        } else {
+            addMessage('Received non-MIDI or malformed data on data channel.');
+        }
     };
 
     channel.onerror = (event) => {
         console.error('Data channel error:', event);
+        setStatus('error', 'Data Channel Error');
+        addMessage('Data channel error occurred.');
     };
 
     channel.onclose = (event) => {
         console.log('Data channel closed');
-        // TODO: Handle data channel closure
+        setStatus('disconnected', 'Data Channel Closed');
+        addMessage('Data channel has been closed. MIDI data will not be received.');
     };
 }
 

@@ -23,13 +23,13 @@ pub fn start_audio_input(
     let config = device.default_input_config()?;
     let sample_format = config.sample_format();
     let config = config.into();
-    let err_fn = |err| eprintln!("Audio input error: {}", err);
+    let err_fn = |err| eprintln!("Audio input error: {err}");
     let stream = match sample_format {
         SampleFormat::F32 => build_input_stream::<f32>(&device, &config, tx.clone(), err_fn)?,
         SampleFormat::I16 => build_input_stream::<i16>(&device, &config, tx.clone(), err_fn)?,
         SampleFormat::U16 => build_input_stream::<u16>(&device, &config, tx.clone(), err_fn)?,
         _ => {
-            log::error!("Unsupported sample format: {:?}", sample_format);
+            log::error!("Unsupported sample format: {sample_format:?}");
             return Err(anyhow::anyhow!(
                 "Unsupported sample format: {:?}",
                 sample_format

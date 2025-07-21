@@ -10,10 +10,7 @@ members = [
     "crates/hal-pc",
     "crates/hal-esp32",
     "crates/hal-android",
-    "crates/service-bus",
-    "client_app",
-    "integration_tests",
-    "ui-frontend"
+    "crates/service-bus"
 ]
 resolver = "2" # Recommended for workspaces
 
