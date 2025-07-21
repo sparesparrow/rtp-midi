@@ -5,6 +5,12 @@
 
 set -e
 
+if [[ "$1" == "--help" ]]; then
+  echo "Usage: $0 [all|rust|docker|android|esp32|test]"
+  echo "Builds all or selected targets. Default: all."
+  exit 0
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -122,6 +128,12 @@ run_tests() {
     log_success "Tests completed successfully"
 }
 
+# Check for config.toml
+if [ ! -f config.toml ] && [ ! -f config.toml.example ]; then
+  log_error "config.toml or config.toml.example is required."
+  exit 1
+fi
+
 # Main build process
 main() {
     log_info "Starting rtp-midi build process (version $VERSION)"
@@ -130,10 +142,26 @@ main() {
     setup_dirs
     
     # Build components
-    build_rust
-    build_docker
-    build_android
-    build_esp32
+    if [[ "$1" == "all" || -z "$1" ]]; then
+      build_rust
+      build_docker
+      build_android
+      build_esp32
+    elif [[ "$1" == "rust" ]]; then
+      build_rust
+    elif [[ "$1" == "docker" ]]; then
+      build_docker
+    elif [[ "$1" == "android" ]]; then
+      build_android
+    elif [[ "$1" == "esp32" ]]; then
+      build_esp32
+    elif [[ "$1" == "test" ]]; then
+      run_tests
+      exit 0
+    else
+      log_error "Unknown build target: $1"
+      exit 1
+    fi
     
     # Test
     run_tests

@@ -86,7 +86,7 @@ impl DataStreamNetReceiver for DdpReceiver {
             .map_err(|e| StreamError::Other(format!("Failed to bind DDP socket: {e}")))?;
         socket
             .set_nonblocking(true)
-            .map_err(|e| StreamError::Other(format!("Failed to set non-blocking: {}", e)))?;
+            .map_err(|e| StreamError::Other(format!("Failed to set non-blocking: {e}")))?;
         self.socket = Some(socket);
         Ok(())
     }
@@ -96,12 +96,12 @@ impl DataStreamNetReceiver for DdpReceiver {
                 Ok(len) => {
                     let ts = std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
-                        .map_err(|e| StreamError::Other(format!("Time error: {}", e)))?
+                        .map_err(|e| StreamError::Other(format!("Time error: {e}")))?
                         .as_millis() as u64;
                     Ok(Some((ts, len)))
                 }
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => Ok(None),
-                Err(e) => Err(StreamError::Other(format!("DDP recv error: {}", e))),
+                Err(e) => Err(StreamError::Other(format!("DDP recv error: {e}"))),
             }
         } else {
             Err(StreamError::Other(

@@ -10,9 +10,22 @@ members = [
     "crates/hal-pc",
     "crates/hal-esp32",
     "crates/hal-android",
-    "crates/service-bus"
+    "crates/service-bus",
+    "client_app",
+    "integration_tests",
+    "ui-frontend"
 ]
 resolver = "2" # Recommended for workspaces
+
+[workspace.package]
+authors = ["Sparrow <sparesparrow@protonmail.com>"]
+description = "Modular real-time MIDI/audio/LED system with Android, ESP32, and Linux support."
+repository = "https://github.com/sparesparrow/rtp-midi"
+edition = "2021"
+
+[workspace.metadata]
+dist_dir = "dist"
+ci = true
 
 [workspace.dependencies]
 # --- Základní nástroje a utility ---

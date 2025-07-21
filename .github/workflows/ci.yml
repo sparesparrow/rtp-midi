@@ -57,6 +57,30 @@ jobs:
         with:
           name: rust-binaries
           path: target/
+      - name: Ensure config.toml exists
+        run: |
+          if [ ! -f config.toml ]; then
+            if [ -f config.toml.example ]; then
+              cp config.toml.example config.toml
+            else
+              echo 'config.toml and config.toml.example missing!'; exit 1
+            fi
+          fi
+      - name: Run cargo-deny (if deny.toml present)
+        run: |
+          if [ -f deny.toml ]; then
+            cargo install cargo-deny || true
+            cargo deny check || true
+          else
+            echo 'deny.toml not present, skipping cargo-deny.'
+          fi
+      - name: Package Release Artifacts
+        run: bash ./package_release.sh
+      - name: Upload Release Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: dist/
 
   android:
     name: Android Build & Test

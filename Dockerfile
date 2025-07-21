@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM rust:1.85 as builder
+FROM rust:1.85 as builderDockerfile
 
 # Install system dependencies required for building
 RUN apt-get update && apt-get install -y \
@@ -24,6 +24,14 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 COPY --from=builder /app/target/release/rtp_midi_node /app/rtp_midi_node
+COPY config.toml.example /app/config.toml.example
+# Copy config.toml if present, otherwise use example (user should mount their own for production)
+COPY config.toml /app/config.toml
+# HEALTHCHECK for the service
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD [ -f /app/config.toml ] || exit 1
+LABEL maintainer="sparesparrow@protonmail.com"
+LABEL version="1.0"
+# To use a custom config, mount it: -v "$PWD/config.toml:/app/config.toml"
 EXPOSE 5004/udp
 ENTRYPOINT ["/app/rtp_midi_node"]
 CMD [] 

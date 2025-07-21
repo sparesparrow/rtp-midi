@@ -14,5 +14,19 @@
     "espressif.esp-idf-extension",
     "ms-androidtools.vscode-android"
   ],
-  "postCreateCommand": "pip install platformio && rustup component add clippy rustfmt"
+  "features": {
+    "ghcr.io/devcontainers/features/rust:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:1": {}
+  },
+  "postCreateCommand": "cargo build --workspace || true",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "ms-azuretools.vscode-docker",
+        "serayuzgur.crates",
+        "vadimcn.vscode-lldb"
+      ]
+    }
+  }
 }

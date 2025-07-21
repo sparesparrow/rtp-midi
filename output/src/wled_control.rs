@@ -33,7 +33,7 @@ impl DataStreamNetSender for WledSender {
         // Payload je JSON (nebo serializovaný příkaz)
         let json_payload = match serde_json::from_slice::<serde_json::Value>(payload) {
             Ok(val) => val,
-            Err(e) => return Err(StreamError::Other(format!("Invalid JSON payload: {}", e))),
+            Err(e) => return Err(StreamError::Other(format!("Invalid JSON payload: {e}"))),
         };
         // Blokující verze pro jednoduchost (v produkci by bylo async)
         let client = reqwest::blocking::Client::new();
@@ -45,7 +45,7 @@ impl DataStreamNetSender for WledSender {
                 "WLED HTTP error: {}",
                 r.status()
             ))),
-            Err(e) => Err(StreamError::Other(format!("WLED send error: {}", e))),
+            Err(e) => Err(StreamError::Other(format!("WLED send error: {e}"))),
         }
     }
 }
@@ -53,7 +53,7 @@ impl DataStreamNetSender for WledSender {
 /// Sends a generic JSON command to the WLED device.
 pub async fn send_wled_json_command(wled_ip: &str, json_payload: serde_json::Value) -> Result<()> {
     let client = Client::new();
-    let url = format!("http://{}/json/state", wled_ip);
+    let url = format!("http://{wled_ip}/json/state");
 
     match client.post(&url).json(&json_payload).send().await {
         Ok(response) => {
@@ -70,7 +70,7 @@ pub async fn send_wled_json_command(wled_ip: &str, json_payload: serde_json::Val
                 );
             }
         }
-        Err(e) => error!("Error sending WLED command: {}", e),
+        Err(e) => error!("Error sending WLED command: {e}"),
     }
     Ok(())
 }

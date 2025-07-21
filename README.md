@@ -108,6 +108,34 @@ docker run -it --rm -p 5004:5004/udp rtp-midi-local
 - Dokumentace k těmto komponentám je dostupná v archivu pro referenci.
 
 ---
+## Configuration
+
+The application is configured via `config.toml` in the working directory. You can copy `config.toml.example` to `config.toml` and edit as needed:
+
+```sh
+cp config.toml.example config.toml
+# Edit config.toml to match your environment
+```
+
+### Docker Usage with Custom Config
+To use a custom config with Docker:
+```sh
+docker run -it --rm -v "$PWD/config.toml:/app/config.toml" -p 5004:5004/udp rtp-midi-local
+```
+
+---
+## Troubleshooting
+- **Missing config.toml:** Ensure `config.toml` is present in the working directory or mounted into Docker. The app will fail to start if missing.
+- **Workspace errors:** If you add new crates, update the `[workspace].members` in the root `Cargo.toml`.
+
+---
+## Running Tests and CI Locally
+- Run all tests: `cargo test --workspace --all-targets`
+- Lint: `cargo fmt --all -- --check && cargo clippy --all-targets -- -D warnings`
+- Build all: `bash ./build_all.sh`
+- Package for release: `bash ./package_release.sh`
+
+---
 ## 6. Troubleshooting
 
 - **No LEDs light up:** Check WLED IP, LED count, and power.
