@@ -1,10 +1,6 @@
 [workspace]
 members = [
     "rtp_midi_lib",
-    "signaling_server",
-    "audio_server",
-    "client_app",
-    "integration_tests",
     "core",
     "network",
     "audio",

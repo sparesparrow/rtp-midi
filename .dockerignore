@@ -1,0 +1,59 @@
+# Git
+.git
+.gitignore
+
+# Rust
+target/
+**/*.rs.bk
+Cargo.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+test_output*.log
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Build scripts
+build_*.sh
+deploy_*.sh
+package_release.sh
+
+# Android
+android_hub/.gradle/
+android_hub/build/
+android_hub/app/build/
+
+# ESP32
+firmware/esp32_visualizer/.pio/
+firmware/esp32_visualizer/build/
+
+# Qt
+qt_ui/
+
+# Legacy components (deprecated)
+signaling_server/
+audio_server/
+client_app/
+integration_tests/
+frontend/
+ui-frontend/
+
+# Test files
+tests/
+
+# Temporary files
+*.tmp
+*.temp 
