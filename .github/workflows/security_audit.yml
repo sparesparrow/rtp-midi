@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # SHA: 2b2e6c4b0e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2
+        uses: actions/checkout@v5 # SHA: 2b2e6c4b0e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable # SHA: c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3
