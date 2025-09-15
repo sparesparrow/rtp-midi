@@ -67,7 +67,7 @@ android_logger = "0.11.0"
 rsbinder = "0.4.0"
 
 # --- Build a Dev závislosti ---
-rsbinder-aidl = "0.4.0"
+rsbinder-aidl = "0.4.2"
 mockito = "1.2.0"
 tempfile = "3.10"
 
