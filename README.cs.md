@@ -112,9 +112,7 @@ docker run -it --rm -p 5004:5004/udp rtp-midi-local
 ---
 ## Configuration
 
-The application is configured via `config.toml` in the working directory. You can copy `config.toml.example` to `config.toml` and edit as needed:
-
-
+The application is configured via `config.toml` in the working directory; edit it to match your environment.
 
 ### Docker Usage with Custom Config
 To use a custom config with Docker:
